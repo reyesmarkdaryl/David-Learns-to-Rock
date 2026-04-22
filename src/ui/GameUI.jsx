@@ -530,6 +530,7 @@ function PlayingField({ summonLog }) {
       {/* Field area — Phaser canvas mounts here */}
       <div
         id="phaser-container"
+        tabIndex={-1}
         style={{
           flex: 1,
           position: 'relative',
@@ -541,6 +542,7 @@ function PlayingField({ summonLog }) {
           backgroundSize: 'cover',
           overflow: 'visible',
           border: '2px solid #00ff00',
+          pointerEvents: 'auto',
         }}
       >
         {/* Grid overlay (gives a tactical map feel) */}

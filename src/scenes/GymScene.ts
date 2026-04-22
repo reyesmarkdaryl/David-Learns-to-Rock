@@ -14,6 +14,7 @@ export class GymScene extends Phaser.Scene {
   private hero!: Hero;
   private enemies!: Phaser.Physics.Arcade.Group;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  private wasdKeys!: any;
   private debugText!: Phaser.GameObjects.Text;
   private debugGraphics!: Phaser.GameObjects.Graphics;
   private assetIndex: any = null;
@@ -157,6 +158,21 @@ export class GymScene extends Phaser.Scene {
 
     this.cursors = this.input.keyboard.createCursorKeys();
 
+    this.wasdKeys = this.input.keyboard.addKeys({
+      left: Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D,
+      up: Phaser.Input.Keyboard.KeyCodes.W,
+      down: Phaser.Input.Keyboard.KeyCodes.S,
+    });
+
+    this.arrowKeys = {
+      up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
+      down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
+      left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
+      right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)
+    };
+
+
     // Create animations
     const createAnim = (key: string, framesKey: string, frameRate: number, repeat: number) => {
       if (!this.anims.exists(key)) {
@@ -297,13 +313,12 @@ export class GymScene extends Phaser.Scene {
 
     if (this.isHitStopped) return; // Skip update during hit-stop
 
-    // Custom WASD mapping for the Hero update
     const customCursors = {
-      left: { isDown: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A).isDown },
-      right: { isDown: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D).isDown },
-      up: { isDown: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W).isDown },
-      down: { isDown: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S).isDown },
-    } as any;
+      left: this.wasdKeys.left,
+      right: this.wasdKeys.right,
+      up: this.wasdKeys.up,
+      down: this.wasdKeys.down
+    };
 
     this.hero.update(customCursors, time);
 

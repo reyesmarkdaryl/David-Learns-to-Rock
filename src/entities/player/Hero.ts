@@ -59,8 +59,8 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
       return;
     }
 
-    const moveX = cursors.left.isDown ? -1 : cursors.right.isDown ? 1 : 0;
-    const moveY = cursors.up.isDown ? -1 : cursors.down.isDown ? 1 : 0;
+    const moveX = (cursors.left.isDown ? -1 : 0) + (cursors.right.isDown ? 1 : 0);
+    const moveY = (cursors.up.isDown ? -1 : 0) + (cursors.down.isDown ? 1 : 0);
 
     if (moveX !== 0 || moveY !== 0) {
       if (this.state !== HeroState.WALK) {
