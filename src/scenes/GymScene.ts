@@ -8,6 +8,7 @@ import { LancerMinion } from '../entities/player/LancerMinion';
 import { ArcherMinion } from '../entities/player/ArcherMinion';
 import { DEBUG_MODE, GYM_ENEMY_SPAWNS } from '../config';
 import { SummonSystem } from '../systems/SummonSystem';
+import { gameEvents } from '../systems/GameEvents';
 
 export class GymScene extends Phaser.Scene {
   private hero!: Hero;
@@ -15,13 +16,9 @@ export class GymScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private debugText!: Phaser.GameObjects.Text;
   private debugGraphics!: Phaser.GameObjects.Graphics;
-  private heroHealthBarBg!: Phaser.GameObjects.Rectangle;
-  private heroHealthBar!: Phaser.GameObjects.Rectangle;
-  private heroHealthText!: Phaser.GameObjects.Text;
   private assetIndex: any = null;
   private isGameOver: boolean = false;
   private summonSystem!: SummonSystem;
-  private summonUIText!: Phaser.GameObjects.Text;
 
   constructor() {
     super('GymScene');
@@ -203,33 +200,8 @@ export class GymScene extends Phaser.Scene {
     this.hero.setTexture('hero_idle');
     this.hero.play('hero_idle_anim', true);
 
-    // Create Hero Health Bar at top of screen
-    const barWidth = 300;
-    const barHeight = 20;
-    const x = (this.cameras.main.width - barWidth) / 2;
-    const y = 40;
-
-    this.heroHealthBarBg = this.add.rectangle(x, y, barWidth, barHeight, 0x000000);
-    this.heroHealthBar = this.add.rectangle(x, y, barWidth, barHeight, 0x00ff00);
-    this.heroHealthBar.setDepth(100);
-    this.heroHealthBarBg.setDepth(99);
-
-    this.heroHealthText = this.add.text(x, y, `${this.hero.stats.hp}/${this.hero.stats.maxHp}`, {
-      fontSize: '14px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setDepth(101);
-
     // Rhythm Summoning System
     this.summonSystem = new SummonSystem();
-    this.summonUIText = this.add.text(this.cameras.main.centerX, y + 40, '', {
-      fontSize: '20px',
-      color: '#ffffff',
-      fontFamily: 'Arial',
-      fontWeight: 'bold',
-      align: 'center'
-    }).setOrigin(0.5).setDepth(102);
-    this.updateSummonUI();
 
     // Create enemies group
     this.enemies = this.physics.add.group();
@@ -320,24 +292,6 @@ export class GymScene extends Phaser.Scene {
     });
   }
 
-  private updateSummonUI() {
-    const tracks = this.summonSystem.getTracksState();
-
-    const rows = tracks.map(track => {
-      const sequence = track.targetSequence;
-      const progress = track.currentIndex;
-      const name = track.name.charAt(0).toUpperCase() + track.name.slice(1);
-
-      const display = sequence.map((dir, i) => {
-        return i < progress ? `[${dir}]` : dir;
-      }).join(' ');
-
-      return `${name}: ${display}`;
-    }).join('\n');
-
-    this.summonUIText.setText(rows);
-  }
-
   update(time: number, delta: number) {
     if (!this.hero || this.isGameOver) return;
 
@@ -360,8 +314,9 @@ export class GymScene extends Phaser.Scene {
         const completed = this.summonSystem.checkInput(key);
         completed.forEach(type => {
           this.spawnFriendlyMinion(type);
+          gameEvents.emit('summon-complete', { name: type });
         });
-        this.updateSummonUI();
+        gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
       }
     });
 
@@ -477,10 +432,11 @@ export class GymScene extends Phaser.Scene {
     if (DEBUG_MODE) {
       this.updateDebug();
     } else {
-      // Update Hero Health Bar when not in debug mode
-      const healthPercent = Math.max(0, this.hero.stats.hp / this.hero.stats.maxHp);
-      this.heroHealthBar.setDisplaySize(300 * healthPercent, 20);
-      this.heroHealthText.setText(`${Math.ceil(this.hero.stats.hp)}/${this.hero.stats.maxHp}`);
+      // Update Hero Health Bar via Event Bus
+      gameEvents.emit('hero-hp-update', {
+        hp: this.hero.stats.hp,
+        maxHp: this.hero.stats.maxHp
+      });
     }
 
     if (this.hero.isDead()) {
@@ -544,15 +500,6 @@ export class GymScene extends Phaser.Scene {
 
 
     this.hero.drawDebug(this.debugGraphics);
-
-    // Draw hero attack range
-    this.debugGraphics.lineStyle(1, 0x0000ff, 0.5);
-    this.debugGraphics.strokeCircle(this.hero.x, this.hero.y, this.hero.stats.attackRange);
-
-    // Update Hero Health Bar
-    const healthPercent = Math.max(0, this.hero.stats.hp / this.hero.stats.maxHp);
-    this.heroHealthBar.setDisplaySize(300 * healthPercent, 20);
-    this.heroHealthText.setText(`${Math.ceil(this.hero.stats.hp)}/${this.hero.stats.maxHp}`);
 
     // Draw enemy hitboxes
     this.enemies.getChildren().forEach((enemy: any) => {

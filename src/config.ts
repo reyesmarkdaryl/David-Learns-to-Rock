@@ -5,7 +5,7 @@ const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: window.innerWidth,
   height: window.innerHeight,
-  parent: 'game-container',
+  parent: 'phaser-container',
   physics: {
     default: 'arcade',
     arcade: {
