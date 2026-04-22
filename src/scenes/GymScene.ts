@@ -196,7 +196,7 @@ export class GymScene extends Phaser.Scene {
     createAnim('enemy_lancer_run_anim', 'lancer_run', 10, -1);
 
     lancerAttackDirs.forEach(dir => {
-      createAnim(`enemy_lancer_attack_${dir}_anim`, `lancer_attack_${dir}`, 12, 0);
+      createAnim(`lancer_attack_${dir}_anim`, `lancer_attack_${dir}`, 12, 0);
     });
 
     this.hero = new Hero(this, 400, 300);
