@@ -111,12 +111,11 @@ src/
 │   ├── CombatSystem.ts       # Player attacks, minion AI, enemy AI
 │   └── RhythmSystem.ts       # Beat tracking (optional synced mode)
 ├── entities/
-│   ├── Player.ts
 │   ├── enemies/
 │   │   ├── BaseEnemy.ts
 │   │   └── [EnemyType].ts
-│   └── minions/
-│       ├── BaseMinion.ts
+│   └── player/
+│       ├── Hero.ts
 │       ├── Warrior.ts
 │       ├── Lancer.ts
 │       └── Archer.ts
