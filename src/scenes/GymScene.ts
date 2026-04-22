@@ -14,7 +14,9 @@ export class GymScene extends Phaser.Scene {
   private hero!: Hero;
   private enemies!: Phaser.Physics.Arcade.Group;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  private wasdState: { [key: string]: boolean } = { W: false, A: false, S: false, D: false };
   private debugText!: Phaser.GameObjects.Text;
+  private debugGraphics!: Phaser.GameObjects.Graphics;
   private debugGraphics!: Phaser.GameObjects.Graphics;
   private assetIndex: any = null;
   private isGameOver: boolean = false;
@@ -156,6 +158,12 @@ export class GymScene extends Phaser.Scene {
 
 
     this.cursors = this.input.keyboard.createCursorKeys();
+
+    this.events.on('keyboard-input', ({ key, isDown }: { key: string, isDown: boolean }) => {
+      if (this.wasdState.hasOwnProperty(key)) {
+        this.wasdState[key] = isDown;
+      }
+    });
 
     // Create animations
     const createAnim = (key: string, framesKey: string, frameRate: number, repeat: number) => {
@@ -299,11 +307,11 @@ export class GymScene extends Phaser.Scene {
 
     // Custom WASD mapping for the Hero update
     const customCursors = {
-      left: { isDown: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A).isDown },
-      right: { isDown: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D).isDown },
-      up: { isDown: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W).isDown },
-      down: { isDown: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S).isDown },
-    } as any;
+      left: { isDown: this.wasdState.A },
+      right: { isDown: this.wasdState.D },
+      up: { isDown: this.wasdState.W },
+      down: { isDown: this.wasdState.S },
+    };
 
     this.hero.update(customCursors, time);
 
@@ -431,6 +439,7 @@ export class GymScene extends Phaser.Scene {
 
     if (DEBUG_MODE) {
       this.updateDebug();
+      console.log(`WASD State: W:${this.wasdState.W} A:${this.wasdState.A} S:${this.wasdState.S} D:${this.wasdState.D}`);
     } else {
       // Update Hero Health Bar via Event Bus
       gameEvents.emit('hero-hp-update', {

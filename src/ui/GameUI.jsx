@@ -541,6 +541,7 @@ function PlayingField({ summonLog }) {
           backgroundSize: 'cover',
           overflow: 'visible',
           border: '2px solid #00ff00',
+          zIndex: 1,
         }}
       >
         {/* Grid overlay (gives a tactical map feel) */}
@@ -645,7 +646,7 @@ export default function GameUI() {
       const map = { ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT' };
       if (map[e.key]) {
         // We don't e.preventDefault() here because we want Phaser to also see it,
-        // or we can let Phaser handle it and just trigger the visual press.
+        // but if Phaser is not seeing it, we might need to.
         handleInput(map[e.key]);
       }
     };

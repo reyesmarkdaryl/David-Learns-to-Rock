@@ -16,7 +16,7 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [GymScene]
 };
 
-export const DEBUG_MODE = false;
+export const DEBUG_MODE = true;
 export const GYM_ENEMY_SPAWNS = [
   { type: 'warrior', count: 0 },
   { type: 'lancer', count: 1 },
