@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Arrow Keys – Tiny Swords Style</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  :root {
+    --bg: #1a1208;
+    --panel: #2e1f0e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 30% 20%, #2a1a08 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 80%, #1e1506 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px),
+      repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 56px;
+    font-family: 'Press Start 2P', monospace;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    color: #e8c46a;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 0 #5a3a0a, 0 0 20px rgba(232,196,106,0.3);
+    text-transform: uppercase;
+  }
+
+  .section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .label {
+    color: #a07840;
+    font-size: 7px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .key-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  /* ── SVG KEY BASE ── */
+  .key-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .key-name {
+    color: #7a5828;
+    font-size: 6px;
+    letter-spacing: 1px;
+  }
+
+  svg.key {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+    transition: transform 0.05s ease, filter 0.05s ease;
+    cursor: pointer;
+  }
+  svg.key:active,
+  svg.key.pressed {
+    transform: translateY(3px);
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+  }
+
+  .divider {
+    width: 280px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #5a3a0a, #8a5a1a, #5a3a0a, transparent);
+  }
+
+  .dpad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 56px);
+    grid-template-rows: repeat(3, 56px);
+    gap: 4px;
+  }
+  .dpad-grid .center { grid-column: 2; grid-row: 2; }
+  .dpad-grid .up     { grid-column: 2; grid-row: 1; }
+  .dpad-grid .left   { grid-column: 1; grid-row: 2; }
+  .dpad-grid .right  { grid-column: 3; grid-row: 2; }
+  .dpad-grid .down   { grid-column: 2; grid-row: 3; }
+</style>
+</head>
+<body>
+
+<h1>⚔ Arrow Keys — Tiny Swords UI Kit</h1>
+
+<!-- UNPRESSED -->
+<div class="section">
+  <div class="label">◆ Unpressed State ◆</div>
+  <div class="key-row">
+
+    <!-- UP unpressed -->
+    <div class="key-wrap">
+      <svg class="key" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+        <!-- stone outer border -->
+        <rect x="0" y="0" width="14" height="14" fill="#2a1e10"/>
+        <!-- key body top face -->
+        <rect x="1" y="1" width="12" height="11" fill="#c8944a"/>
+        <!-- highlight top edge -->
+        <rect x="1" y="1" width="12" height="1" fill="#e8b870"/>
+        <!-- highlight left edge -->
+        <rect x="1" y="1" width="1" height="10" fill="#d8a458"/>
+        <!-- shadow bottom -->
+        <rect x="1" y="11" width="12" height="1" fill="#5a3010"/>
+        <!-- shadow right -->
+        <rect x="12" y="2" width="1" height="9" fill="#7a4820"/>
+        <!-- inner face -->
+        <rect x="2" y="2" width="10" height="9" fill="#b87c38"/>
+        <!-- stone texture dots -->
+        <rect x="3" y="4" width="1" height="1" fill="#a06828"/>
+        <rect x="8" y="7" width="1" height="1" fill="#a06828"/>
+        <rect x="6" y="3" width="1" height="1" fill="#c88840"/>
+        <!-- arrow up -->
+        <rect x="6" y="3" width="2" height="1" fill="#3a2008"/>
+        <rect x="5" y="4" width="4" height="1" fill="#3a2008"/>
+        <rect x="4" y="5" width="6" height="1" fill="#3a2008"/>
+        <rect x="6" y="5" width="2" height="4" fill="#3a2008"/>
+        <!-- arrow highlight -->
+        <rect x="6" y="3" width="1" height="1" fill="#5a3818"/>
+        <!-- bottom 3D ledge -->
+        <rect x="0" y="12" width="14" height="2" fill="#1a0e06"/>
+        <rect x="1" y="12" width="12" height="1" fill="#3a2010"/>
+      </svg>
+      <span class="key-name">UP</span>
+    </div>
+
+    <!-- DOWN unpressed -->
+    <div class="key-wrap">
+      <svg class="key" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="14" height="14" fill="#2a1e10"/>
+        <rect x="1" y="1" width="12" height="11" fill="#c8944a"/>
+        <rect x="1" y="1" width="12" height="1" fill="#e8b870"/>
+        <rect x="1" y="1" width="1" height="10" fill="#d8a458"/>
+        <rect x="1" y="11" width="12" height="1" fill="#5a3010"/>
+        <rect x="12" y="2" width="1" height="9" fill="#7a4820"/>
+        <rect x="2" y="2" width="10" height="9" fill="#b87c38"/>
+        <rect x="3" y="4" width="1" height="1" fill="#a06828"/>
+        <rect x="8" y="7" width="1" height="1" fill="#a06828"/>
+        <!-- arrow down -->
+        <rect x="6" y="3" width="2" height="4" fill="#3a2008"/>
+        <rect x="4" y="7" width="6" height="1" fill="#3a2008"/>
+        <rect x="5" y="8" width="4" height="1" fill="#3a2008"/>
+        <rect x="6" y="9" width="2" height="1" fill="#3a2008"/>
+        <rect x="6" y="3" width="1" height="1" fill="#5a3818"/>
+        <rect x="0" y="12" width="14" height="2" fill="#1a0e06"/>
+        <rect x="1" y="12" width="12" height="1" fill="#3a2010"/>
+      </svg>
+      <span class="key-name">DOWN</span>
+    </div>
+
+    <!-- LEFT unpressed -->
+    <div class="key-wrap">
+      <svg class="key" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="14" height="14" fill="#2a1e10"/>
+        <rect x="1" y="1" width="12" height="11" fill="#c8944a"/>
+        <rect x="1" y="1" width="12" height="1" fill="#e8b870"/>
+        <rect x="1" y="1" width="1" height="10" fill="#d8a458"/>
+        <rect x="1" y="11" width="12" height="1" fill="#5a3010"/>
+        <rect x="12" y="2" width="1" height="9" fill="#7a4820"/>
+        <rect x="2" y="2" width="10" height="9" fill="#b87c38"/>
+        <rect x="3" y="4" width="1" height="1" fill="#a06828"/>
+        <rect x="9" y="7" width="1" height="1" fill="#a06828"/>
+        <!-- arrow left -->
+        <rect x="3" y="6" width="1" height="2" fill="#3a2008"/>
+        <rect x="4" y="5" width="1" height="4" fill="#3a2008"/>
+        <rect x="5" y="4" width="1" height="6" fill="#3a2008"/>
+        <rect x="6" y="5" width="4" height="4" fill="#3a2008"/>
+        <rect x="6" y="6" width="1" height="1" fill="#5a3818"/>
+        <rect x="0" y="12" width="14" height="2" fill="#1a0e06"/>
+        <rect x="1" y="12" width="12" height="1" fill="#3a2010"/>
+      </svg>
+      <span class="key-name">LEFT</span>
+    </div>
+
+    <!-- RIGHT unpressed -->
+    <div class="key-wrap">
+      <svg class="key" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="14" height="14" fill="#2a1e10"/>
+        <rect x="1" y="1" width="12" height="11" fill="#c8944a"/>
+        <rect x="1" y="1" width="12" height="1" fill="#e8b870"/>
+        <rect x="1" y="1" width="1" height="10" fill="#d8a458"/>
+        <rect x="1" y="11" width="12" height="1" fill="#5a3010"/>
+        <rect x="12" y="2" width="1" height="9" fill="#7a4820"/>
+        <rect x="2" y="2" width="10" height="9" fill="#b87c38"/>
+        <rect x="3" y="4" width="1" height="1" fill="#a06828"/>
+        <rect x="9" y="7" width="1" height="1" fill="#a06828"/>
+        <!-- arrow right -->
+        <rect x="3" y="5" width="4" height="4" fill="#3a2008"/>
+        <rect x="7" y="4" width="1" height="6" fill="#3a2008"/>
+        <rect x="8" y="5" width="1" height="4" fill="#3a2008"/>
+        <rect x="9" y="6" width="1" height="2" fill="#3a2008"/>
+        <rect x="7" y="6" width="1" height="1" fill="#5a3818"/>
+        <rect x="0" y="12" width="14" height="2" fill="#1a0e06"/>
+        <rect x="1" y="12" width="12" height="1" fill="#3a2010"/>
+      </svg>
+      <span class="key-name">RIGHT</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- PRESSED -->
+<div class="section">
+  <div class="label">◆ Pressed State ◆</div>
+  <div class="key-row">
+
+    <!-- UP pressed -->
+    <div class="key-wrap">
+      <svg class="key pressed" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+        <!-- pressed: darker, flatter, no top highlight, shifted down -->
+        <rect x="0" y="0" width="14" height="14" fill="#1a0e06"/>
+        <rect x="1" y="2" width="12" height="11" fill="#8a5020"/>
+        <!-- no bright highlight on top -->
+        <rect x="1" y="2" width="12" height="1" fill="#7a4418"/>
+        <rect x="1" y="2" width="1" height="10" fill="#7a4418"/>
+        <!-- shadow all around (sunken look) -->
+        <rect x="1" y="12" width="12" height="1" fill="#3a2008"/>
+        <rect x="12" y="3" width="1" height="9" fill="#3a2008"/>
+        <!-- inner face darker -->
+        <rect x="2" y="3" width="10" height="9" fill="#7a3e10"/>
+        <!-- worn texture -->
+        <rect x="3" y="5" width="1" height="1" fill="#6a3410"/>
+        <rect x="8" y="8" width="1" height="1" fill="#6a3410"/>
+        <!-- arrow up — same position but darker tint -->
+        <rect x="6" y="4" width="2" height="1" fill="#200e02"/>
+        <rect x="5" y="5" width="4" height="1" fill="#200e02"/>
+        <rect x="4" y="6" width="6" height="1" fill="#200e02"/>
+        <rect x="6" y="6" width="2" height="4" fill="#200e02"/>
+        <!-- glow accent on arrow for "active" feel -->
+        <rect x="6" y="4" width="2" height="1" fill="#c86820" opacity="0.4"/>
+        <!-- no 3D ledge — pressed flush -->
+        <rect x="0" y="13" width="14" height="1" fill="#0e0802"/>
+      </svg>
+      <span class="key-name">UP</span>
+    </div>
+
+    <!-- DOWN pressed -->
+    <div class="key-wrap">
+      <svg class="key pressed" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="14" height="14" fill="#1a0e06"/>
+        <rect x="1" y="2" width="12" height="11" fill="#8a5020"/>
+        <rect x="1" y="2" width="12" height="1" fill="#7a4418"/>
+        <rect x="1" y="2" width="1" height="10" fill="#7a4418"/>
+        <rect x="1" y="12" width="12" height="1" fill="#3a2008"/>
+        <rect x="12" y="3" width="1" height="9" fill="#3a2008"/>
+        <rect x="2" y="3" width="10" height="9" fill="#7a3e10"/>
+        <rect x="3" y="5" width="1" height="1" fill="#6a3410"/>
+        <rect x="8" y="8" width="1" height="1" fill="#6a3410"/>
+        <!-- arrow down -->
+        <rect x="6" y="4" width="2" height="4" fill="#200e02"/>
+        <rect x="4" y="8" width="6" height="1" fill="#200e02"/>
+        <rect x="5" y="9" width="4" height="1" fill="#200e02"/>
+        <rect x="6" y="10" width="2" height="1" fill="#200e02"/>
+        <rect x="6" y="8" width="2" height="1" fill="#c86820" opacity="0.4"/>
+        <rect x="0" y="13" width="14" height="1" fill="#0e0802"/>
+      </svg>
+      <span class="key-name">DOWN</span>
+    </div>
+
+    <!-- LEFT pressed -->
+    <div class="key-wrap">
+      <svg class="key pressed" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="14" height="14" fill="#1a0e06"/>
+        <rect x="1" y="2" width="12" height="11" fill="#8a5020"/>
+        <rect x="1" y="2" width="12" height="1" fill="#7a4418"/>
+        <rect x="1" y="2" width="1" height="10" fill="#7a4418"/>
+        <rect x="1" y="12" width="12" height="1" fill="#3a2008"/>
+        <rect x="12" y="3" width="1" height="9" fill="#3a2008"/>
+        <rect x="2" y="3" width="10" height="9" fill="#7a3e10"/>
+        <rect x="3" y="5" width="1" height="1" fill="#6a3410"/>
+        <rect x="9" y="8" width="1" height="1" fill="#6a3410"/>
+        <!-- arrow left -->
+        <rect x="3" y="7" width="1" height="2" fill="#200e02"/>
+        <rect x="4" y="6" width="1" height="4" fill="#200e02"/>
+        <rect x="5" y="5" width="1" height="6" fill="#200e02"/>
+        <rect x="6" y="6" width="4" height="4" fill="#200e02"/>
+        <rect x="5" y="7" width="1" height="1" fill="#c86820" opacity="0.4"/>
+        <rect x="0" y="13" width="14" height="1" fill="#0e0802"/>
+      </svg>
+      <span class="key-name">LEFT</span>
+    </div>
+
+    <!-- RIGHT pressed -->
+    <div class="key-wrap">
+      <svg class="key pressed" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="14" height="14" fill="#1a0e06"/>
+        <rect x="1" y="2" width="12" height="11" fill="#8a5020"/>
+        <rect x="1" y="2" width="12" height="1" fill="#7a4418"/>
+        <rect x="1" y="2" width="1" height="10" fill="#7a4418"/>
+        <rect x="1" y="12" width="12" height="1" fill="#3a2008"/>
+        <rect x="12" y="3" width="1" height="9" fill="#3a2008"/>
+        <rect x="2" y="3" width="10" height="9" fill="#7a3e10"/>
+        <rect x="3" y="5" width="1" height="1" fill="#6a3410"/>
+        <rect x="9" y="8" width="1" height="1" fill="#6a3410"/>
+        <!-- arrow right -->
+        <rect x="3" y="6" width="4" height="4" fill="#200e02"/>
+        <rect x="7" y="5" width="1" height="6" fill="#200e02"/>
+        <rect x="8" y="6" width="1" height="4" fill="#200e02"/>
+        <rect x="9" y="7" width="1" height="2" fill="#200e02"/>
+        <rect x="7" y="7" width="1" height="1" fill="#c86820" opacity="0.4"/>
+        <rect x="0" y="13" width="14" height="1" fill="#0e0802"/>
+      </svg>
+      <span class="key-name">RIGHT</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- D-PAD PREVIEW -->
+<div class="section">
+  <div class="label">◆ D-Pad Layout Preview ◆</div>
+  <div class="dpad-grid">
+
+    <!-- UP -->
+    <svg class="key up" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="14" height="14" fill="#2a1e10"/>
+      <rect x="1" y="1" width="12" height="11" fill="#c8944a"/>
+      <rect x="1" y="1" width="12" height="1" fill="#e8b870"/>
+      <rect x="1" y="1" width="1" height="10" fill="#d8a458"/>
+      <rect x="1" y="11" width="12" height="1" fill="#5a3010"/>
+      <rect x="12" y="2" width="1" height="9" fill="#7a4820"/>
+      <rect x="2" y="2" width="10" height="9" fill="#b87c38"/>
+      <rect x="6" y="3" width="2" height="1" fill="#3a2008"/>
+      <rect x="5" y="4" width="4" height="1" fill="#3a2008"/>
+      <rect x="4" y="5" width="6" height="1" fill="#3a2008"/>
+      <rect x="6" y="5" width="2" height="4" fill="#3a2008"/>
+      <rect x="0" y="12" width="14" height="2" fill="#1a0e06"/>
+      <rect x="1" y="12" width="12" height="1" fill="#3a2010"/>
+    </svg>
+
+    <!-- LEFT -->
+    <svg class="key left" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="14" height="14" fill="#2a1e10"/>
+      <rect x="1" y="1" width="12" height="11" fill="#c8944a"/>
+      <rect x="1" y="1" width="12" height="1" fill="#e8b870"/>
+      <rect x="1" y="1" width="1" height="10" fill="#d8a458"/>
+      <rect x="1" y="11" width="12" height="1" fill="#5a3010"/>
+      <rect x="12" y="2" width="1" height="9" fill="#7a4820"/>
+      <rect x="2" y="2" width="10" height="9" fill="#b87c38"/>
+      <rect x="3" y="6" width="1" height="2" fill="#3a2008"/>
+      <rect x="4" y="5" width="1" height="4" fill="#3a2008"/>
+      <rect x="5" y="4" width="1" height="6" fill="#3a2008"/>
+      <rect x="6" y="5" width="4" height="4" fill="#3a2008"/>
+      <rect x="0" y="12" width="14" height="2" fill="#1a0e06"/>
+      <rect x="1" y="12" width="12" height="1" fill="#3a2010"/>
+    </svg>
+
+    <!-- CENTER (blank stone) -->
+    <svg class="center" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="14" height="14" fill="#1a1208"/>
+      <rect x="2" y="2" width="10" height="10" fill="#3a2810"/>
+      <rect x="3" y="3" width="8" height="8" fill="#2a1e0c"/>
+      <rect x="5" y="5" width="1" height="1" fill="#4a3418"/>
+      <rect x="8" y="8" width="1" height="1" fill="#4a3418"/>
+    </svg>
+
+    <!-- RIGHT -->
+    <svg class="key right" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="14" height="14" fill="#2a1e10"/>
+      <rect x="1" y="1" width="12" height="11" fill="#c8944a"/>
+      <rect x="1" y="1" width="12" height="1" fill="#e8b870"/>
+      <rect x="1" y="1" width="1" height="10" fill="#d8a458"/>
+      <rect x="1" y="11" width="12" height="1" fill="#5a3010"/>
+      <rect x="12" y="2" width="1" height="9" fill="#7a4820"/>
+      <rect x="2" y="2" width="10" height="9" fill="#b87c38"/>
+      <rect x="3" y="5" width="4" height="4" fill="#3a2008"/>
+      <rect x="7" y="4" width="1" height="6" fill="#3a2008"/>
+      <rect x="8" y="5" width="1" height="4" fill="#3a2008"/>
+      <rect x="9" y="6" width="1" height="2" fill="#3a2008"/>
+      <rect x="0" y="12" width="14" height="2" fill="#1a0e06"/>
+      <rect x="1" y="12" width="12" height="1" fill="#3a2010"/>
+    </svg>
+
+    <!-- DOWN -->
+    <svg class="key down" width="56" height="56" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="14" height="14" fill="#2a1e10"/>
+      <rect x="1" y="1" width="12" height="11" fill="#c8944a"/>
+      <rect x="1" y="1" width="12" height="1" fill="#e8b870"/>
+      <rect x="1" y="1" width="1" height="10" fill="#d8a458"/>
+      <rect x="1" y="11" width="12" height="1" fill="#5a3010"/>
+      <rect x="12" y="2" width="1" height="9" fill="#7a4820"/>
+      <rect x="2" y="2" width="10" height="9" fill="#b87c38"/>
+      <rect x="6" y="3" width="2" height="4" fill="#3a2008"/>
+      <rect x="4" y="7" width="6" height="1" fill="#3a2008"/>
+      <rect x="5" y="8" width="4" height="1" fill="#3a2008"/>
+      <rect x="6" y="9" width="2" height="1" fill="#3a2008"/>
+      <rect x="0" y="12" width="14" height="2" fill="#1a0e06"/>
+      <rect x="1" y="12" width="12" height="1" fill="#3a2010"/>
+    </svg>
+
+  </div>
+</div>
+
+<script>
+  // Make keys toggle pressed state on click for demo
+  document.querySelectorAll('svg.key').forEach(key => {
+    key.addEventListener('mousedown', () => key.classList.add('pressed'));
+    key.addEventListener('mouseup', () => key.classList.remove('pressed'));
+    key.addEventListener('mouseleave', () => key.classList.remove('pressed'));
+  });
+</script>
+
+</body>
+</html>
