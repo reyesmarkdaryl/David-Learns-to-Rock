@@ -218,6 +218,8 @@ export class GymScene extends Phaser.Scene {
 
     // Rhythm Summoning System
     this.summonSystem = new SummonSystem();
+    gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
+
 
     // Create enemies group
     this.enemies = this.physics.add.group();

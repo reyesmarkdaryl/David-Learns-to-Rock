@@ -191,22 +191,12 @@ function ArrowKey({ dir, pressed, dim, size = 38, onClick }) {
 
 // ─── SummonSystem logic (mirrors SummonSystem.ts) ────────────────────────────
 
-const DIRECTIONS = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
-
 const TRACK_CONFIGS = [
   { name: 'warrior', length: 5,  color: '#e8734a', glow: '#e8734a55', label: 'WARRIOR', icon: '⚔️' },
   { name: 'lancer',  length: 7,  color: '#4ab8e8', glow: '#4ab8e855', label: 'LANCER',  icon: '🗡️' },
   { name: 'archer',  length: 9,  color: '#7de84a', glow: '#7de84a55', label: 'ARCHER',  icon: '🏹' },
 ];
 
-function initTracks() {
-  return TRACK_CONFIGS.map(c => ({
-    name: c.name,
-    targetSequence: makeSeq(c.length),
-    currentIndex: 0,
-    requiredLength: c.length,
-  }));
-}
 
 // ─── Divider SVG ─────────────────────────────────────────────────────────────
 
