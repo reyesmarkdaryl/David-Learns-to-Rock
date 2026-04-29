@@ -9,17 +9,24 @@ import { ArcherMinion } from '../entities/player/ArcherMinion';
 import { DEBUG_MODE, GYM_ENEMY_SPAWNS } from '../config';
 import { SummonSystem } from '../systems/SummonSystem';
 import { gameEvents } from '../systems/GameEvents';
+import { RoomRegistry } from '../room/RoomRegistry';
+import { RoomBuilder } from '../room/RoomBuilder';
+import { GridSystem } from '../editor/GridSystem';
 
 export class GymScene extends Phaser.Scene {
   private hero!: Hero;
   private enemies!: Phaser.Physics.Arcade.Group;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: any;
+  private attackKey!: Phaser.Input.Keyboard.Key;
   private debugText!: Phaser.GameObjects.Text;
   private debugGraphics!: Phaser.GameObjects.Graphics;
   private assetIndex: any = null;
   private isGameOver: boolean = false;
   private summonSystem!: SummonSystem;
+  private isHitStopped: boolean = false;
+  private projectiles!: Phaser.Physics.Arcade.Group;
+  private arrowKeys: any;
 
   constructor() {
     super('GymScene');
@@ -37,6 +44,7 @@ export class GymScene extends Phaser.Scene {
       "Warrior_Guard.png"
     ];
     const basePath = `/assets/tinysword/Units/${team} Units/Warrior/`;
+    const heroBasePath = `/assets/tinysword/Units/Hero/`;
 
     warriorSprites.forEach((sprite: string) => {
       const key = sprite.replace('Warrior_', 'hero_').replace('.png', '').toLowerCase();
@@ -158,12 +166,17 @@ export class GymScene extends Phaser.Scene {
 
     this.cursors = this.input.keyboard.createCursorKeys();
 
+    this.physics.world.setBounds(0, 0, 3000, 3000);
+
     this.wasdKeys = this.input.keyboard.addKeys({
       left: Phaser.Input.Keyboard.KeyCodes.A,
       right: Phaser.Input.Keyboard.KeyCodes.D,
       up: Phaser.Input.Keyboard.KeyCodes.W,
       down: Phaser.Input.Keyboard.KeyCodes.S,
     });
+
+    this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
 
     this.arrowKeys = {
       up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
@@ -215,6 +228,12 @@ export class GymScene extends Phaser.Scene {
     this.hero = new Hero(this, 400, 300);
     this.hero.setTexture('hero_idle');
     this.hero.play('hero_idle_anim', true);
+    this.hero.setCollideWorldBounds(true);
+
+    // Camera improvements: smooth follow and zoom
+    this.cameras.main.startFollow(this.hero, true, 0.08, 0.08);
+    this.cameras.main.setZoom(1.15);
+
 
     // Rhythm Summoning System
     this.summonSystem = new SummonSystem();
@@ -252,6 +271,8 @@ export class GymScene extends Phaser.Scene {
       this.debugGraphics = this.add.graphics();
     }
 
+
+
     // JUICE: Handle minion attacks via events
     this.events.on('minion:attack', ({ target }) => {
       this.applyHitStop(30);
@@ -260,6 +281,15 @@ export class GymScene extends Phaser.Scene {
         this.cameras.main.shake(100, 0.005);
       }
     });
+  }
+
+  private handleSummon(key: string) {
+    const completed = this.summonSystem.checkInput(key);
+    completed.forEach(type => {
+      this.spawnFriendlyMinion(type);
+      gameEvents.emit('summon-complete', { name: type });
+    });
+    gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
   }
 
   private findNearestEnemy(minion: Enemy): any {
@@ -328,16 +358,12 @@ export class GymScene extends Phaser.Scene {
     const keys = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
     keys.forEach(key => {
       if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[key]))) {
-        const completed = this.summonSystem.checkInput(key);
-        completed.forEach(type => {
-          this.spawnFriendlyMinion(type);
-          gameEvents.emit('summon-complete', { name: type });
-        });
-        gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
+        this.handleSummon(key);
       }
     });
 
     // Update enemies
+
     this.enemies.getChildren().forEach((enemy: any) => {
       if (enemy.team === 'enemy') {
         // Find nearest hero-team member (Hero or Minions)
@@ -442,7 +468,7 @@ export class GymScene extends Phaser.Scene {
       }
     });
 
-    if (this.input.keyboard.checkDown(Phaser.Input.Keyboard.KeyCodes.SPACE as any) || this.input.activePointer.isDown) {
+    if (Phaser.Input.Keyboard.JustDown(this.attackKey) || this.input.activePointer.isDown) {
       this.hero.performAttack(time);
     }
 
@@ -455,6 +481,12 @@ export class GymScene extends Phaser.Scene {
         maxHp: this.hero.stats.maxHp
       });
     }
+
+    // Draw world bounds if debug enabled
+    if (this.debugGraphics) {
+        this.drawWorldBounds();
+    }
+
 
     if (this.hero.isDead()) {
       this.hero.setVisible(false);

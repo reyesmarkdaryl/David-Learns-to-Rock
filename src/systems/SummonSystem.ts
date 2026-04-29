@@ -80,7 +80,7 @@ export class SummonSystem {
           this.randomizeTrack(track.name);
         }
       } else {
-        track.currentIndex = 0; // Reset progress on mistake
+        track.currentIndex = direction === track.targetSequence[0] ? 1 : 0; // Partial forgiveness: start over or start at 1
       }
     });
 

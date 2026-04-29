@@ -1,5 +1,8 @@
 import * as Phaser from 'phaser';
 import { GymScene } from './scenes/GymScene';
+import { MainMenuScene } from './scenes/MainMenuScene';
+import { RoomEditorScene } from './scenes/RoomEditorScene';
+import { PlaytestScene } from './scenes/PlaytestScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -16,13 +19,13 @@ const config: Phaser.Types.Core.GameConfig = {
     arcade: { gravity: { x: 0, y: 0 }, debug: false }
   },
   input: { keyboard: true },
-  scene: [GymScene]
+  scene: [MainMenuScene, GymScene, RoomEditorScene, PlaytestScene]
 };
 
 export const DEBUG_MODE = false;
 export default config;
 export const GYM_ENEMY_SPAWNS = [
   { type: 'warrior', count: 0 },
-  { type: 'lancer', count: 1 },
-  { type: 'archer', count: 1 }
+  { type: 'lancer', count: 0 },
+  { type: 'archer', count: 0 }
 ];
