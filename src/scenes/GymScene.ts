@@ -12,6 +12,7 @@ import { gameEvents } from '../systems/GameEvents';
 import { RoomRegistry } from '../room/RoomRegistry';
 import { RoomBuilder } from '../room/RoomBuilder';
 import { GridSystem } from '../editor/GridSystem';
+import { EventBus } from '../editor/EventBus';
 
 export class GymScene extends Phaser.Scene {
   private hero!: Hero;
@@ -33,6 +34,7 @@ export class GymScene extends Phaser.Scene {
   }
 
   preload() {
+    EventBus.emit('SCENE_CHANGE', 'GymScene');
     this.load.json('asset-index', '/assets/index.json');
 
     const team = 'Blue';

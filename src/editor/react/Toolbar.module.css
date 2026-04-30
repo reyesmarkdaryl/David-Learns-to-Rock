@@ -1,0 +1,72 @@
+/* Toolbar.module.css */
+.bar {
+  background: #16161c;
+  border-bottom: 1px solid #2a2a35;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  user-select: none;
+  height: 40px;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  border-right: 1px solid #2a2a35;
+}
+
+.groupRight {
+  margin-left: auto;
+  border-right: none;
+}
+
+.btn {
+  height: 28px;
+  padding: 0 8px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #888;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s;
+  font-family: inherit;
+}
+
+.btn:hover {
+  background: #2a2a35;
+  color: #ccc;
+}
+
+.btn.active {
+  background: #1e3a5a;
+  color: #5aabf5;
+  border-color: #2a5a8a;
+}
+
+.saveBtn {
+  color: #5af5ab !important;
+}
+
+.saveBtn:hover {
+  background: #1a3a2a !important;
+}
+
+.icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.hk {
+  font-size: 9px;
+  opacity: 0.45;
+  margin-left: 2px;
+}

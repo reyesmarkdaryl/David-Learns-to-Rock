@@ -1,6 +1,7 @@
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import { RoomRegistry } from '../room/RoomRegistry';
 import { RoomBuilder } from '../room/RoomBuilder';
+import { EventBus } from '../editor/EventBus';
 
 export class PlaytestScene extends Phaser.Scene {
   constructor() {
@@ -8,6 +9,7 @@ export class PlaytestScene extends Phaser.Scene {
   }
 
   create() {
+    EventBus.emit('SCENE_CHANGE', 'PlaytestScene');
     console.log('PlaytestScene created');
 
     const roomData = RoomRegistry.getCurrentRoom();

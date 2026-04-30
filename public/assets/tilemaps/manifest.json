@@ -1,0 +1,14 @@
+[
+  { "name": "Walls", "path": "assets/tilemaps/map/walls.png", "tileSize": 16 },
+  { "name": "Ground Rocks", "path": "assets/tilemaps/map/Ground_rocks.png", "tileSize": 16 },
+  { "name": "Water Coasts", "path": "assets/tilemaps/map/water_coasts.png", "tileSize": 16 },
+  { "name": "Water Details", "path": "assets/tilemaps/map/water_detilazation.png", "tileSize": 16 },
+  { "name": "Water Details v2", "path": "assets/tilemaps/map/water_detilazation_v2.png", "tileSize": 16 },
+  { "name": "Water Detailization 2", "path": "assets/tilemaps/map/Water_detilazation2.tsx", "tileSize": 16 },
+  { "name": "Old Dungeon", "path": "assets/tilemaps/map/old_dungeon.png", "tileSize": 16 },
+  { "name": "Objects", "path": "assets/tilemaps/clutter/Objects.png", "tileSize": 16 },
+  { "name": "Objects Animated", "path": "assets/tilemaps/clutter/Objects_animated.png", "tileSize": 16 },
+  { "name": "Objects Animated 2", "path": "assets/tilemaps/clutter/Objects_animated2.png", "tileSize": 16 },
+  { "name": "Objects Animated 3", "path": "assets/tilemaps/clutter/Objects_animated3.png", "tileSize": 16 },
+  { "name": "Details", "path": "assets/tilemaps/clutter/details.png", "tileSize": 16 }
+]

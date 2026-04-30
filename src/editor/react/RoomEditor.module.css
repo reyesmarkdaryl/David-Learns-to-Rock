@@ -1,0 +1,23 @@
+/* RoomEditor.module.css */
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #12121a;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden;
+  color: #a0a0b8;
+  position: absolute;
+  inset: 0;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
+  width: 100%;
+  background: #12121a;
+}

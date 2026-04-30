@@ -1,0 +1,175 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  background: #222;
+  color: #eee;
+  width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid #444;
+  font-family: sans-serif;
+  font-size: 13px;
+  height: 100%;
+}
+
+.header {
+  padding: 10px;
+  background: #333;
+  font-weight: bold;
+  border-bottom: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.headerTitle {
+  font-size: 14px;
+  color: #fff;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.tab {
+  background: #444;
+  color: #aaa;
+  padding: 4px 8px;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+}
+
+.tabActive {
+  background: #66a;
+  color: #fff;
+  border-color: #88c;
+}
+
+.tabText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tabDel {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.tabDel:hover {
+  opacity: 1;
+  color: #f88;
+}
+
+.importBtn {
+  background: #446;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.zoomRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #bbb;
+}
+
+.zoomLabel {
+  min-width: 30px;
+}
+
+.zoomSlider {
+  flex: 1;
+  cursor: pointer;
+}
+
+.zoomVal {
+  min-width: 30px;
+  text-align: right;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.scroll {
+  flex: 1;
+  overflow: auto;
+  background: #000;
+  position: relative;
+}
+
+.canvasWrap {
+  position: relative;
+}
+
+.imgCanv, .selCanv {
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: crosshair;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  gap: 10px;
+  text-align: center;
+  padding: 20px;
+}
+
+.emptyIcon {
+  font-size: 32px;
+  opacity: 0.5;
+}
+
+.info {
+  background: #333;
+  padding: 10px;
+  border-top: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.preview {
+  background: #111;
+  border: 1px solid #555;
+  margin-bottom: 8px;
+  image-rendering: pixelated;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #bbb;
+}
+
+.label {
+  color: #888;
+}
+
+.infoVal {
+  color: #fff;
+  font-family: monospace;
+}

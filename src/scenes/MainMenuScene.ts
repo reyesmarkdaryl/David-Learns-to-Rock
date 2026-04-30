@@ -1,4 +1,5 @@
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
+import { EventBus } from '../editor/EventBus';
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -6,6 +7,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   create() {
+    EventBus.emit('SCENE_CHANGE', 'MainMenuScene');
     const { width, height } = this.scale;
 
     // Title

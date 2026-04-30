@@ -1,7 +1,7 @@
 {
   "metadata": {
     "assetPack": "Tiny Swords",
-    "version": "1.0",
+    "version": "1.2",
     "description": "Canonical index for Tiny Swords asset pack used in Phaser 4 Horde Survivor"
   },
   "units": {
@@ -44,35 +44,23 @@
     },
     "path": "public/assets/tinysword/Units/{Team} Units/"
   },
-  "buildings": {
-    "teams": ["Black", "Blue", "Purple", "Red", "Yellow"],
-    "types": ["Archery.png", "Barracks.png", "Castle.png", "House1.png", "House2.png", "House3.png", "Monastery.png", "Tower.png"],
-    "path": "public/assets/tinysword/Buildings/{Team} Buildings/"
-  },
-  "terrain": {
-    "tilesets": {
-      "main": "public/assets/tinysword/Terrain/Tileset/Tilemap_color1.png",
-      "variants": [
-        "public/assets/tinysword/Terrain/Tileset/Tilemap_color2.png",
-        "public/assets/tinysword/Terrain/Tileset/Tilemap_color3.png",
-        "public/assets/tinysword/Terrain/Tileset/Tilemap_color4.png",
-        "public/assets/tinysword/Terrain/Tileset/Tilemap_color5.png"
-      ],
-      "overlays": {
-        "shadow": "public/assets/tinysword/Terrain/Tileset/Shadow.png",
-        "foam": "public/assets/tinysword/Terrain/Tileset/Water Foam.png"
-      }
+  "tilemaps": {
+    "basePath": "public/assets/tilemaps/",
+    "clutter": {
+      "path": "public/assets/tilemaps/clutter/",
+      "files": ["Objects.png", "Objects_animated.png", "Objects_animated2.png", "Objects_animated3.png", "details.png"]
     },
-    "decorations": {
-      "bushes": "public/assets/tinysword/Terrain/Decorations/Bushes/",
-      "clouds": "public/assets/tinysword/Terrain/Decorations/Clouds/",
-      "rocks": "public/assets/tinysword/Terrain/Decorations/Rocks/"
+    "map": {
+      "path": "public/assets/tilemaps/map/",
+      "files": ["Ground_rocks.png", "old_dungeon.png", "walls.png", "water_coasts.png", "water_detilazation.png", "water_detilazation_v2.png"]
     },
-    "resources": {
-      "gold": "public/assets/tinysword/Terrain/Resources/Gold/",
-      "meat": "public/assets/tinysword/Terrain/Resources/Meat/",
-      "tools": "public/assets/tinysword/Terrain/Resources/Tools/",
-      "wood": "public/assets/tinysword/Terrain/Resources/Wood/"
+    "objects": {
+      "path": "public/assets/tilemaps/PNG/Objects_separately/",
+      "description": "Individual object sprites for the room editor"
+    },
+    "tiled": {
+      "path": "public/assets/tilemaps/map/",
+      "files": ["Water_detilazation2.tsx"]
     }
   },
   "fx": {

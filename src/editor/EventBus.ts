@@ -1,9 +1,11 @@
-import { EventEmitter } from 'phaser';
+import * as Phaser from 'phaser';
 
-class EditorEventBus extends EventEmitter {
+class EditorEventBus extends Phaser.Events.EventEmitter {
   public static readonly instance = new EditorEventBus();
 
-  private constructor() {}
+  private constructor() {
+    super();
+  }
 }
 
 export const EventBus = EditorEventBus.instance;

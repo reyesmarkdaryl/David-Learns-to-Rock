@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { AssetPreloader } from './scenes/AssetPreloader';
 import { GymScene } from './scenes/GymScene';
 import { MainMenuScene } from './scenes/MainMenuScene';
 import { RoomEditorScene } from './scenes/RoomEditorScene';
@@ -19,7 +20,7 @@ const config: Phaser.Types.Core.GameConfig = {
     arcade: { gravity: { x: 0, y: 0 }, debug: false }
   },
   input: { keyboard: true },
-  scene: [MainMenuScene, GymScene, RoomEditorScene, PlaytestScene]
+  scene: [AssetPreloader, MainMenuScene, GymScene, RoomEditorScene, PlaytestScene]
 };
 
 export const DEBUG_MODE = false;
