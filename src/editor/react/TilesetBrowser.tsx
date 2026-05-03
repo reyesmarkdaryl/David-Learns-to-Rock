@@ -8,7 +8,7 @@ interface AssetItem {
 }
 
 interface TilesetBrowserProps {
-  onConfirm: (img: HTMLImageElement, name: string, tileSize: number) => void;
+  onConfirm: (img: HTMLImageElement, name: string, tileSize: number, path: string) => void;
   onCancel: () => void;
 }
 
@@ -37,7 +37,7 @@ const TilesetBrowser: React.FC<TilesetBrowserProps> = ({ onConfirm, onCancel }) 
     const img = new Image();
     img.src = `/${asset.path}`;
     img.onload = () => {
-      onConfirm(img, asset.name, asset.tileSize);
+      onConfirm(img, asset.name, asset.tileSize, asset.path);
     };
     img.onerror = () => {
       alert(`Failed to load image: ${asset.path}`);

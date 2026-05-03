@@ -27,6 +27,7 @@ export interface Tileset {
   id: string;
   name: string;
   img: HTMLImageElement;
+  path: string;
 }
 
 export interface TileSelection {
@@ -126,7 +127,7 @@ type EditorAction =
   | { type: 'ADD_LAYER'; name: string; type: string }
   | { type: 'DELETE_LAYER'; id: string }
   | { type: 'RESIZE_MAP'; w: number; h: number }
-  | { type: 'ADD_TILESET'; img: HTMLImageElement; name: string; tileSize: number }
+  | { type: 'ADD_TILESET'; img: HTMLImageElement; name: string; tileSize: number; path: string; id?: string }
   | { type: 'REMOVE_TILESET'; idx: number }
   | { type: 'SET_ACTIVE_TILESET'; idx: number }
   | { type: 'SET_TS_SELECTION'; sel: TileSelection }
@@ -227,8 +228,8 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
     case 'ADD_LAYER': {
       const newLayer = {
         id: uid(),
-        name: action.name || `Layer ${state.layers.length + 1}`,
-        type: action.type || 'ground',
+        name: action.layerName || `Layer ${state.layers.length + 1}`,
+        type: action.layerType || 'ground',
         visible: true,
         tiles: {},
       };
@@ -247,8 +248,8 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
       return { ...state, mapW, mapH, _fitSig: state._fitSig + 1 };
     }
     case 'ADD_TILESET': {
-      const id = 'ts_' + Date.now();
-      const ts = { id, name: action.name, img: action.img };
+      const id = action.id || 'ts_' + Date.now();
+      const ts = { id, name: action.name, img: action.img, path: action.path };
       const tilesets = [...state.tilesets, ts];
       const activeTsIdx = tilesets.length - 1;
       const tileSize = action.tileSize || state.tileSize;
@@ -373,7 +374,7 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
     case 'EXPORT': {
       const out = {
         meta: { w: state.mapW, h: state.mapH, tileSize: state.tileSize },
-        tilesets: state.tilesets.map(s => ({ id: s.id, name: s.name })),
+        tilesets: state.tilesets.map(s => ({ id: s.id, name: s.name, path: s.path })),
         layers: state.layers.map(l => ({
           id: l.id, name: l.name, type: l.type, visible: l.visible, tiles: l.tiles,
         })),
@@ -420,6 +421,11 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
     case 'APPLY_LOADED_MAP': {
       const d = action.data;
       const layers = (d.layers || []).map((l: any) => ({ ...l, tiles: l.tiles || {} }));
+
+      // We can't load images directly in the reducer, but we can return the tilesets
+      // in the state and let a useEffect handle the actual Image loading,
+      // or we can pass them through a separate process.
+      // For now, we update the basic dimensions and layers.
       return {
         ...state,
         mapW: d.meta.w,
@@ -493,16 +499,42 @@ export function useEditorState() {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
 
   useEffect(() => {
-    const handler = () => {
+    const handler = async () => {
       const d = (window as any).__editorLoadData;
-      if (d) {
-        dispatch({ type: 'APPLY_LOADED_MAP', data: d });
-        (window as any).__editorLoadData = null;
+      if (!d) return;
+
+      // 1. Load required tilesets
+      if (d.tilesets && Array.isArray(d.tilesets)) {
+        for (const ts of d.tilesets) {
+          try {
+            const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+              const i = new Image();
+              i.onload = () => resolve(i);
+              i.onerror = reject;
+              const path = ts.path || '';
+              i.src = path.startsWith('/') ? path : `/${path}`;
+            });
+            dispatch({
+              type: 'ADD_TILESET',
+              img,
+              name: ts.name,
+              tileSize: d.meta?.tileSize || 16,
+              path: ts.path,
+              id: ts.id
+            });
+          } catch (e) {
+            console.error(`Failed to load tileset ${ts.name}:`, e);
+          }
+        }
       }
+
+      // 2. Apply map data
+      dispatch({ type: 'APPLY_LOADED_MAP', data: d });
+      (window as any).__editorLoadData = null;
     };
     window.addEventListener('editor-load-map', handler);
     return () => window.removeEventListener('editor-load-map', handler);
-  }, []);
+  }, [dispatch]);
 
   return { state, dispatch };
 }

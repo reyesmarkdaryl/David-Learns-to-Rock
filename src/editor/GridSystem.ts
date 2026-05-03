@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 
-export const TILE_SIZE = 64;
+export const TILE_SIZE = 32;
 
 export class GridSystem {
   public static worldToGrid(x: number, y: number) {

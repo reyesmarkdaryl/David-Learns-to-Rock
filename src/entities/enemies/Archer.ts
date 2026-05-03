@@ -14,6 +14,7 @@ export class Archer extends Enemy {
       displaySize: { width: 192, height: 192 }
     });
     this.setTexture('archer_idle');
+    this.body.setCircle(32, 64, 64);
 
     // We need to access the projectile group from the scene
     // In GymScene, we should define this group. For now, we'll assume it's available on the scene
@@ -23,36 +24,30 @@ export class Archer extends Enemy {
     }
   }
 
-  override update(hero: Hero, time: number): void {
-    const dist = Phaser.Math.Distance.Between(this.x, this.y, hero.x, hero.y);
+  override update(target: any, time: number, flowField?: any): void {
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y);
 
-    // Archer behavior: Keep distance from hero
+    // Archer behavior: Keep distance from target
     if (dist < this.attackRange * 0.5) {
-      // Move away from hero if too close
-      const angle = Phaser.Math.Angle.Between(hero.x, hero.y, this.x, this.y);
+      // Move away from target if too close
+      const angle = Phaser.Math.Angle.Between(target.x, target.y, this.x, this.y);
       this.setVelocity(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
       this.handleAnimation('run');
-    } else if (dist > this.attackRange) {
-      // Move toward hero if too far
-      super.update(hero, time);
     } else {
-      // Stay in range and attack
-      this.setVelocity(0);
-      if (!this.isAttacking) {
-        this.handleAnimation('idle');
-      }
-      this.performAttack(hero, time);
+      // Use standard Enemy pathfinding (including FlowField, Wall Avoidance, and Attack logic)
+      super.update(target, time, flowField);
     }
 
-    // Always face the hero when attacking or moving towards/away
-    this.setFlipX(this.x > hero.x);
+    if (this.isDead()) return;
 
-    if (!this.isAttacking && this.body.velocity.x !== 0) {
+    if (this.isAttacking) return;
+
+    const isMoving = Math.abs(this.body.velocity.x) > 0.1 || Math.abs(this.body.velocity.y) > 0.1;
+    this.handleAnimation(isMoving ? 'run' : 'idle');
+
+    if (isMoving) {
       this.setFlipX(this.body.velocity.x < 0);
     }
-
-    // Ensure health bar is updated every frame
-    (this as any).updateHealthBar();
   }
 
   override handleAnimation(state: 'idle' | 'run') {
@@ -105,5 +100,24 @@ export class Archer extends Enemy {
     } else {
       target.takeDamage(this.damage);
     }
+  }
+
+  private hasLineOfSight(target: any): boolean {
+    const scene = this.scene as any;
+    const walls = scene.walls;
+    if (!walls) return true;
+
+    const steps = 10;
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const checkX = this.x + (target.x - this.x) * t;
+      const checkY = this.y + (target.y - this.y) * t;
+
+      const hit = walls.getChildren().some((wall: any) => {
+        return Phaser.Geom.Rectangle.Contains(wall.getBounds(), checkX, checkY);
+      });
+      if (hit) return false;
+    }
+    return true;
   }
 }

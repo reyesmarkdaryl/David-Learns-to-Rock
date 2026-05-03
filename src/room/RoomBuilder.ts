@@ -14,20 +14,32 @@ export class RoomBuilder {
 
     // Create a static group for walls to enable physics collisions
     const walls = scene.physics.add.staticGroup();
+    const doors = scene.physics.add.staticGroup();
 
     roomData.tiles.forEach((tile: TileData) => {
       const world = GridSystem.gridToWorld(tile.x, tile.y);
 
-      // Use actual textures based on tileId
-      // Assuming tileId is the name of the tileset as defined in manifest.json
-      // For now, we use a fallback to 'Old Dungeon' if the texture isn't found
+      // Use the sheetId (tileId) directly as the texture key
       const texture = tile.tileId || (tile.type === 'wall' ? 'Walls' : 'Old Dungeon');
 
+      // Convert (col, row) to frame index
+      // frame = row * tilesPerRow + col
+      const textureObj = scene.textures.get(texture);
+      if (!textureObj) {
+        console.warn(`Texture ${texture} not found!`);
+        return;
+      }
+      const image = textureObj.getSourceImage();
+      const tileSize = 16; // This should ideally come from roomData.meta.tileSize
+      const tilesPerRow = Math.floor(image.width / tileSize);
+      const frame = tile.row * tilesPerRow + tile.col;
+
       const tileImage = scene.add.image(
-        world.x + 32,
-        world.y + 32,
-        texture
-      ).setDisplaySize(64, 64);
+        world.x + 16,
+        world.y + 16,
+        texture,
+        frame
+      ).setDisplaySize(32, 32);
 
       if (tile.type === 'wall') {
         walls.add(tileImage);
@@ -58,7 +70,7 @@ export class RoomBuilder {
       const world = GridSystem.gridToWorld(door.x, door.y);
       const dObj = scene.add.image(world.x + 32, world.y + 32, 'Objects', 2);
       dObj.setDisplaySize(40, 40);
-      objects.add(dObj);
+      doors.add(dObj);
     });
 
     // Decor Sockets
@@ -69,6 +81,6 @@ export class RoomBuilder {
       objects.add(sObj);
     });
 
-    return { walls, objects };
+    return { walls, doors, objects };
   }
 }

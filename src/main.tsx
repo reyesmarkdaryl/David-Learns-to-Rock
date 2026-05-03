@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
+import './index.css';
 import { bootGame, destroyGame } from './main';
 import GameUI from './ui/GameUI';
 import RoomEditor from './editor/react/RoomEditor';
@@ -28,15 +29,16 @@ function App() {
     };
   }, []);
 
-  if (activeScene === 'RoomEditorScene') {
-    return <RoomEditor />;
-  }
-
-  if (activeScene === 'GymScene' || activeScene === 'PlaytestScene') {
-    return <GameUI />;
-  }
-
-  return null; // Or a Main Menu UI if one exists as a React component
+  return (
+    <>
+      <div id="playing-field-screen" />
+      {activeScene === 'RoomEditorScene' ? (
+        <RoomEditor />
+      ) : activeScene === 'GymScene' || activeScene === 'PlaytestScene' ? (
+        <GameUI />
+      ) : null}
+    </>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<App />);

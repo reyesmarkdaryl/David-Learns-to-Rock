@@ -16,6 +16,8 @@ export interface TileData {
   y: number;
   tileId: string;
   type: 'floor' | 'wall';
+  col: number;
+  row: number;
 }
 
 export interface DecorSocketData {

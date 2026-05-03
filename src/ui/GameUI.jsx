@@ -167,6 +167,8 @@ const KEY_CONTENT = {
   RIGHT: { pressed: KEY_RIGHT_PRESSED, unpressed: KEY_RIGHT_UNPRESSED },
 };
 
+const DIRECTIONS = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
+
 function ArrowKey({ dir, pressed, dim, size = 38, onClick }) {
   const content = pressed ? KEY_CONTENT[dir].pressed : KEY_CONTENT[dir].unpressed;
   return (
@@ -472,7 +474,6 @@ function PlayingField({ summonLog }) {
       flex: 1,
       display: 'flex',
       flexDirection: 'column',
-      background: '#120d06',
       position: 'relative',
       overflow: 'hidden',
     }}>
@@ -517,51 +518,15 @@ function PlayingField({ summonLog }) {
         </div>
       </div>
 
-      {/* Field area — Phaser canvas mounts here */}
-      <div
-        id="phaser-container"
-        tabIndex={-1}
-        style={{
-          flex: 1,
-          position: 'relative',
-          background: `
-            radial-gradient(ellipse at 30% 40%, #1a3a12 0%, transparent 50%),
-            radial-gradient(ellipse at 70% 60%, #0e2808 0%, transparent 50%),
-            #0e1a08
-          `,
-          backgroundSize: 'cover',
-          overflow: 'visible',
-          border: '2px solid #00ff00',
-          pointerEvents: 'auto',
-        }}
-      >
-        {/* Grid overlay (gives a tactical map feel) */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)
-          `,
-          backgroundSize: '48px 48px',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Scanline overlay */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Decorative corner brackets */}
-        {[
-          { top: 8, left: 8,   borderTop: '2px solid #3a2810', borderLeft: '2px solid #3a2810' },
-          { top: 8, right: 8,  borderTop: '2px solid #3a2810', borderRight: '2px solid #3a2810' },
-          { bottom: 8, left: 8,  borderBottom: '2px solid #3a2810', borderLeft: '2px solid #3a2810' },
-          { bottom: 8, right: 8, borderBottom: '2px solid #3a2810', borderRight: '2px solid #3a2810' },
-        ].map((s, i) => (
-          <div key={i} style={{ position: 'absolute', width: 16, height: 16, ...s }} />
-        ))}
+      {/* Field area — NOW TRANSPARENT TO SHOW ROOT CANVAS */}
+      <div style={{
+        flex: 1,
+        position: 'relative',
+        background: 'transparent',
+        overflow: 'visible',
+        pointerEvents: 'none',
+      }}>
+        
       </div>
 
       {/* Bottom status bar */}
@@ -649,12 +614,16 @@ export default function GameUI() {
 
   return (
     <div style={{
-      width: '100vw', height: '100vh',
-      background: '#0e0a04',
+      position: 'absolute',
+      inset: 0,
+      width: '100vw',
+      height: '100vh',
+      background: 'transparent',
       display: 'flex',
       overflow: 'hidden',
       fontFamily: "'Press Start 2P', monospace",
       boxSizing: 'border-box',
+      pointerEvents: 'none',
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');

@@ -101,8 +101,8 @@ const RoomEditor: React.FC = () => {
 
       {showImportModal && (
         <TilesetBrowser
-          onConfirm={(img, name, tileSize) => {
-            dispatch({ type: 'ADD_TILESET', img, name, tileSize });
+          onConfirm={(img, name, tileSize, path) => {
+            dispatch({ type: 'ADD_TILESET', img, name, tileSize, path });
             setShowImportModal(false);
           }}
           onCancel={() => setShowImportModal(false)}

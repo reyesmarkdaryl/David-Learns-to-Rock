@@ -27,7 +27,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
 
     this.setCollideWorldBounds(true);
-    this.body.setCircle(16, 16, 0, 0);
+    this.body.setCircle(32, 64, 64);
 
     if (stats.displaySize) {
       this.setDisplaySize(stats.displaySize.width, stats.displaySize.height);
@@ -57,7 +57,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.healthBar.setDepth(this.depth + 2);
   }
 
-  update(heroOrTarget: any, time: number): void {
+  update(heroOrTarget: any, time: number, flowField?: any): void {
     if (this.isDead()) {
       this.setVelocity(0);
       this.handleAnimation('idle');
@@ -89,18 +89,138 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     if (dist > this.attackRange) {
-      this.setVelocity(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
-      this.handleAnimation('run');
+      let vx, vy;
+
+      // Use LOS shortcut: if we can see the target, charge directly
+      if (this.hasLineOfSight(target)) {
+        vx = Math.cos(angle) * this.speed;
+        vy = Math.sin(angle) * this.speed;
+      } else if (flowField) {
+        // Otherwise, follow the flow field
+        const dir = flowField.getDirection(this.x, this.y);
+        vx = dir.x * this.speed;
+        vy = dir.y * this.speed;
+      } else {
+        vx = Math.cos(angle) * this.speed;
+        vy = Math.sin(angle) * this.speed;
+      }
+
+      // Add Wall Avoidance (Steering)
+      const avoidance = this.calculateWallAvoidance();
+      vx += avoidance.x * 0.5;
+      vy += avoidance.y * 0.5;
+
+      // Add Separation (Avoid clumping)
+      const separation = this.calculateSeparation();
+      vx += separation.x * 0.3;
+      vy += separation.y * 0.3;
+
+      this.setVelocity(vx, vy);
     } else {
       this.setVelocity(0);
       this.setFlipX(this.x > target.x);
       this.performAttack(target, time);
     }
 
+    // Determine animation based on ACTUAL velocity
+    const actualSpeed = Math.hypot(this.body.velocity.x, this.body.velocity.y);
+    if (!this.isAttacking) {
+      this.handleAnimation(actualSpeed > 10 ? 'run' : 'idle');
+    }
+
     if (!this.isAttacking && this.body.velocity.x !== 0) {
       this.setFlipX(this.body.velocity.x < 0);
     }
     this.updateHealthBar();
+  }
+
+  private hasLineOfSight(target: any): boolean {
+    const scene = this.scene as any;
+    const walls = scene.walls;
+    if (!walls) return true;
+
+    const steps = 10;
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const checkX = this.x + (target.x - this.x) * t;
+      const checkY = this.y + (target.y - this.y) * t;
+
+      const hit = walls.getChildren().some((wall: any) => {
+        return Phaser.Geom.Rectangle.Contains(wall.getBounds(), checkX, checkY);
+      });
+      if (hit) return false;
+    }
+    return true;
+  }
+
+  private calculateWallAvoidance(): { x: number, y: number } {
+    const scene = this.scene as any;
+    const walls = scene.walls;
+    if (!walls) return { x: 0, y: 0 };
+
+    const feelerDist = 40;
+    const vel = this.body.velocity;
+    const speed = Math.hypot(vel.x, vel.y) || this.speed;
+    const normVel = { x: vel.x / speed, y: vel.y / speed };
+
+    // Check 3 points: center, slightly left, slightly right
+    const feelers = [
+      { x: normVel.x, y: normVel.y },
+      { x: normVel.x - normVel.y * 0.5, y: normVel.y + normVel.x * 0.5 },
+      { x: normVel.x + normVel.y * 0.5, y: normVel.y - normVel.x * 0.5 }
+    ];
+
+    for (const f of feelers) {
+      const checkX = this.x + f.x * feelerDist;
+      const checkY = this.y + f.y * feelerDist;
+
+      const wall = walls.getChildren().find((w: any) => {
+        return Phaser.Geom.Rectangle.Contains(w.getBounds(), checkX, checkY);
+      });
+
+      if (wall) {
+        // Push away from the center of the wall we hit
+        const wallBounds = wall.getBounds();
+        const wallCenterX = wallBounds.x + wallBounds.width / 2;
+        const wallCenterY = wallBounds.y + wallBounds.height / 2;
+
+        const diffX = this.x - wallCenterX;
+        const diffY = this.y - wallCenterY;
+        const dist = Math.hypot(diffX, diffY);
+
+        return {
+          x: (diffX / dist) * this.speed * 1.2,
+          y: (diffY / dist) * this.speed * 1.2
+        };
+      }
+    }
+
+    return { x: 0, y: 0 };
+  }
+
+  private calculateSeparation(): { x: number, y: number } {
+    let pushX = 0;
+    let pushY = 0;
+
+    // We need a way to get nearby enemies. Since we are in a group, we can iterate the group.
+    const enemies = (this.scene as any).enemies;
+    if (!enemies) return { x: 0, y: 0 };
+
+    enemies.getChildren().forEach((other: any) => {
+      if (other === this) return;
+
+      const dx = this.x - other.x;
+      const dy = this.y - other.y;
+      const distSq = dx * dx + dy * dy;
+
+      if (distSq < 40 * 40 && distSq > 0) {
+        const dist = Math.sqrt(distSq);
+        pushX += dx / dist;
+        pushY += dy / dist;
+      }
+    });
+
+    return { x: pushX * this.speed * 0.2, y: pushY * this.speed * 0.2 };
   }
 
   protected handleAnimation(state: 'idle' | 'run') {
@@ -120,14 +240,16 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.play('enemy_attack_anim', true);
 
     // Damage the hero
-    hero.takeDamage(this.damage);
+    if (hero && hero.takeDamage) {
+      hero.takeDamage(this.damage);
+    }
 
     this.attackCooldown = time + this.ATTACK_COOLDOWN_MS;
   }
 
   private updateHealthBar() {
     const x = this.x;
-    const y = this.y - 110;
+    const y = this.y - 64;
 
     this.healthBarBg.setPosition(x, y);
     this.healthBar.setPosition(x, y);

@@ -13,6 +13,8 @@ import { RoomRegistry } from '../room/RoomRegistry';
 import { RoomBuilder } from '../room/RoomBuilder';
 import { GridSystem } from '../editor/GridSystem';
 import { EventBus } from '../editor/EventBus';
+import FlowFieldManager from '../systems/FlowFieldManager';
+import RoomAssetManager from '../systems/RoomAssetManager';
 
 export class GymScene extends Phaser.Scene {
   private hero!: Hero;
@@ -27,7 +29,12 @@ export class GymScene extends Phaser.Scene {
   private summonSystem!: SummonSystem;
   private isHitStopped: boolean = false;
   private projectiles!: Phaser.Physics.Arcade.Group;
+  private walls!: Phaser.Physics.Arcade.StaticGroup;
+  private flowField!: FlowFieldManager;
   private arrowKeys: any;
+  private assetManager!: RoomAssetManager;
+  private isRoomReady: boolean = false;
+  private loadingOverlay!: Phaser.GameObjects.Container;
 
   constructor() {
     super('GymScene');
@@ -156,19 +163,16 @@ export class GymScene extends Phaser.Scene {
       frameWidth: 64,
       frameHeight: 64,
     });
+
+    // Global assets used across all rooms
+    this.load.image('Objects', '/assets/tilemaps/clutter/Objects.png');
   }
 
   create() {
     this.isGameOver = false;
     this.assetIndex = this.cache.json.get('asset-index');
 
-    // The hero is now created after animations are defined below
-
-
-
     this.cursors = this.input.keyboard.createCursorKeys();
-
-    this.physics.world.setBounds(0, 0, 3000, 3000);
 
     this.wasdKeys = this.input.keyboard.addKeys({
       left: Phaser.Input.Keyboard.KeyCodes.A,
@@ -179,6 +183,10 @@ export class GymScene extends Phaser.Scene {
 
     this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
+    this.enemies = this.physics.add.group();
+    this.projectiles = this.physics.add.group({
+      classType: Phaser.Physics.Arcade.Sprite
+    });
 
     this.arrowKeys = {
       up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
@@ -187,8 +195,33 @@ export class GymScene extends Phaser.Scene {
       right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)
     };
 
+    this.setupAnimations();
 
-    // Create animations
+    this.summonSystem = new SummonSystem();
+    gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
+
+    if (DEBUG_MODE) {
+      this.debugText = this.add.text(10, 10, '', {
+        fontFamily: 'monospace',
+        fontSize: '16px',
+        color: '#00ff00'
+      });
+      this.debugGraphics = this.add.graphics();
+    }
+
+    this.events.on('minion:attack', ({ target }) => {
+      this.applyHitStop(30);
+      this.cameras.main.shake(50, 0.002);
+      if (target.isDead()) {
+        this.cameras.main.shake(100, 0.005);
+      }
+    });
+
+    this.startRoomFlow('gym_room');
+  }
+
+
+  private setupAnimations() {
     const createAnim = (key: string, framesKey: string, frameRate: number, repeat: number) => {
       if (!this.anims.exists(key)) {
         this.anims.create({
@@ -226,8 +259,16 @@ export class GymScene extends Phaser.Scene {
     lancerAttackDirs.forEach(dir => {
       createAnim(`lancer_attack_${dir}_anim`, `lancer_attack_${dir}`, 12, 0);
     });
+  }
 
-    this.hero = new Hero(this, 400, 300);
+    // Use player spawn from room data if available, otherwise default to 400, 300
+    const spawnPos = roomData.playerSpawn
+      ? { x: (roomData.playerSpawn.x * 32) + 16, y: (roomData.playerSpawn.y * 32) + 16 }
+      : { x: 400, y: 300 };
+
+
+    this.hero = new Hero(this, spawnPos.x, spawnPos.y);
+    this.hero.setDepth(10);
     this.hero.setTexture('hero_idle');
     this.hero.play('hero_idle_anim', true);
     this.hero.setCollideWorldBounds(true);
@@ -236,17 +277,48 @@ export class GymScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.hero, true, 0.08, 0.08);
     this.cameras.main.setZoom(1.15);
 
+    // Build the test room
+    // Use the roomData declared at line 214
+
+    const roomBuild = RoomBuilder.build(this, roomData);
+    this.walls = roomBuild.walls;
+
+    // Set world bounds based on room size (width * 32, height * 32)
+    this.physics.world.setBounds(0, 0, roomData.width * 32, roomData.height * 32);
+
+    // Collisions with room walls
+    this.physics.add.collider(this.hero, this.walls);
+    this.physics.add.collider(this.enemies, this.walls);
+
+    // Projectile-Wall collisions
+    this.physics.add.overlap(this.projectiles, this.walls, (proj: any, wall: any) => {
+      proj.destroy();
+    });
+
+    // Initialize Flow Field
+    this.flowField = new FlowFieldManager({
+      tileSize: 32,
+      navSize: 64,
+      cols: Math.ceil((roomData.width * 32) / 64),
+      rows: Math.ceil((roomData.height * 32) / 64),
+      isWalkable: (x, y) => {
+        // Check if the center of the nav tile is inside a wall
+        const worldX = x * 64 + 32;
+        const worldY = y * 64 + 32;
+
+        // Simple check: is this point inside any wall?
+        const hit = this.walls.getChildren().some((wall: any) => {
+          return Phaser.Geom.Rectangle.Contains(wall.getBounds(), worldX, worldY);
+        });
+        return !hit;
+      },
+      updateInterval: 400
+    });
+
 
     // Rhythm Summoning System
     this.summonSystem = new SummonSystem();
     gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
-
-
-    // Create enemies group
-    this.enemies = this.physics.add.group();
-    this.projectiles = this.physics.add.group({
-      classType: Phaser.Physics.Arcade.Sprite
-    });
 
 
     // Spawn test enemies with a slight delay to ensure animations are ready
@@ -285,13 +357,95 @@ export class GymScene extends Phaser.Scene {
     });
   }
 
-  private handleSummon(key: string) {
-    const completed = this.summonSystem.checkInput(key);
-    completed.forEach(type => {
-      this.spawnFriendlyMinion(type);
-      gameEvents.emit('summon-complete', { name: type });
-    });
-    gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
+  private showLoading() {
+    this.loadingOverlay = this.add.container(0, 0).setDepth(1000);
+    const bg = this.add.rectangle(this.cameras.main.centerX, this.cameras.main.centerY, 1920, 1080, 0x000000, 0.7);
+    const text = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'LOADING ROOM...', {
+      fontSize: '32px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    this.loadingOverlay.add([bg, text]);
+  }
+
+  private hideLoading() {
+    if (this.loadingOverlay) {
+      this.loadingOverlay.destroy();
+    }
+  }
+
+  async startRoomFlow(roomKey: string) {
+    try {
+      this.showLoading();
+
+      const roomData = this.cache.json.get(roomKey);
+      if (!roomData) {
+        throw new Error(`Room data not found for key: ${roomKey}`);
+      }
+
+      // 1. Prepare assets
+      this.assetManager = new RoomAssetManager(this, []);
+      await this.assetManager.prepareRoom(roomData);
+
+      // 2. Build the room
+      const roomBuild = RoomBuilder.build(this, roomData);
+      this.walls = roomBuild.walls;
+
+      // 3. World bounds & Collisions
+      this.physics.world.setBounds(0, 0, roomData.width * 32, roomData.height * 32);
+      this.physics.add.collider(this.hero, this.walls);
+      this.physics.add.collider(this.enemies, this.walls);
+      this.physics.add.overlap(this.projectiles, this.walls, (proj: any) => {
+        proj.destroy();
+      });
+
+      // 4. Setup Flow Field
+      this.flowField = new FlowFieldManager({
+        tileSize: 32,
+        navSize: 64,
+        cols: Math.ceil((roomData.width * 32) / 64),
+        rows: Math.ceil((roomData.height * 32) / 64),
+        isWalkable: (x, y) => {
+          const worldX = x * 64 + 32;
+          const worldY = y * 64 + 32;
+          const hit = this.walls.getChildren().some((wall: any) => {
+            return Phaser.Geom.Rectangle.Contains(wall.getBounds(), worldX, worldY);
+          });
+          return !hit;
+        },
+        updateInterval: 400
+      });
+
+      // 5. Spawn Hero
+      const spawnPos = roomData.playerSpawn
+        ? { x: (roomData.playerSpawn.x * 32) + 16, y: (roomData.playerSpawn.y * 32) + 16 }
+        : { x: 400, y: 300 };
+
+      this.hero = new Hero(this, spawnPos.x, spawnPos.y);
+      this.hero.setDepth(10);
+      this.hero.setTexture('hero_idle');
+      this.hero.play('hero_idle_anim', true);
+      this.hero.setCollideWorldBounds(true);
+      this.cameras.main.startFollow(this.hero, true, 0.08, 0.08);
+      this.cameras.main.setZoom(1.15);
+
+      // 6. Spawn Enemies
+      GYM_ENEMY_SPAWNS.forEach(spawn => {
+        for (let i = 0; i << spawn spawn.count; i++) {
+          const x = Phaser.Math.Between(600, 1200);
+          const y = Phaser.Math.Between(100, 700);
+          const enemy = spawn.type === 'lancer' ? new Lancer(this, x, y) :
+                       spawn.type === 'archer' ? new Archer(this, x, y) :
+                       new Enemy(this, x, y);
+          this.enemies.add(enemy);
+          this.spawnDustEffect(x, y);
+        }
+      });
+
+      this.hideLoading();
+      this.isRoomReady = true;
+    } catch (err) {
+      console.error('Room load failed:', err);
+    }
   }
 
   private findNearestEnemy(minion: Enemy): any {
@@ -343,9 +497,11 @@ export class GymScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number) {
-    if (!this.hero || this.isGameOver) return;
+    if (!this.isRoomReady || !this.hero || this.isGameOver) return;
 
     if (this.isHitStopped) return; // Skip update during hit-stop
+
+    this.flowField.update(delta, this.hero.x, this.hero.y);
 
     const customCursors = {
       left: this.wasdKeys.left,
@@ -381,16 +537,16 @@ export class GymScene extends Phaser.Scene {
             }
           }
         });
-        enemy.update(target, time);
+        enemy.update(target, time, this.flowField);
       } else if (enemy.team === 'hero') {
-        enemy.update(this.enemies, time);
+        enemy.update(this.enemies, time, this.flowField, this.hero);
       }
     });
 
     // Combat: Check hero attack hitbox against enemies
     const hitbox = this.hero.getAttackHitbox();
     this.enemies.getChildren().forEach((enemy: any) => {
-      if (Phaser.Geom.Intersects.RectangleToRectangle(hitbox, enemy.getHitbox())) {
+      if (enemy.team !== 'hero' && Phaser.Geom.Intersects.RectangleToRectangle(hitbox, enemy.getHitbox())) {
         // Only damage if the hero is actually in the attack state and hasn't hit this enemy yet
         if (this.hero.getState() === HeroState.ATTACK && !this.hero.getHitEnemies().has(enemy)) {
           enemy.takeDamage(this.hero.stats.attackDamage);
@@ -476,18 +632,13 @@ export class GymScene extends Phaser.Scene {
 
     if (DEBUG_MODE) {
       this.updateDebug();
-    } else {
-      // Update Hero Health Bar via Event Bus
-      gameEvents.emit('hero-hp-update', {
-        hp: this.hero.stats.hp,
-        maxHp: this.hero.stats.maxHp
-      });
     }
 
-    // Draw world bounds if debug enabled
-    if (this.debugGraphics) {
-        this.drawWorldBounds();
-    }
+    // Update Hero Health Bar via Event Bus
+    gameEvents.emit('hero-hp-update', {
+      hp: this.hero.stats.hp,
+      maxHp: this.hero.stats.maxHp
+    });
 
 
     if (this.hero.isDead()) {
@@ -560,7 +711,11 @@ export class GymScene extends Phaser.Scene {
 
       // Draw attack range
       this.debugGraphics.lineStyle(1, 0x0000ff, 0.5);
-      this.debugGraphics.strokeCircle(enemy.x, enemy.y, enemy.attackRange);
+      this.debugGraphics.strokeCircle(
+        enemy.x,
+        enemy.y,
+        enemy.attackRange
+      );
     });
   }
 }

@@ -35,6 +35,8 @@ export class RoomDataConverter {
           x, y,
           tileId: tile.sheetId,
           type,
+          col: tile.col || 0,
+          row: tile.row || 0,
         });
 
         // Handle object flags
@@ -57,8 +59,50 @@ export class RoomDataConverter {
   }
 
   /**
-   * Overload to handle the exported JSON file content
+   * Converts the raw JSON export from the editor into the game's RoomData format.
    */
+  public static convertFromJson(json: any): RoomData {
+    if (!json || !json.layers) {
+      throw new Error('Invalid room JSON format');
+    }
+
+    const roomData: RoomData = {
+      id: json.meta?.id || 'imported_room',
+      biome: json.meta?.biome || 'default',
+      width: json.meta?.w || 0,
+      height: json.meta?.h || 0,
+      tiles: [],
+      doors: [],
+      enemySpawns: [],
+      playerSpawn: null,
+      decorSockets: [],
+    };
+
+    json.layers.forEach((layer: any) => {
+      Object.entries(layer.tiles).forEach(([key, tile]: [string, any]) => {
+        if (!tile) return;
+
+        const [x, y] = key.split(',').map(Number);
+        let type: 'floor' | 'wall' = layer.type === 'wall' ? 'wall' : 'floor';
+
+        roomData.tiles.push({
+          x, y,
+          tileId: tile.sheetId,
+          type,
+          col: tile.col || 0,
+          row: tile.row || 0,
+        });
+
+        if (tile.isPlayerSpawn) roomData.playerSpawn = { x, y };
+        if (tile.isEnemySpawn) roomData.enemySpawns.push({ x, y });
+        if (tile.isDoor) roomData.doors.push({ x, y, dir: 'north' });
+        if (tile.isDecorSocket) roomData.decorSockets.push({ x, y, type: 'generic' });
+      });
+    });
+
+    return roomData;
+  }
+
   /**
    * Converts RoomData (game format) back to EditorState (editor format).
    * This allows loading saved rooms back into the editor.

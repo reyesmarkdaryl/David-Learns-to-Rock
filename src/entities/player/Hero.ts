@@ -32,7 +32,9 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
 
     this.setCollideWorldBounds(true);
-    this.body.setCircle(16, 16, 0, 0);
+    // Set the body to be a circle with a radius of 16px, centered on the sprite (assuming the original sprite is 192x192)
+    
+    this.body.setCircle(32, 64, 64);
 
     // Set the hero to exactly 92px height and width
     this.setDisplaySize(192, 192);

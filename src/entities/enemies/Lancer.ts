@@ -11,10 +11,11 @@ export class Lancer extends Enemy {
       displaySize: { width: 192, height: 192 }
     });
     this.setTexture('lancer_idle');
+    this.body.setCircle(32, 128, 128);
   }
 
-  override update(target: any, time: number): void {
-    super.update(target as any, time);
+  override update(target: any, time: number, flowField?: any): void {
+    super.update(target, time, flowField);
 
     if (this.isDead()) return;
 

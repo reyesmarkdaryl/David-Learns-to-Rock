@@ -4,6 +4,7 @@
   overflow: hidden;
   background: #14141a;
   cursor: crosshair;
+  min-width: 0;
 }
 
 .canvas {

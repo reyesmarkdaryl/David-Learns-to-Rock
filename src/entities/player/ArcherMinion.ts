@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { Pathfinder } from '../../utils/Pathfinder';
 
 export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
   hp: number;
@@ -6,6 +7,7 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
   damage: number;
   speed: number;
   attackRange: number;
+  aggroRange: number = 600;
   team: 'hero' | 'enemy' = 'hero';
   attackCooldown: number = 2000;
   lastAttackTime: number = 0;
@@ -21,12 +23,13 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
     this.hp = 35;
     this.maxHp = 35;
     this.damage = 18;
-    this.speed = 65;
+    this.speed = 220;
     this.attackRange = 300;
     this.team = 'hero';
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.body.setCircle(32, 64, 64);
 
     const gameScene = scene as any;
     if (gameScene.projectiles) {
@@ -40,8 +43,9 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  update(enemies: any, time: number): void {
+  update(enemies: any, time: number, flowField?: any, hero?: any): void {
     const nearestEnemy = this.findNearestEnemy(enemies);
+    const distToNearest = nearestEnemy ? Phaser.Math.Distance.Between(this.x, this.y, nearestEnemy.x, nearestEnemy.y) : Infinity;
 
     if (this.isAttacking) {
       if (this.body) this.setVelocity(0);
@@ -49,8 +53,8 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
       return;
     }
 
-    if (nearestEnemy) {
-      const distance = Phaser.Math.Distance.Between(this.x, this.y, nearestEnemy.x, nearestEnemy.y);
+    if (nearestEnemy && distToNearest <= this.aggroRange && this.hasLineOfSight(nearestEnemy)) {
+      const distance = distToNearest;
 
       if (distance <= this.attackRange) {
         if (distance < this.attackRange * 0.5) {
@@ -63,25 +67,108 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
         } else {
           // Stay in range and attack
           if (this.body) this.setVelocity(0);
-          this.attack(nearestEnemy, time);
-          // Don't override anim here — attack() sets it, and isAttacking guards the next frames
+          if (this.hasLineOfSight(nearestEnemy)) {
+            this.attack(nearestEnemy, time);
+          }
         }
       } else {
         // Move toward enemy if too far
         this.moveToward(nearestEnemy);
+
+        const avoidance = this.calculateWallAvoidance();
+        const separation = this.calculateSeparation();
+        if (this.body) {
+          this.body.velocity.x += avoidance.x * 0.5 + separation.x * 0.3;
+          this.body.velocity.y += avoidance.y * 0.5 + separation.y * 0.3;
+        }
         if (this.anims) this.play('archer_run_anim', true);
+      }
+    } else if (hero) {
+      const distToHero = Phaser.Math.Distance.Between(this.x, this.y, hero.x, hero.y);
+      if (distToHero > 64) {
+        const angle = Phaser.Math.Angle.Between(this.x, this.y, hero.x, hero.y);
+        if (this.body) {
+          this.setVelocity(Math.cos(angle) * this.speed * 0.7, Math.sin(angle) * this.speed * 0.7);
+        }
+        if (this.anims) this.play('archer_run_anim', true);
+      } else {
+        if (this.body) this.setVelocity(0);
+        if (this.anims) this.play('archer_idle_anim', true);
       }
     } else {
       if (this.body) this.setVelocity(0);
       if (this.anims) this.play('archer_idle_anim', true);
     }
 
-    // Face the target
+    const actualSpeed = this.body ? Math.hypot(this.body.velocity.x, this.body.velocity.y) : 0;
+    if (!this.isAttacking) {
+      const anim = actualSpeed > 10 ? 'archer_run_anim' : 'archer_idle_anim';
+      if (this.anims) this.play(anim, true);
+    }
+
     if (nearestEnemy) {
         this.setFlipX(this.x > nearestEnemy.x);
     }
 
     this.updateHealthBar();
+  }
+
+  private hasLineOfSight(target: any): boolean {
+    const scene = this.scene as any;
+    const walls = scene.walls;
+    if (!walls) return true;
+    const steps = 10;
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const checkX = this.x + (target.x - this.x) * t;
+      const checkY = this.y + (target.y - this.y) * t;
+      if (walls.getChildren().some((wall: any) => Phaser.Geom.Rectangle.Contains(wall.getBounds(), checkX, checkY))) return false;
+    }
+    return true;
+  }
+
+  private calculateWallAvoidance(): { x: number, y: number } {
+    const scene = this.scene as any;
+    const walls = scene.walls;
+    if (!walls) return { x: 0, y: 0 };
+    const feelerDist = 40;
+    const vel = this.body.velocity;
+    const speed = Math.hypot(vel.x, vel.y) || this.speed;
+    const normVel = { x: vel.x / speed, y: vel.y / speed };
+    const feelers = [
+      { x: normVel.x, y: normVel.y },
+      { x: normVel.x - normVel.y * 0.5, y: normVel.y + normVel.x * 0.5 },
+      { x: normVel.x + normVel.y * 0.5, y: normVel.y - normVel.x * 0.5 }
+    ];
+    for (const f of feelers) {
+      const checkX = this.x + f.x * feelerDist;
+      const checkY = this.y + f.y * feelerDist;
+      const wall = walls.getChildren().find((w: any) => Phaser.Geom.Rectangle.Contains(w.getBounds(), checkX, checkY));
+      if (wall) {
+        const b = wall.getBounds();
+        const diffX = this.x - (b.x + b.width / 2);
+        const diffY = this.y - (b.y + b.height / 2);
+        const dist = Math.hypot(diffX, diffY);
+        return { x: (diffX / dist) * this.speed * 1.2, y: (diffY / dist) * this.speed * 1.2 };
+      }
+    }
+    return { x: 0, y: 0 };
+  }
+
+  private calculateSeparation(): { x: number, y: number } {
+    let pushX = 0, pushY = 0;
+    const enemies = (this.scene as any).enemies;
+    if (!enemies) return { x: 0, y: 0 };
+    enemies.getChildren().forEach((other: any) => {
+      if (other === this) return;
+      const dx = this.x - other.x, dy = this.y - other.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < 40 * 40 && distSq > 0) {
+        const dist = Math.sqrt(distSq);
+        pushX += dx / dist; pushY += dy / dist;
+      }
+    });
+    return { x: pushX * this.speed * 0.2, y: pushY * this.speed * 0.2 };
   }
 
   private findNearestEnemy(enemies: any): Phaser.Physics.Arcade.Sprite | null {
@@ -160,6 +247,25 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  private hasLineOfSight(target: any): boolean {
+    const scene = this.scene as any;
+    const walls = scene.walls;
+    if (!walls) return true;
+
+    const steps = 10;
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const checkX = this.x + (target.x - this.x) * t;
+      const checkY = this.y + (target.y - this.y) * t;
+
+      const hit = walls.getChildren().some((wall: any) => {
+        return Phaser.Geom.Rectangle.Contains(wall.getBounds(), checkX, checkY);
+      });
+      if (hit) return false;
+    }
+    return true;
+  }
+
   private createHealthBar(scene: Phaser.Scene) {
     const width = 60;
     const height = 6;
@@ -171,7 +277,7 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
 
   private updateHealthBar() {
     const x = this.x;
-    const y = this.y - 110;
+    const y = this.y - 64;
     this.healthBarBg.setPosition(x, y);
     this.healthBar.setPosition(x, y);
     const healthPercent = Math.max(0, this.hp / this.maxHp);
