@@ -20,9 +20,9 @@ export class SummonSystem {
 
   private initTracks(): void {
     const trackConfigs = [
-      { name: 'warrior', length: 4 },
-      { name: 'lancer', length: 4 },
-      { name: 'archer', length: 4 },
+      { name: 'warrior', length: 6 },
+      { name: 'lancer', length: 6 },
+      { name: 'archer', length: 6 },
     ];
 
     trackConfigs.forEach(config => {

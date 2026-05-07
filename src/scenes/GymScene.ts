@@ -44,6 +44,7 @@ export class GymScene extends Phaser.Scene {
   private loadingOverlay!: Phaser.GameObjects.Container;
   private isTransitioning: boolean = false;
   private currentRoomKey: string = '';
+  private musicUpdateTimer: number = 0;
 
   constructor() {
     super('GymScene');
@@ -610,7 +611,24 @@ export class GymScene extends Phaser.Scene {
       }
     });
 
+    // Update Battle Director every 1000ms
+    this.musicUpdateTimer += delta;
+    if (this.musicUpdateTimer >= 1000) {
+      this.musicUpdateTimer = 0;
+
+      const enemiesOnScreen = this.enemies.getChildren().filter((e: any) => e.team === 'enemy').length;
+
+      MusicManager.updateBattleState({
+        enemyCount: enemiesOnScreen,
+        playerHP: this.hero.stats.hp,
+        maxPlayerHP: this.hero.stats.maxHp,
+        isBossPresent: false, // Currently no boss system implemented
+        comboStreak: 0 // Placeholder until combat combo system is added
+      });
+    }
+
     // Dynamic Music Intensity: Calculate "Battle Heat"
+    // This is now handled by updateBattleState every 1000ms
     const enemiesOnScreen = this.enemies.getChildren().filter((e: any) => e.team === 'enemy').length;
     const battleHeat = Math.min(enemiesOnScreen / 10, 1.0); // Scale 0-1 based on 10 enemies
     MusicManager.updateIntensity(battleHeat);
