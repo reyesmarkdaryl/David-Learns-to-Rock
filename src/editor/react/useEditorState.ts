@@ -64,6 +64,8 @@ const DEFAULT_LAYERS: Layer[] = [
   { id: 'l_wall',    name: 'Wall',    type: 'wall',    visible: true, tiles: {} },
   { id: 'l_object',  name: 'Objects', type: 'object',  visible: true, tiles: {} },
   { id: 'l_clutter', name: 'Clutter', type: 'clutter', visible: true, tiles: {} },
+  { id: 'l_enemy_spawn', name: 'Enemy Spawns', type: 'enemy_spawn', visible: true, tiles: {} },
+  { id: 'l_hero_spawn', name: 'Hero Spawns', type: 'hero_spawn', visible: true, tiles: {} },
 ];
 
 const INITIAL_STATE: EditorState = {

@@ -8,8 +8,17 @@ export class AssetPreloader extends Phaser.Scene {
   preload() {
     console.log('Preloading assets...');
 
-    // Load the manifest
+    // Load the manifests
     this.load.json('tilemap-manifest', 'assets/tilemaps/manifest.json');
+    this.load.json('room-manifest', 'assets/manifest.json');
+
+    // Preload all rooms from the manifest.
+    // Note: In a real game, we'd load the manifest first, then the rooms.
+    // For now, we'll preload the known rooms to ensure they are in cache.
+    this.load.json('gym_room', 'assets/rooms/gym_room.json');
+    this.load.json('easy_mountain_room', 'assets/rooms/easy_mountain_room.json');
+    this.load.json('medium_mountain2_room', 'assets/rooms/medium_mountain2_room.json');
+    this.load.json('hard_mountain3_room', 'assets/rooms/hard_mountain3_room.json');
 
     // Since the manifest is JSON and we need it to load other images,
     // we can't easily do it in a single preload() call unless we hardcode

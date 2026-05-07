@@ -25,8 +25,37 @@ const config: Phaser.Types.Core.GameConfig = {
 
 export const DEBUG_MODE = true;
 export default config;
+
+export interface WaveDefinition {
+  waveNumber: number;
+  enemies: { type: string; count: number }[];
+  interval: number;
+  cooldown: number;
+}
+
+export const GYM_WAVES: WaveDefinition[] = [
+  {
+    waveNumber: 1,
+    enemies: [{ type: 'warrior', count: 8 }],
+    interval: 1000,
+    cooldown: 3000
+  },
+  {
+    waveNumber: 2,
+    enemies: [{ type: 'warrior', count: 8 }, { type: 'lancer', count: 2 }],
+    interval: 1500,
+    cooldown: 3000
+  },
+  {
+    waveNumber: 3,
+    enemies: [{ type: 'warrior', count: 8 }, { type: 'archer', count: 2 }, { type: 'lancer', count: 4 }],
+    interval: 2000,
+    cooldown: 3000
+  }
+];
+
 export const GYM_ENEMY_SPAWNS = [
-  { type: 'warrior', count: 1 },
-  { type: 'lancer', count: 1 },
-  { type: 'archer', count: 1 }
+  { type: 'warrior', count: 1, behavior: 'persistent' },
+  { type: 'lancer', count: 0, behavior: 'persistent' },
+  { type: 'archer', count: 1, behavior: 'limited' }
 ];

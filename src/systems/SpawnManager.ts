@@ -21,9 +21,8 @@ export class SpawnManager {
       const spawnPoint = roomData.enemySpawns[Math.floor(Math.random() * roomData.enemySpawns.length)];
 
       // Convert grid coordinates to world coordinates
-      // Note: RoomBuilder does x+32, y+32. We should be consistent.
-      const x = spawnPoint.x * 64 + 32;
-      const y = spawnPoint.y * 64 + 32;
+      const x = spawnPoint.x * 32 + 16;
+      const y = spawnPoint.y * 32 + 16;
 
       let enemy;
       switch (enemyType) {
@@ -37,7 +36,11 @@ export class SpawnManager {
           enemy = new Enemy(this.scene, x, y);
       }
 
-      this.enemiesGroup.add(enemy);
+      if (this.enemiesGroup) {
+        this.enemiesGroup.add(enemy);
+      } else {
+        console.error('SpawnManager: enemiesGroup is undefined');
+      }
     }
   }
 

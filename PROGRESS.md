@@ -1,47 +1,115 @@
 # Room Maker Progress Log
 
-## Current Status (2026-05-02)
-AI and Pathfinding systems have been heavily updated to prevent entities from getting stuck and to implement smarter targeting.
+## Current Status (2026-05-05)
+Implementing a dynamic Enemy Wave System to replace static room spawning, allowing for structured combat progression and timed spawns.
 
 ### ✅ Completed
 - [x] Port React Editor components to TypeScript (`src/editor/react/`)
 - [x] Implement state management with `useEditorState.ts` (Paint, Erase, Fill, Undo/Redo)
-- [x] Create `RoomDataConverter.ts` to bridge Editor JSON $\rightarrow$ Game RoomData
+- [x] Create `RoomDataConverter.ts` to bridge Editor JSON → Game RoomData
 - [x] Set up `RoomEditorScene` as a shell for the React UI
 - [x] Implement `GridSystem.ts` for coordinate mapping
-- [x] Wire up `EDITOR_PLAYTEST_REQUESTED` $\rightarrow$ `PlaytestScene` transition
+- [x] Wire up `EDITOR_PLAYTEST_REQUESTED` → `PlaytestScene` transition
 - [x] Implement flexible Flexbox layout for Editor UI (Toolbar, Layers, Canvas, TilesPsets)
 - [x] Visual polish: a professional "dark mode" theme with refined colors and typography
-- [x] Verify asset loading and tileset rendering via a project-integrated Tileset Browser (replaced manual ImportModal)
+- [x] Verify asset loading and tileset rendering via a project-integrated Tileset Browser
 - [x] Visual Fidelity: Update `RoomBuilder` to render actual textures from `public/assets/tilemaps`
-- [x] Persistence: Implement `RoomStorage` using local storage for quick access and JSON export for permanent storage
+- [x] Persistence: Implement `RoomStorage` using local storage and JSON export
 - [x] Room Library: Create a visual UI gallery to manage, load, and delete saved rooms
 - [x] Integration: Load custom rooms from JSON in `GymScene` with collision support
-- [x] Visual Fidelity: Implement frame-perfect tile rendering using (col, row) $\rightarrow$ frame index conversion
+- [x] Visual Fidelity: Implement frame-perfect tile rendering
 - [x] Gameplay: Set dynamic world bounds based on room dimensions
-- [x] Gameplay: Fix Hero physics body offset to align collision circle with feet (Prevents "floating" collision)
-- [x] Debugging: Remove unused `drawWorldBounds` call in `GymScene` to fix TypeError
+- [x] Gameplay: Fix Hero physics body offset
+- [x] Debugging: Remove unused `drawWorldBounds` call in `GymScene`
 - [x] Debugging: Center enemy attack range circles in `GymScene` debug view
-- [x] Physics Alignment: Unified all entity physics circles and offsets to match visuals (32px grid)
+- [x] Physics Alignment: Unified all entity physics circles and offsets
 - [x] Asset Integration: Updated manifest and GymScene to support Velmora tilesets
-- [x] Editor Fix: Implemented async tileset loading during map import to fix missing textures
-- [x] Editor Fix: Resolved TypeError when loading tilesets by tracking and exporting tile paths
-- [x] Editor Fix: Fixed empty grid on map import by preserving tileset IDs during loading
-- [x] Gameplay: Refactored GymScene to use spawn points defined in Room JSON instead of random positions
+- [x] Editor Fix: Implemented async tileset loading during map import
+- [x] Editor Fix: Resolved TypeError when loading tilesets
+- [x] Editor Fix: Fixed empty grid on map import
+- [x] Gameplay: Refactored GymScene to use spawn points defined in Room JSON
 - [x] AI Overhaul: Implement `FlowFieldManager.ts` for Hero-centric navigation
-- [x] AI Overhaul: Integrate Steering behaviors (Wall avoidance, separation) into Base Enemy and Minions
-- [x] AI Overhaul: Implement `Pathfinder.ts` (BFS) for target-specific navigation around walls
-- [x] AI Overhaul: Implement Aggro Range for minions to prevent global targeting
-- [x] AI Overhaul: Restrict minion attacks/targeting to Line-of-Sight (LOS) only; otherwise follow Hero
-- [x] AI Overhaul: Optimize BFS search with `MAX_ITERATIONS` to prevent game lag
-- [x] Bug Fix: Resolve `TypeError` in `WarriorMinion` and `Enemy` related to `this.scene` and `heroOrTarget`
+- [x] AI Overhaul: Integrate Steering behaviors (Wall avoidance, separation)
+- [x] AI Overhaul: Implement `Pathfinder.ts` (BFS)
+- [x] AI Overhaul: Implement Aggro Range for minions
+- [x] AI Overhaul: Restrict minion attacks/targeting to Line-of-Sight (LOS)
+- [x] AI Overhaul: Optimize BFS search with `MAX_ITERATIONS`
+- [x] Bug Fix: Resolve `TypeError` in `WarriorMinion` and `Enemy`
+- [x] Bug Fix: Fixed room transition infinite loop
+- [x] Bug Fix: Prevented crashes during scene transitions
+- [x] Bug Fix: Resolved health bar leak
+- [x] Debug Visualization: Fix attack range visualization for minions
+- [x] UI Bug Fix: Resolve layout shift in Room Editor UI
+- [x] Dynamic Loading: Implement async room loading pipeline with `RoomAssetManager`
+- [x] Visual Polish: Fixed Lancer minion using red assets (corrected to blue)
+- [x] Bug Fix: Resolved Phaser internal `TypeError` (currentFrame undefined) by fixing Lancer animation keys
 
 ### 🚧 In Progress
-- [x] **Debug Visualization:** Fix the position of the "blue circle" (attack range visualization) for minions to center it on the entity's hitbox (green box).
-- [ ] **UI Bug Fix:** Resolve the layout shift issue where the Room Editor UI is pushed to the left.
-- [ ] **Gameplay Loop:** Continue integrating "Doors" and "Enemy Spawns" into the active gameplay wave system.
-- [x] **Dynamic Loading:** Implement async room loading pipeline in `GymScene` with `RoomAssetManager` and loading overlays.
+- [ ] **Enemy Wave System:** implementing `WaveSystem.ts` and integrating into `GymScene` to replace static spawning.
+- [ ] **Music Summoning System:** Implementing a synchronized band system using Tone.js where minion summons generate looping musical riffs.
 
 ### 📅 Next Steps
+- [ ] **Wave System Integration:** Finalize `GymScene` refactor to use `WaveSystem` for spawning and room completion.
+- [ ] **UI Feedback:** Hook `wave-changed` event to the HUD.
 - [ ] **Gameplay Loop:** Continue integrating "Doors" and "Enemy Spawns" into the active gameplay wave system.
-- [ ] **UI Bug Fix:** Resolve the layout shift issue where the Room Editor UI is pushed to the left.
+- [ ] **Music System: Final Polish & Dynamic Score:**
+    - [ ] Implement "Battle Intensity Filter" (Dynamic LPF based on enemy count/proximity).
+    - [ ] Add "Rhythmic Attack Integration" (Hero attacks trigger synced drum hits).
+    - [ ] Implement "Harmonic Evolution" (Key shifts based on wave progression).
+
+
+### Enemy Wave System Implementation Plan                                                                              
+     Context                                                                                                            
+     Currently, enemies in GymScene spawn in a single static batch when a room loads. This creates a simplistic combat
+     experience. We are replacing this with a dynamic WaveSystem that spawns enemies in waves over time, introducing
+     intervals, cooldowns, and a structured progression of enemy types.
+
+     Recommended Approach
+
+     1. Configuration Update (src/config.ts)
+
+     Replace the flat GYM_ENEMY_SPAWNS array with a structured GYM_WAVES definition.
+     - Define WaveDefinition interface: { waveNumber: number, enemies: { type: string, count: number }[], interval:
+     number, cooldown: number }.
+     - Define GYM_WAVES containing the progression for the gym room.
+
+     2. New System: WaveSystem (src/systems/WaveSystem.ts)
+
+     Create a state-driven manager for the combat flow of a room.
+     - States: WAITING $\rightarrow$ SPAWNING $\rightarrow$ COOLDOWN $\rightarrow$ COMPLETE.
+     - Logic:
+       - Tracks currentWaveIndex.
+       - Uses a waveQueue to manage pending spawns for the active wave.
+       - Manages a spawnTimer (per-enemy interval) and a cooldownTimer (between waves).
+       - Integrates with SpawnManager to execute spawning at valid room points.
+       - Signals isRoomComplete() when all defined waves are finished and all enemies are dead.
+
+     3. GymScene Integration (src/scenes/GymScene.ts)
+
+     Refactor the scene to delegate combat orchestration to the WaveSystem.
+     - Initialization: Instantiate WaveSystem and call waveSystem.start() in startRoomFlow, removing the static
+     GYM_ENEMY_SPAWNS loop.
+     - Loop: Call waveSystem.update(time, delta, enemyCount) in the main update loop.
+     - Transition: Change the room clear trigger from remainingEnemies.length === 0 to waveSystem.isRoomComplete().
+
+     4. UX & Events
+
+     - Emit wave-changed event via gameEvents whenever a new wave starts.
+     - (Optional) Hook this event into the HUD to display "Wave X" to the player.
+
+     Critical Files
+
+     - src/config.ts: Update spawn configurations.
+     - src/systems/WaveSystem.ts: Create new wave management logic.
+     - src/scenes/GymScene.ts: Update scene lifecycle and update loop.
+     - src/systems/SpawnManager.ts: Reuse for enemy instantiation.
+     - src/systems/GameEvents.ts: For wave transition notifications.
+
+     Verification Plan
+
+     1. Spawn Sequence: Verify that enemies spawn one by one (or in small groups) at the defined interval rather than
+     all at once.
+     2. Wave Transitions: Ensure a cooldown period exists after a wave is cleared before the next wave begins spawning.
+     3. Room Completion: Verify that transitionToNextRoom is only triggered after the final wave is cleared.
+     4. UI Check: Confirm that the wave-changed event is emitted correctly.
+

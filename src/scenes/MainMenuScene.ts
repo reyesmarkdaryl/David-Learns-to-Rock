@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { EventBus } from '../editor/EventBus';
+import MusicManager from '../systems/MusicManager';
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -38,7 +39,8 @@ export class MainMenuScene extends Phaser.Scene {
 
       button.on('pointerover', () => button.setStyle({ color: '#ffffff', backgroundColor: '#555555' }));
       button.on('pointerout', () => button.setStyle({ color: '#aaaaaa', backgroundColor: '#333333' }));
-      button.on('pointerdown', () => {
+      button.on('pointerdown', async () => {
+        await MusicManager.start();
         this.scene.start(option.scene);
       });
     });

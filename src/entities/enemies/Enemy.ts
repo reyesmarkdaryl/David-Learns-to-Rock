@@ -1,6 +1,8 @@
 import * as Phaser from 'phaser';
 import { Hero } from '../player/Hero';
 
+export type EnemyAIBehavior = 'persistent' | 'limited';
+
 export class Enemy extends Phaser.Physics.Arcade.Sprite {
   hp: number;
   maxHp: number;
@@ -8,19 +10,33 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   damage: number;
   attackRange: number;
   team: 'hero' | 'enemy';
+  behavior: EnemyAIBehavior;
   private healthBar!: Phaser.GameObjects.Rectangle;
   private healthBarBg!: Phaser.GameObjects.Rectangle;
   protected attackCooldown: number = 0;
   protected readonly ATTACK_COOLDOWN_MS = 1000;
   protected isAttacking: boolean = false;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, stats: any = { hp: 50, speed: 60, damage: 10, attackRange: 60 }, team: 'hero' | 'enemy' = 'enemy') {
+  private __wanderTimer: number = 0;
+  private __wanderAngle: number = 0;
+  private isWandering: boolean = false;
+
+  private lastKnownPosition: Phaser.Math.Vector2 = new Phaser.Math.Vector2();
+  private lastKnownVelocity: Phaser.Math.Vector2 = new Phaser.Math.Vector2();
+  private isTrackingLKL: boolean = false;
+
+  private isAggro: boolean = false;
+  private aggroRange: number = 300;
+  private loseAggroRange: number = 650; // optional (if you want them to calm down)
+
+  constructor(scene: Phaser.Scene, x: number, y: number, stats: any = { hp: 50, speed: 100, damage: 10, attackRange: 60, behavior: 'persistent' }, team: 'hero' | 'enemy' = 'enemy') {
     super(scene, x, y, 'enemy_idle');
     this.hp = stats.hp;
     this.maxHp = stats.hp;
     this.speed = stats.speed;
     this.damage = stats.damage;
     this.attackRange = stats.attackRange;
+    this.behavior = stats.behavior || 'limited';
     this.team = team;
 
     scene.add.existing(this);
@@ -59,10 +75,41 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   update(heroOrTarget: any, time: number, flowField?: any): void {
     if (this.isDead()) {
-      this.setVelocity(0);
+      if (this.body) this.setVelocity(0);
       this.handleAnimation('idle');
       this.updateHealthBar();
       return;
+    }
+
+    // === AGGRO LOGIC ===
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, heroOrTarget.x, heroOrTarget.y);
+    const hasSight = this.hasLineOfSight(heroOrTarget);
+
+    if (!this.isAggro) {
+      // Trigger aggro if in range and seen
+      if (dist <= this.aggroRange && hasSight) {
+        this.isAggro = true;
+      }
+    } else {
+      // Manage aggro loss
+      if (this.behavior === 'limited') {
+        if (dist > this.loseAggroRange || !hasSight) {
+          this.isAggro = false;
+          this.isTrackingLKL = false; // Reset LKL tracking when losing aggro entirely
+        }
+      }
+      // 'persistent' behavior never sets isAggro to false once true
+    }
+
+    // Update Last Known Location if we have sight
+    if (hasSight) {
+      this.lastKnownPosition.set(heroOrTarget.x, heroOrTarget.y);
+      if (heroOrTarget.body) {
+        this.lastKnownVelocity.set(heroOrTarget.body.velocity.x, heroOrTarget.body.velocity.y);
+      }
+      this.isTrackingLKL = false; // We have direct sight, no need to track LKL
+    } else if (this.isAggro) {
+      this.isTrackingLKL = true; // Lose sight but still aggroed -> track LKL
     }
 
     if (this.isAttacking) {
@@ -79,51 +126,91 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     const target = heroOrTarget;
     const angle = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
-    const dist = Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y);
+    // dist is already declared at line 81
 
     if (time < this.attackCooldown && dist > this.attackRange) {
-      this.setVelocity(0);
+      if (this.body) this.setVelocity(0);
       this.handleAnimation('idle');
       this.updateHealthBar();
       return;
     }
 
     if (dist > this.attackRange) {
-      let vx, vy;
+      if (!this.isAggro) {
+        // Simple Random Walk Wander
+        if (this.__wanderTimer <= 0) {
+          this.__wanderAngle = Phaser.Math.Between(0, Math.PI * 2);
+          this.__wanderTimer = Phaser.Math.Between(1000, 3000);
+          this.isWandering = Math.random() < 0.7; // 70% chance to move, 30% to stay idle
+        }
 
-      // Use LOS shortcut: if we can see the target, charge directly
+        if (this.isWandering) {
+          const vx = Math.cos(this.__wanderAngle) * this.speed * 0.35;
+          const vy = Math.sin(this.__wanderAngle) * this.speed * 0.35;
+          this.setVelocity(vx, vy);
+          this.setFlipX(vx < 0);
+        } else {
+          this.setVelocity(0);
+        }
+
+        this.__wanderTimer -= this.scene.game.loop.delta || 16;
+        this.handleAnimation(this.isWandering ? 'run' : 'idle');
+        this.updateHealthBar();
+        return;
+      }
+
+      let vx, vy;
+      let targetX = target.x;
+      let targetY = target.y;
+
+      // === LKL & Extrapolation Logic ===
+      if (this.isTrackingLKL) {
+        // Predict a point slightly ahead of the last known position based on velocity
+        // Prediction factor (0.5s) - adjust for "smarter" enemies
+        targetX = this.lastKnownPosition.x + this.lastKnownVelocity.x * 0.5;
+        targetY = this.lastKnownPosition.y + this.lastKnownVelocity.y * 0.5;
+
+        const distToLKL = Phaser.Math.Distance.Between(this.x, this.y, targetX, targetY);
+        if (distToLKL < 40) { // Increased from 20 to 40 for smoother arrival
+          this.isTrackingLKL = false; // Reached LKL point, stop and start wandering/searching
+        }
+      }
+
+      const angleToTarget = Phaser.Math.Angle.Between(this.x, this.y, targetX, targetY);
+
       if (this.hasLineOfSight(target)) {
-        vx = Math.cos(angle) * this.speed;
-        vy = Math.sin(angle) * this.speed;
+        vx = Math.cos(angleToTarget) * this.speed;
+        vy = Math.sin(angleToTarget) * this.speed;
+      } else if (this.isTrackingLKL) {
+        // PRIORITIZE LKL pursuit over FlowField when we have a specific last-seen target
+        vx = Math.cos(angleToTarget) * this.speed;
+        vy = Math.sin(angleToTarget) * this.speed;
       } else if (flowField) {
-        // Otherwise, follow the flow field
         const dir = flowField.getDirection(this.x, this.y);
         vx = dir.x * this.speed;
         vy = dir.y * this.speed;
       } else {
-        vx = Math.cos(angle) * this.speed;
-        vy = Math.sin(angle) * this.speed;
+        vx = Math.cos(angleToTarget) * this.speed;
+        vy = Math.sin(angleToTarget) * this.speed;
       }
 
-      // Add Wall Avoidance (Steering)
       const avoidance = this.calculateWallAvoidance();
       vx += avoidance.x * 0.5;
       vy += avoidance.y * 0.5;
 
-      // Add Separation (Avoid clumping)
       const separation = this.calculateSeparation();
       vx += separation.x * 0.3;
       vy += separation.y * 0.3;
 
       this.setVelocity(vx, vy);
     } else {
-      this.setVelocity(0);
+      if (this.body) this.setVelocity(0);
       this.setFlipX(this.x > target.x);
       this.performAttack(target, time);
     }
 
     // Determine animation based on ACTUAL velocity
-    const actualSpeed = Math.hypot(this.body.velocity.x, this.body.velocity.y);
+    const actualSpeed = this.body ? Math.hypot(this.body.velocity.x, this.body.velocity.y) : 0;
     if (!this.isAttacking) {
       this.handleAnimation(actualSpeed > 10 ? 'run' : 'idle');
     }
@@ -135,6 +222,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   private hasLineOfSight(target: any): boolean {
+    if (!this.scene) return true;
     const scene = this.scene as any;
     const walls = scene.walls;
     if (!walls) return true;
@@ -146,7 +234,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       const checkY = this.y + (target.y - this.y) * t;
 
       const hit = walls.getChildren().some((wall: any) => {
-        return Phaser.Geom.Rectangle.Contains(wall.getBounds(), checkX, checkY);
+        return wall && wall.getBounds && Phaser.Geom.Rectangle.Contains(wall.getBounds(), checkX, checkY);
       });
       if (hit) return false;
     }
@@ -154,6 +242,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   private calculateWallAvoidance(): { x: number, y: number } {
+    if (!this.scene) return { x: 0, y: 0 };
     const scene = this.scene as any;
     const walls = scene.walls;
     if (!walls) return { x: 0, y: 0 };
@@ -163,7 +252,6 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     const speed = Math.hypot(vel.x, vel.y) || this.speed;
     const normVel = { x: vel.x / speed, y: vel.y / speed };
 
-    // Check 3 points: center, slightly left, slightly right
     const feelers = [
       { x: normVel.x, y: normVel.y },
       { x: normVel.x - normVel.y * 0.5, y: normVel.y + normVel.x * 0.5 },
@@ -175,11 +263,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       const checkY = this.y + f.y * feelerDist;
 
       const wall = walls.getChildren().find((w: any) => {
-        return Phaser.Geom.Rectangle.Contains(w.getBounds(), checkX, checkY);
+        return w && w.getBounds && Phaser.Geom.Rectangle.Contains(w.getBounds(), checkX, checkY);
       });
 
       if (wall) {
-        // Push away from the center of the wall we hit
         const wallBounds = wall.getBounds();
         const wallCenterX = wallBounds.x + wallBounds.width / 2;
         const wallCenterY = wallBounds.y + wallBounds.height / 2;
@@ -202,8 +289,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     let pushX = 0;
     let pushY = 0;
 
-    // We need a way to get nearby enemies. Since we are in a group, we can iterate the group.
-    const enemies = (this.scene as any).enemies;
+    if (!this.scene) return { x: 0, y: 0 };
+    const scene = this.scene as any;
+    const enemies = scene.enemies;
     if (!enemies) return { x: 0, y: 0 };
 
     enemies.getChildren().forEach((other: any) => {
@@ -261,16 +349,18 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   takeDamage(amount: number): void {
     this.hp -= amount;
     this.setTint(0xff0000);
-    this.scene.time.delayedCall(100, () => {
-      this.clearTint();
-    });
+    if (this.scene && this.scene.time) {
+      this.scene.time.delayedCall(100, () => {
+        this.clearTint();
+      });
+    }
   }
 
   isDead(): boolean {
     return this.hp <= 0;
   }
 
-  destroy() {
+  override destroy() {
     if (this.healthBar) this.healthBar.destroy();
     if (this.healthBarBg) this.healthBarBg.destroy();
     super.destroy();

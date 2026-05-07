@@ -16,12 +16,12 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
   private healthBarBg!: Phaser.GameObjects.Rectangle;
   private projectileGroup!: Phaser.Physics.Arcade.Group;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
+  constructor(scene: Phaser.Scene, x: number, y: number, texture: string, initialHp?: number) {
     super(scene, x, y, texture);
 
     // Stats for Archer
-    this.hp = 35;
     this.maxHp = 35;
+    this.hp = initialHp !== undefined ? initialHp : this.maxHp;
     this.damage = 18;
     this.speed = 220;
     this.attackRange = 300;
@@ -114,6 +114,7 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
   }
 
   private hasLineOfSight(target: any): boolean {
+    if (!this.scene) return true;
     const scene = this.scene as any;
     const walls = scene.walls;
     if (!walls) return true;
@@ -128,6 +129,7 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
   }
 
   private calculateWallAvoidance(): { x: number, y: number } {
+    if (!this.scene) return { x: 0, y: 0 };
     const scene = this.scene as any;
     const walls = scene.walls;
     if (!walls) return { x: 0, y: 0 };
@@ -157,6 +159,7 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
 
   private calculateSeparation(): { x: number, y: number } {
     let pushX = 0, pushY = 0;
+    if (!this.scene) return { x: 0, y: 0 };
     const enemies = (this.scene as any).enemies;
     if (!enemies) return { x: 0, y: 0 };
     enemies.getChildren().forEach((other: any) => {
@@ -210,13 +213,15 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
       }
 
       // Delay to match the bow release
-      this.scene.time.delayedCall(700, () => {
-        if (!this.isDead()) {
-          this.fireProjectile(enemy);
-        }
-        this.isAttacking = false;
-        if (this.anims) this.play('archer_idle_anim', true);
-      });
+      if (this.scene && this.scene.time) {
+        this.scene.time.delayedCall(700, () => {
+          if (!this.isDead()) {
+            this.fireProjectile(enemy);
+          }
+          this.isAttacking = false;
+          if (this.anims) this.play('archer_idle_anim', true);
+        });
+      }
     }
   }
 
@@ -247,24 +252,25 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  private hasLineOfSight(target: any): boolean {
-    const scene = this.scene as any;
-    const walls = scene.walls;
-    if (!walls) return true;
+  // private hasLineOfSight(target: any): boolean {
+  //   if (!this.scene) return true;
+  //   const scene = this.scene as any;
+  //   const walls = scene.walls;
+  //   if (!walls) return true;
 
-    const steps = 10;
-    for (let i = 1; i < steps; i++) {
-      const t = i / steps;
-      const checkX = this.x + (target.x - this.x) * t;
-      const checkY = this.y + (target.y - this.y) * t;
+  //   const steps = 10;
+  //   for (let i = 1; i < steps; i++) {
+  //     const t = i / steps;
+  //     const checkX = this.x + (target.x - this.x) * t;
+  //     const checkY = this.y + (target.y - this.y) * t;
 
-      const hit = walls.getChildren().some((wall: any) => {
-        return Phaser.Geom.Rectangle.Contains(wall.getBounds(), checkX, checkY);
-      });
-      if (hit) return false;
-    }
-    return true;
-  }
+  //     const hit = walls.getChildren().some((wall: any) => {
+  //       return Phaser.Geom.Rectangle.Contains(wall.getBounds(), checkX, checkY);
+  //     });
+  //     if (hit) return false;
+  //   }
+  //   return true;
+  // }
 
   private createHealthBar(scene: Phaser.Scene) {
     const width = 60;
@@ -292,18 +298,12 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
 
   takeDamage(amount: number): void {
     this.hp -= amount;
-    if (this.hp <= 0) {
-      this.die();
-    }
   }
 
-  private die(): void {
-    if (this.scene && this.scene.events) {
-      this.scene.events.emit('minion:died', { type: 'archer' });
-    }
+  override destroy() {
     if (this.healthBar) this.healthBar.destroy();
     if (this.healthBarBg) this.healthBarBg.destroy();
-    this.destroy();
+    super.destroy();
   }
 
   isDead(): boolean {

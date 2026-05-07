@@ -85,18 +85,21 @@ export class RoomDataConverter {
         const [x, y] = key.split(',').map(Number);
         let type: 'floor' | 'wall' = layer.type === 'wall' ? 'wall' : 'floor';
 
-        roomData.tiles.push({
-          x, y,
-          tileId: tile.sheetId,
-          type,
-          col: tile.col || 0,
-          row: tile.row || 0,
-        });
+        // Only add to tiles array if it's an actual geometry layer (ground or wall)
+        if (layer.type === 'ground' || layer.type === 'wall') {
+          roomData.tiles.push({
+            x, y,
+            tileId: tile.sheetId,
+            type,
+            col: tile.col || 0,
+            row: tile.row || 0,
+          });
+        }
 
-        if (tile.isPlayerSpawn) roomData.playerSpawn = { x, y };
-        if (tile.isEnemySpawn) roomData.enemySpawns.push({ x, y });
-        if (tile.isDoor) roomData.doors.push({ x, y, dir: 'north' });
-        if (tile.isDecorSocket) roomData.decorSockets.push({ x, y, type: 'generic' });
+        if (layer.type === 'hero_spawn' || tile.isPlayerSpawn) roomData.playerSpawn = { x, y };
+        if (layer.type === 'enemy_spawn' || tile.isEnemySpawn) roomData.enemySpawns.push({ x, y });
+        if (layer.type === 'door' || tile.isDoor) roomData.doors.push({ x, y, dir: 'north' });
+        if (layer.type === 'decor_socket' || tile.isDecorSocket) roomData.decorSockets.push({ x, y, type: 'generic' });
       });
     });
 

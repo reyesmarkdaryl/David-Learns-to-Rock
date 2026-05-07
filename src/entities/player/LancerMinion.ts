@@ -15,12 +15,12 @@ export class LancerMinion extends Phaser.Physics.Arcade.Sprite {
   private healthBar!: Phaser.GameObjects.Rectangle;
   private healthBarBg!: Phaser.GameObjects.Rectangle;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
+  constructor(scene: Phaser.Scene, x: number, y: number, texture: string, initialHp?: number) {
     super(scene, x, y, texture);
 
     // Stats for Lancer (guided by Lancer enemy)
-    this.hp = 70;
     this.maxHp = 70;
+    this.hp = initialHp !== undefined ? initialHp : this.maxHp;
     this.damage = 15;
     this.speed = 220;
     this.attackRange = 70;
@@ -28,7 +28,7 @@ export class LancerMinion extends Phaser.Physics.Arcade.Sprite {
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
-    this.body.setCircle(32, 64, 64);
+    this.body.setCircle(32, 128, 128);
 
     this.createHealthBar(scene);
 
@@ -89,11 +89,15 @@ export class LancerMinion extends Phaser.Physics.Arcade.Sprite {
     if (!this.isAttacking) {
       const anim = actualSpeed > 10 ? 'lancer_run_anim' : 'lancer_idle_anim';
       if (this.anims) this.play(anim, true);
+      if (actualSpeed > 10 && this.body) {
+        this.setFlipX(this.body.velocity.x < 0);
+      }
     }
     this.updateHealthBar();
   }
 
   private hasLineOfSight(target: any): boolean {
+    if (!this.scene) return true;
     const scene = this.scene as any;
     const walls = scene.walls;
     if (!walls) return true;
@@ -108,6 +112,7 @@ export class LancerMinion extends Phaser.Physics.Arcade.Sprite {
   }
 
   private calculateWallAvoidance(): { x: number, y: number } {
+    if (!this.scene) return { x: 0, y: 0 };
     const scene = this.scene as any;
     const walls = scene.walls;
     if (!walls) return { x: 0, y: 0 };
@@ -137,6 +142,7 @@ export class LancerMinion extends Phaser.Physics.Arcade.Sprite {
 
   private calculateSeparation(): { x: number, y: number } {
     let pushX = 0, pushY = 0;
+    if (!this.scene) return { x: 0, y: 0 };
     const enemies = (this.scene as any).enemies;
     if (!enemies) return { x: 0, y: 0 };
     enemies.getChildren().forEach((other: any) => {
@@ -222,20 +228,22 @@ export class LancerMinion extends Phaser.Physics.Arcade.Sprite {
         this.play(finalAnim, true);
       }
 
-      this.scene.time.delayedCall(250, () => {
-        if (!this.isDead()) {
-          if (enemy && enemy.takeDamage) {
-            enemy.takeDamage(this.damage);
+      if (this.scene && this.scene.time) {
+        this.scene.time.delayedCall(250, () => {
+          if (!this.isDead()) {
+            if (enemy && enemy.takeDamage) {
+              enemy.takeDamage(this.damage);
+            }
+            if (this.scene && this.scene.events) {
+              this.scene.events.emit('minion:attack', {
+                attacker: this,
+                target: enemy,
+                damage: this.damage
+              });
+            }
           }
-          if (this.scene && this.scene.events) {
-            this.scene.events.emit('minion:attack', {
-              attacker: this,
-              target: enemy,
-              damage: this.damage
-            });
-          }
-        }
-      });
+        });
+      }
     }
   }
 
@@ -265,18 +273,12 @@ export class LancerMinion extends Phaser.Physics.Arcade.Sprite {
 
   takeDamage(amount: number): void {
     this.hp -= amount;
-    if (this.hp <= 0) {
-      this.die();
-    }
   }
 
-  private die(): void {
-    if (this.scene && this.scene.events) {
-      this.scene.events.emit('minion:died', { type: 'lancer' });
-    }
+  override destroy() {
     if (this.healthBar) this.healthBar.destroy();
     if (this.healthBarBg) this.healthBarBg.destroy();
-    this.destroy();
+    super.destroy();
   }
 
   isDead(): boolean {

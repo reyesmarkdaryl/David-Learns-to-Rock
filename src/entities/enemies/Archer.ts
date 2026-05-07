@@ -58,21 +58,25 @@ export class Archer extends Enemy {
   }
 
   override performAttack(target: any, time: number) {
-    if (time < this.attackCooldown) {
-      return;
-    }
+      if (!this.hasLineOfSight(target)) {                                                                                       return;
+      }                                                                                                                 
+      if (time < this.attackCooldown) {
+        return;
+      }
 
-    this.isAttacking = true;
-    this.play('enemy_archer_attack_anim', true);
+      this.isAttacking = true;
+      this.play('enemy_archer_attack_anim', true);
 
-    // Adjust delay to match the "full draw" of the bow
-    // At 8fps, 8 frames take 1s. Release at ~0.7s (frame 5-6)
-    this.scene.time.delayedCall(700, () => {
-      this.fireProjectile(target);
-      this.isAttacking = false;
-    });
+      // Adjust delay to match the "full draw" of the bow
+      // At 8fps, 8 frames take 1s. Release at ~0.7s (frame 5-6)
+      this.scene.time.delayedCall(700, () => {
+        if (this.scene) {
+          this.fireProjectile(target);
+        }
+        this.isAttacking = false;
+      });
 
-    this.attackCooldown = time + 2000; // Slower attack speed for ranged
+      this.attackCooldown = time + 2000; // Slower attack speed for ranged
   }
 
   private fireProjectile(target: any) {
@@ -103,6 +107,7 @@ export class Archer extends Enemy {
   }
 
   private hasLineOfSight(target: any): boolean {
+    if (!this.scene) return true;
     const scene = this.scene as any;
     const walls = scene.walls;
     if (!walls) return true;

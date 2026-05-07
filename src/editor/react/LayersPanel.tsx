@@ -20,11 +20,12 @@ const LAYER_COLORS: Record<string, string> = {
   wall:    '#9a5a3a',
   object:  '#3a6a9a',
   clutter: '#7a6a3a',
-  spawn:   '#9a3a9a',
+  enemy_spawn:'#9a3a9a',
+  hero_spawn:'#23be15',
   decor:   '#3a8a8a',
 };
 
-const LAYER_TYPES = ['ground', 'wall', 'object', 'clutter', 'spawn', 'decor'];
+const LAYER_TYPES = ['ground', 'wall', 'object', 'clutter', 'enemy_spawn', 'hero_spawn', 'decor'];
 
 const LayersPanel: React.FC<LayersPanelProps> = ({
   layers, activeLayerId,

@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { RoomData, TileData } from '../room/RoomData';
 import { GridSystem } from '../editor/GridSystem';
 import { RoomDataConverter } from '../editor/RoomDataConverter';
+import { DEBUG_MODE } from '../config';
 
 export class RoomBuilder {
   public static build(scene: Phaser.Scene, roomDataInput: any) {
@@ -48,22 +49,6 @@ export class RoomBuilder {
 
     // Build Objects
     const objects = scene.add.group();
-
-    // Player Spawn
-    if (roomData.playerSpawn) {
-      const world = GridSystem.gridToWorld(roomData.playerSpawn.x, roomData.playerSpawn.y);
-      const pSpawn = scene.add.image(world.x + 32, world.y + 32, 'Objects', 0);
-      pSpawn.setDisplaySize(32, 32);
-      objects.add(pSpawn);
-    }
-
-    // Enemy Spawns
-    roomData.enemySpawns.forEach(spawn => {
-      const world = GridSystem.gridToWorld(spawn.x, spawn.y);
-      const eSpawn = scene.add.image(world.x + 32, world.y + 32, 'Objects', 1);
-      eSpawn.setDisplaySize(32, 32);
-      objects.add(eSpawn);
-    });
 
     // Doors
     roomData.doors.forEach(door => {

@@ -7,6 +7,7 @@ interface SummonTrack {
   targetSequence: Direction[];
   currentIndex: number;
   requiredLength: number;
+  lastCompletedSequence: Direction[];
 }
 
 export class SummonSystem {
@@ -19,9 +20,9 @@ export class SummonSystem {
 
   private initTracks(): void {
     const trackConfigs = [
-      { name: 'warrior', length: 5 },
-      { name: 'lancer', length: 7 },
-      { name: 'archer', length: 9 },
+      { name: 'warrior', length: 4 },
+      { name: 'lancer', length: 4 },
+      { name: 'archer', length: 4 },
     ];
 
     trackConfigs.forEach(config => {
@@ -41,6 +42,7 @@ export class SummonSystem {
       targetSequence: sequence,
       currentIndex: 0,
       requiredLength: length,
+      lastCompletedSequence: [],
     };
   }
 
@@ -77,6 +79,7 @@ export class SummonSystem {
         track.currentIndex++;
         if (track.currentIndex === track.requiredLength) {
           completedSummons.push(track.name);
+          track.lastCompletedSequence = [...track.targetSequence];
           this.randomizeTrack(track.name);
         }
       } else {

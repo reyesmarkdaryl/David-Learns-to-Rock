@@ -6,7 +6,10 @@ import { Archer } from '../entities/enemies/Archer';
 import { WarriorMinion } from '../entities/player/WarriorMinion';
 import { LancerMinion } from '../entities/player/LancerMinion';
 import { ArcherMinion } from '../entities/player/ArcherMinion';
-import { DEBUG_MODE, GYM_ENEMY_SPAWNS } from '../config';
+import { WaveSystem } from '../systems/WaveSystem';
+import { SpawnManager } from '../systems/SpawnManager';
+import { RoomDataConverter } from '../editor/RoomDataConverter';
+import { DEBUG_MODE, GYM_WAVES } from '../config';
 import { SummonSystem } from '../systems/SummonSystem';
 import { gameEvents } from '../systems/GameEvents';
 import { RoomRegistry } from '../room/RoomRegistry';
@@ -15,6 +18,8 @@ import { GridSystem } from '../editor/GridSystem';
 import { EventBus } from '../editor/EventBus';
 import FlowFieldManager from '../systems/FlowFieldManager';
 import RoomAssetManager from '../systems/RoomAssetManager';
+import { MinionPersistenceManager, MinionData } from '../systems/MinionPersistenceManager';
+import MusicManager from '../systems/MusicManager';
 
 export class GymScene extends Phaser.Scene {
   private hero!: Hero;
@@ -33,8 +38,12 @@ export class GymScene extends Phaser.Scene {
   private flowField!: FlowFieldManager;
   private arrowKeys: any;
   private assetManager!: RoomAssetManager;
+  private waveSystem!: WaveSystem;
+  private spawnManager!: SpawnManager;
   private isRoomReady: boolean = false;
   private loadingOverlay!: Phaser.GameObjects.Container;
+  private isTransitioning: boolean = false;
+  private currentRoomKey: string = '';
 
   constructor() {
     super('GymScene');
@@ -43,21 +52,21 @@ export class GymScene extends Phaser.Scene {
   preload() {
     EventBus.emit('SCENE_CHANGE', 'GymScene');
     this.load.json('asset-index', '/assets/index.json');
+    this.load.json('gym_room', '/assets/rooms/gym_room.json');
 
     const team = 'Blue';
     const warriorSprites = [
-      "Warrior_Idle.png",
-      "Warrior_Run.png",
-      "Warrior_Attack1.png",
-      "Warrior_Attack2.png",
-      "Warrior_Guard.png"
+      { file: "Warrior_Idle.png", key: "hero_idle" },
+      { file: "Warrior_Run.png", key: "hero_run" },
+      { file: "Warrior_Attack1.png", key: "hero_attack1" },
+      { file: "Warrior_Attack2.png", key: "hero_attack2" },
+      { file: "Warrior_Guard.png", key: "hero_guard" }
     ];
     const basePath = `/assets/tinysword/Units/${team} Units/Warrior/`;
     const heroBasePath = `/assets/tinysword/Units/Hero/`;
 
-    warriorSprites.forEach((sprite: string) => {
-      const key = sprite.replace('Warrior_', 'hero_').replace('.png', '').toLowerCase();
-      this.load.spritesheet(key, `${basePath}${sprite}`, {
+    warriorSprites.forEach((sprite: any) => {
+      this.load.spritesheet(sprite.key, `${basePath}${sprite.file}`, {
         frameWidth: 192,
         frameHeight: 192,
         startFrame: 0,
@@ -187,6 +196,7 @@ export class GymScene extends Phaser.Scene {
     this.projectiles = this.physics.add.group({
       classType: Phaser.Physics.Arcade.Sprite
     });
+    this.walls = this.physics.add.staticGroup();
 
     this.arrowKeys = {
       up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
@@ -257,105 +267,15 @@ export class GymScene extends Phaser.Scene {
     createAnim('enemy_lancer_run_anim', 'lancer_run', 10, -1);
 
     lancerAttackDirs.forEach(dir => {
-      createAnim(`lancer_attack_${dir}_anim`, `lancer_attack_${dir}`, 12, 0);
+      createAnim(`enemy_lancer_attack_${dir}_anim`, `lancer_attack_${dir}`, 12, 0);
+    });
+
+    lancerAttackDirs.forEach(dir => {
+      createAnim(`lancer_attack_${dir}_anim`, `lancer_attack_${dir}_blue`, 12, 0);
     });
   }
 
-    // Use player spawn from room data if available, otherwise default to 400, 300
-    const spawnPos = roomData.playerSpawn
-      ? { x: (roomData.playerSpawn.x * 32) + 16, y: (roomData.playerSpawn.y * 32) + 16 }
-      : { x: 400, y: 300 };
-
-
-    this.hero = new Hero(this, spawnPos.x, spawnPos.y);
-    this.hero.setDepth(10);
-    this.hero.setTexture('hero_idle');
-    this.hero.play('hero_idle_anim', true);
-    this.hero.setCollideWorldBounds(true);
-
-    // Camera improvements: smooth follow and zoom
-    this.cameras.main.startFollow(this.hero, true, 0.08, 0.08);
-    this.cameras.main.setZoom(1.15);
-
-    // Build the test room
-    // Use the roomData declared at line 214
-
-    const roomBuild = RoomBuilder.build(this, roomData);
-    this.walls = roomBuild.walls;
-
-    // Set world bounds based on room size (width * 32, height * 32)
-    this.physics.world.setBounds(0, 0, roomData.width * 32, roomData.height * 32);
-
-    // Collisions with room walls
-    this.physics.add.collider(this.hero, this.walls);
-    this.physics.add.collider(this.enemies, this.walls);
-
-    // Projectile-Wall collisions
-    this.physics.add.overlap(this.projectiles, this.walls, (proj: any, wall: any) => {
-      proj.destroy();
-    });
-
-    // Initialize Flow Field
-    this.flowField = new FlowFieldManager({
-      tileSize: 32,
-      navSize: 64,
-      cols: Math.ceil((roomData.width * 32) / 64),
-      rows: Math.ceil((roomData.height * 32) / 64),
-      isWalkable: (x, y) => {
-        // Check if the center of the nav tile is inside a wall
-        const worldX = x * 64 + 32;
-        const worldY = y * 64 + 32;
-
-        // Simple check: is this point inside any wall?
-        const hit = this.walls.getChildren().some((wall: any) => {
-          return Phaser.Geom.Rectangle.Contains(wall.getBounds(), worldX, worldY);
-        });
-        return !hit;
-      },
-      updateInterval: 400
-    });
-
-
-    // Rhythm Summoning System
-    this.summonSystem = new SummonSystem();
-    gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
-
-
-    // Spawn test enemies with a slight delay to ensure animations are ready
-    this.time.delayedCall(100, () => {
-      GYM_ENEMY_SPAWNS.forEach(spawn => {
-        for (let i = 0; i < spawn.count; i++) {
-          const x = Phaser.Math.Between(600, 1200);
-          const y = Phaser.Math.Between(100, 700);
-          const enemy = spawn.type === 'lancer' ? new Lancer(this, x, y) :
-                           spawn.type === 'archer' ? new Archer(this, x, y) :
-                           new Enemy(this, x, y);
-          this.enemies.add(enemy);
-          this.spawnDustEffect(x, y);
-        }
-      });
-    });
-
-    if (DEBUG_MODE) {
-      this.debugText = this.add.text(10, 10, '', {
-        fontFamily: 'monospace',
-        fontSize: '16px',
-        color: '#00ff00'
-      });
-      this.debugGraphics = this.add.graphics();
-    }
-
-
-
-    // JUICE: Handle minion attacks via events
-    this.events.on('minion:attack', ({ target }) => {
-      this.applyHitStop(30);
-      this.cameras.main.shake(50, 0.002);
-      if (target.isDead()) {
-        this.cameras.main.shake(100, 0.005);
-      }
-    });
-  }
+  
 
   private showLoading() {
     this.loadingOverlay = this.add.container(0, 0).setDepth(1000);
@@ -373,32 +293,154 @@ export class GymScene extends Phaser.Scene {
     }
   }
 
+  private getHeroSpawn(roomData: any): { x: number, y: number } {
+    //It looks like we're actually using 32 as the proper tile size for spawn point calculations, even though the room meta says 16. This is likely a quirk of how the room was designed in Tiled vs how it's being rendered in Phaser. For now, we'll hardcode 32 here to match the actual layout of the room and ensure the hero spawns in the correct location.
+    const tileSize = 32; //roomData.meta.tileSize;
+
+    const spawnLayer = roomData.layers.find((l: any) => l.type === 'hero_spawn');
+    if (!spawnLayer) {
+      return { x: 400, y: 300 };
+    }
+
+    const tiles = Object.keys(spawnLayer.tiles);
+
+    if (tiles.length === 0) {
+      return { x: 400, y: 300 };
+    }
+
+    console.log('[GymScene] Found spawn tiles:', tiles);
+
+    // take first spawn tile
+    const [key] = tiles; // "7,11"
+    const [tx, ty] = key.split(',').map(Number);
+    return {
+      x: tx * tileSize + tileSize / 2,
+      y: ty * tileSize + tileSize / 2
+    };
+  }
+
+  private getEnemySpawns(roomData: any): { x: number, y: number }[] {
+    const tileSize = 32; //roomData.meta.tileSize;
+
+    const layer = roomData.layers.find((l: any) => l.type === 'enemy_spawn');
+    if (!layer) return [];
+
+    const spawns: { x: number, y: number }[] = [];
+
+    for (const key of Object.keys(layer.tiles)) {
+      const [tx, ty] = key.split(',').map(Number);
+
+      spawns.push({
+        x: tx * tileSize + tileSize / 2,
+        y: ty * tileSize + tileSize / 2
+      });
+    }
+
+    return spawns;
+  }
+
+  private cleanupRoom() {
+    this.hero?.destroy();
+
+    this.enemies.getChildren().forEach(enemy => {
+      if (enemy.destroy) {
+        enemy.destroy();
+      }
+    });
+    this.enemies.clear(true, true);
+
+    this.walls.clear(true, true);
+    this.projectiles.clear(true, true);
+    this.isRoomReady = false;
+
+    MusicManager.stopAll();
+  }
+
+  private async transitionToNextRoom() {
+    this.isTransitioning = true;
+    this.showLoading();
+
+    // Save persisting minions
+    const minionsToSave: MinionData[] = [];
+    this.enemies.getChildren().forEach(entity => {
+      const minion = entity as any;
+      if (minion.team === 'hero') {
+        minionsToSave.push({
+          type: minion instanceof WarriorMinion ? 'warrior' :
+                minion instanceof LancerMinion ? 'lancer' :
+                minion instanceof ArcherMinion ? 'archer' : 'warrior',
+          hp: minion.hp,
+          maxHp: minion.maxHp
+        });
+      }
+    });
+    MinionPersistenceManager.getInstance().saveMinions(minionsToSave);
+
+    this.cleanupRoom();
+
+    const manifest = this.cache.json.get('room-manifest');
+    if (!manifest || !Array.isArray(manifest)) {
+      console.error('Room manifest not found or invalid');
+      this.isTransitioning = false;
+      this.hideLoading();
+      return;
+    }
+
+    const availableRooms = manifest.filter((key: string) => key !== this.currentRoomKey);
+    const nextRoomKey = availableRooms[Phaser.Math.Between(0, availableRooms.length - 1)];
+
+    await this.startRoomFlow(nextRoomKey);
+  }
+
   async startRoomFlow(roomKey: string) {
     try {
-      this.showLoading();
-
-      const roomData = this.cache.json.get(roomKey);
-      if (!roomData) {
-        throw new Error(`Room data not found for key: ${roomKey}`);
+      this.currentRoomKey = roomKey;
+      if (!this.loadingOverlay) {
+        this.showLoading();
       }
 
-      // 1. Prepare assets
+      await MusicManager.start();
+
+      const roomData = this.cache.json.get(roomKey);
+      if (!roomData) throw new Error(`Room not found: ${roomKey}`);
+
+      // Load assets
       this.assetManager = new RoomAssetManager(this, []);
       await this.assetManager.prepareRoom(roomData);
 
-      // 2. Build the room
+      // Build room
       const roomBuild = RoomBuilder.build(this, roomData);
       this.walls = roomBuild.walls;
 
-      // 3. World bounds & Collisions
+      // Convert raw JSON to RoomData for systems
+      const convertedRoomData = RoomDataConverter.convertFromJson(roomData);
+
+      // World bounds
       this.physics.world.setBounds(0, 0, roomData.width * 32, roomData.height * 32);
+
+      // Spawn hero
+      const spawnPos = this.getHeroSpawn(roomData);
+
+      this.hero = new Hero(this, spawnPos.x, spawnPos.y);
+      this.hero.setCollideWorldBounds(true);
+
+      this.cameras.main.startFollow(this.hero, true, 0.08, 0.08);
+
+      // Restore persisting minions
+      const persisted = MinionPersistenceManager.getInstance().getPersistedMinions();
+      persisted.forEach(data => {
+        this.spawnPersistedMinion(data);
+      });
+      MinionPersistenceManager.getInstance().clear();
+
+      // Collisions
       this.physics.add.collider(this.hero, this.walls);
       this.physics.add.collider(this.enemies, this.walls);
-      this.physics.add.overlap(this.projectiles, this.walls, (proj: any) => {
-        proj.destroy();
+      this.physics.add.collider(this.projectiles, this.walls, (projectile, wall) => {
+        projectile.destroy();
       });
 
-      // 4. Setup Flow Field
+      // Flow field
       this.flowField = new FlowFieldManager({
         tileSize: 32,
         navSize: 64,
@@ -407,45 +449,53 @@ export class GymScene extends Phaser.Scene {
         isWalkable: (x, y) => {
           const worldX = x * 64 + 32;
           const worldY = y * 64 + 32;
-          const hit = this.walls.getChildren().some((wall: any) => {
-            return Phaser.Geom.Rectangle.Contains(wall.getBounds(), worldX, worldY);
-          });
-          return !hit;
+          return !this.walls.getChildren().some((wall: any) =>
+            Phaser.Geom.Rectangle.Contains(wall.getBounds(), worldX, worldY)
+          );
         },
         updateInterval: 400
       });
 
-      // 5. Spawn Hero
-      const spawnPos = roomData.playerSpawn
-        ? { x: (roomData.playerSpawn.x * 32) + 16, y: (roomData.playerSpawn.y * 32) + 16 }
-        : { x: 400, y: 300 };
+      const enemySpawns = this.getEnemySpawns(roomData);
+      console.log('[GymScene] Enemy spawn points:', enemySpawns);
 
-      this.hero = new Hero(this, spawnPos.x, spawnPos.y);
-      this.hero.setDepth(10);
-      this.hero.setTexture('hero_idle');
-      this.hero.play('hero_idle_anim', true);
-      this.hero.setCollideWorldBounds(true);
-      this.cameras.main.startFollow(this.hero, true, 0.08, 0.08);
-      this.cameras.main.setZoom(1.15);
-
-      // 6. Spawn Enemies
-      GYM_ENEMY_SPAWNS.forEach(spawn => {
-        for (let i = 0; i << spawn spawn.count; i++) {
-          const x = Phaser.Math.Between(600, 1200);
-          const y = Phaser.Math.Between(100, 700);
-          const enemy = spawn.type === 'lancer' ? new Lancer(this, x, y) :
-                       spawn.type === 'archer' ? new Archer(this, x, y) :
-                       new Enemy(this, x, y);
-          this.enemies.add(enemy);
-          this.spawnDustEffect(x, y);
-        }
-      });
+      // Spawn enemies
+      this.spawnManager = new SpawnManager(this, this.enemies);
+      this.waveSystem = new WaveSystem(this.spawnManager, convertedRoomData);
+      this.waveSystem.start(GYM_WAVES, this.spawnManager, convertedRoomData);
 
       this.hideLoading();
       this.isRoomReady = true;
+      this.isTransitioning = false;
+
     } catch (err) {
       console.error('Room load failed:', err);
+      this.isTransitioning = false;
+      this.hideLoading();
     }
+  }
+
+  private handleSummon(key: string) {
+    const completed = this.summonSystem.checkInput(key);
+    completed.forEach(type => {
+      this.spawnFriendlyMinion(type);
+
+      // Map summon type to instrument type
+      const instrumentType = type === 'warrior' ? 'guitar' :
+                             type === 'lancer' ? 'bass' :
+                             type === 'archer' ? 'drums' : null;
+
+      if (instrumentType) {
+        const track = this.summonSystem.getTracksState().find(t => t.name === type);
+        if (track) {
+          MusicManager.triggerSummonImpact();
+          MusicManager.updateMinionPattern(instrumentType, track.lastCompletedSequence);
+        }
+      }
+
+      gameEvents.emit('summon-complete', { name: type });
+    });
+    gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
   }
 
   private findNearestEnemy(minion: Enemy): any {
@@ -469,23 +519,38 @@ export class GymScene extends Phaser.Scene {
     const y = this.hero.y + Phaser.Math.Between(-50, 50);
 
     if (type === 'warrior') {
-      // Spawn a Warrior minion using the WarriorMinion class with hero_idle texture
       const minion = new WarriorMinion(this, x, y, 'hero_idle');
       this.enemies.add(minion);
       this.spawnDustEffect(x, y);
     } else if (type === 'lancer') {
-      // Spawn a Lancer minion using the LancerMinion class with lancer_idle_blue texture
       const minion = new LancerMinion(this, x, y, 'lancer_idle_blue');
       this.enemies.add(minion);
       this.spawnDustEffect(x, y);
     } else if (type === 'archer') {
-      // Spawn an Archer minion using the ArcherMinion class with archer_idle_blue texture
       const minion = new ArcherMinion(this, x, y, 'archer_idle_blue');
       this.enemies.add(minion);
       this.spawnDustEffect(x, y);
     } else {
-      // Other minions not implemented yet
       console.log(`Summon sequence for ${type} completed, but entity not yet implemented.`);
+    }
+  }
+
+  private spawnPersistedMinion(data: MinionData) {
+    const x = this.hero.x + Phaser.Math.Between(-50, 50);
+    const y = this.hero.y + Phaser.Math.Between(-50, 50);
+
+    let minion: any;
+    if (data.type === 'warrior') {
+      minion = new WarriorMinion(this, x, y, 'hero_idle', data.hp);
+    } else if (data.type === 'lancer') {
+      minion = new LancerMinion(this, x, y, 'lancer_idle_blue', data.hp);
+    } else if (data.type === 'archer') {
+      minion = new ArcherMinion(this, x, y, 'archer_idle_blue', data.hp);
+    }
+
+    if (minion) {
+      this.enemies.add(minion);
+      this.spawnDustEffect(x, y);
     }
   }
 
@@ -497,9 +562,11 @@ export class GymScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number) {
-    if (!this.isRoomReady || !this.hero || this.isGameOver) return;
+    if (!this.isRoomReady || !this.hero || this.isGameOver || this.isTransitioning) return;
 
     if (this.isHitStopped) return; // Skip update during hit-stop
+
+    this.waveSystem.update(time, delta, this.enemies.getChildren().filter((e: any) => e.team === 'enemy').length);
 
     this.flowField.update(delta, this.hero.x, this.hero.y);
 
@@ -543,6 +610,11 @@ export class GymScene extends Phaser.Scene {
       }
     });
 
+    // Dynamic Music Intensity: Calculate "Battle Heat"
+    const enemiesOnScreen = this.enemies.getChildren().filter((e: any) => e.team === 'enemy').length;
+    const battleHeat = Math.min(enemiesOnScreen / 10, 1.0); // Scale 0-1 based on 10 enemies
+    MusicManager.updateIntensity(battleHeat);
+
     // Combat: Check hero attack hitbox against enemies
     const hitbox = this.hero.getAttackHitbox();
     this.enemies.getChildren().forEach((enemy: any) => {
@@ -571,6 +643,16 @@ export class GymScene extends Phaser.Scene {
         enemy.destroy();
       }
     });
+
+    // Check for room clear
+    if (this.waveSystem.isRoomComplete() && !this.isTransitioning) {
+      console.log('[GymScene] Room cleared! Transitioning...');
+      this.transitionToNextRoom();
+    } else if (DEBUG_MODE) {
+      const remainingEnemies = this.enemies.getChildren().filter((e: any) => e.team === 'enemy');
+      console.log(`[GymScene] Enemies remaining: ${remainingEnemies.length}. Wave System Status:
+      ${this.waveSystem.getCurrentWaveNumber()}`);
+    }
 
     // Projectile handling: manual hurtbox check against all valid targets
     this.projectiles.getChildren().forEach((projectile: any) => {
@@ -665,8 +747,19 @@ export class GymScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     this.input.once('pointerdown', () => {
-      this.scene.restart();
+      this.resetGame();
     });
+  }
+
+  private async resetGame() {
+    this.isGameOver = false;
+    this.isTransitioning = false;
+    this.isRoomReady = false;
+
+    this.physics.resume();
+
+    this.cleanupRoom();
+    await this.startRoomFlow('gym_room');
   }
 
   private spawnDustEffect(x: number, y: number) {
@@ -694,8 +787,6 @@ export class GymScene extends Phaser.Scene {
     const stateStr = this.hero.getState();
     this.debugText.setText(
       `State: ${stateStr}\n` +
-      `Frame: ${this.hero.anims.currentAnim ? (this.hero.anims.currentFrame ?? 'N/A') : 'N/A'}\n` +
-      `Enemies: ${this.enemies.countActive()}\n` +
       `Pos: ${Math.round(this.hero.x)}, ${Math.round(this.hero.y)}\n` +
       `Vel: ${Math.round(this.hero.body?.velocity.x ?? 0)}, ${Math.round(this.hero.body?.velocity.y ?? 0)}`
     );

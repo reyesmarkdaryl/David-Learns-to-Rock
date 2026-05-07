@@ -56,7 +56,9 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
         this.state = HeroState.IDLE;
         this.setTexture('hero_idle');
-        this.play('hero_idle_anim');
+        if (this.anims) {
+          this.play('hero_idle_anim');
+        }
       }
       return;
     }
@@ -68,14 +70,18 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
       if (this.state !== HeroState.WALK) {
         this.state = HeroState.WALK;
         this.setTexture('hero_run');
-        this.play('hero_run_anim', true);
+        if (this.anims) {
+          this.play('hero_run_anim', true);
+        }
       }
 
       const angle = Math.atan2(moveY, moveX);
-      this.setVelocity(
-        Math.cos(angle) * this.stats.moveSpeed,
-        Math.sin(angle) * this.stats.moveSpeed
-      );
+      if (this.body) {
+        this.setVelocity(
+          Math.cos(angle) * this.stats.moveSpeed,
+          Math.sin(angle) * this.stats.moveSpeed
+        );
+      }
 
       if (moveX !== 0) {
         this.facingDirection = moveX > 0 ? 0 : 1;
@@ -85,9 +91,11 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
       if (this.state !== HeroState.IDLE) {
         this.state = HeroState.IDLE;
         this.setTexture('hero_idle');
-        this.play('hero_idle_anim', true);
+        if (this.anims) {
+          this.play('hero_idle_anim', true);
+        }
       }
-      this.setVelocity(0);
+      if (this.body) this.setVelocity(0);
     }
   }
 
@@ -97,9 +105,13 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     this.state = HeroState.ATTACK;
 
     const attackAnim = this.attackComboIndex === 0 ? 'hero_attack1_anim' : 'hero_attack2_anim';
-    this.play(attackAnim);
+    if (this.anims) {
+      this.play(attackAnim);
+    }
 
-    this.setVelocity(0);
+    if (this.body) {
+      this.setVelocity(0);
+    }
     this.attackCooldown = time + this.ATTACK_COOLDOWN_MS;
     this.hitEnemies.clear();
 
@@ -121,9 +133,11 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   takeDamage(amount: number): void {
     this.stats.hp -= amount;
     this.setTint(0xff0000);
-    this.scene.time.delayedCall(100, () => {
-      this.clearTint();
-    });
+    if (this.scene && this.scene.time) {
+      this.scene.time.delayedCall(100, () => {
+        this.clearTint();
+      });
+    }
   }
 
   isDead(): boolean {
@@ -131,11 +145,8 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   }
 
   getAttackHitbox(): Phaser.Geom.Rectangle {
-    const width = this.stats.attackRange;
-    const height = 32;
-    const x = this.facingDirection === 0 ? this.x : this.x - width;
-    const y = this.y - height / 2;
-    return new Phaser.Geom.Rectangle(x, y, width, height);
+    const range = this.stats.attackRange;
+    return new Phaser.Geom.Rectangle(this.x - range, this.y - range, range * 2, range * 2);
   }
 
   getHurtbox(): Phaser.Geom.Rectangle {

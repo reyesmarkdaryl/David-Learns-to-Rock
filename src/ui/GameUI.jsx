@@ -461,12 +461,22 @@ function PlayingField({ summonLog }) {
 
   const [heroStats, setHeroStats] = useState({ hp: 100, maxHp: 100 });
 
-  useEffect(() => {
+    useEffect(() => {
     const onHpUpdate = (stats) => {
       setHeroStats(stats);
     };
     gameEvents.on('hero-hp-update', onHpUpdate);
     return () => gameEvents.off('hero-hp-update', onHpUpdate);
+  }, []);
+
+  const [waveInfo, setWaveInfo] = useState({ number: 1, total: 0 });
+
+  useEffect(() => {
+    const onWaveChanged = (info) => {
+      setWaveInfo(info);
+    };
+    gameEvents.on('wave-changed', onWaveChanged);
+    return () => gameEvents.off('wave-changed', onWaveChanged);
   }, []);
 
   return (
