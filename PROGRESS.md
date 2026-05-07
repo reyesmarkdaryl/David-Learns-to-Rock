@@ -45,11 +45,11 @@ Implementing a dynamic Enemy Wave System to replace static room spawning, allowi
 - [x] Bug Fix: Resolved Phaser internal `TypeError` (currentFrame undefined) by fixing Lancer animation keys
 
 ### 🚧 In Progress
-- [ ] **Enemy Wave System:** implementing `WaveSystem.ts` and integrating into `GymScene` to replace static spawning.
+- [x] **Enemy Wave System:** implementing `WaveSystem.ts` and integrating into `GymScene` to replace static spawning.
 - [ ] **Music Summoning System:** Implementing a synchronized band system using Tone.js where minion summons generate looping musical riffs.
 
 ### 📅 Next Steps
-- [ ] **Wave System Integration:** Finalize `GymScene` refactor to use `WaveSystem` for spawning and room completion.
+- [x] **Wave System Integration:** Finalize `GymScene` refactor to use `WaveSystem` for spawning and room completion.
 - [ ] **UI Feedback:** Hook `wave-changed` event to the HUD.
 - [ ] **Gameplay Loop:** Continue integrating "Doors" and "Enemy Spawns" into the active gameplay wave system.
 - [ ] **Music System: Final Polish & Dynamic Score:**

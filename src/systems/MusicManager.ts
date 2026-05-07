@@ -62,6 +62,7 @@ class MusicManager {
     private drumStepIndex: number = 0;
     private currentActiveFill: string[] = [];
     private guitarLoaded: boolean = false;
+    private bassLoaded: boolean = false;
 
     private instrumentGains: Record<string, Tone.Gain> = {};
     private volumes: Record<string, number> = {
@@ -95,6 +96,23 @@ class MusicManager {
 
     private initInstruments() {
         console.log('[MusicManager] Running initInstruments...');
+
+        // Define sample mappings first to avoid ReferenceErrors
+        const guitarSamples = {
+            "C3": "C3.wav",
+            "E3": "E2.wav",
+            "G3": "G3.wav",
+            "A3": "A3.wav",
+            "C4": "C4.wav",
+        };
+
+        const bassCorrectedSamples = {
+            "E1": "E1.wav",
+            "G1": "G1.wav",
+            "A1": "As1.wav",
+            "C2": "Cs1.wav",
+        };
+
         // Global Master Filter for Battle Intensity
         this.mainFilter = new Tone.Filter(20000, "lowpass").toDestination();
         console.log('[MusicManager] mainFilter created');
@@ -104,44 +122,41 @@ class MusicManager {
             this.instrumentGains[key] = new Tone.Gain(this.volumes[key]).connect(this.mainFilter);
         });
 
-        // 🎸 ROCK GUITAR: Transitioned to Sampler for realism
-        const guitarSamples = {
-            "C3": "AC pick low.wav",
-            "D3": "AC pick mid.wav",
-            "E3": "AC pick high.wav",
-            "F3": "AC oct low.wav",
-            "G3": "AC oct hi.wav",
-        };
+        // 🎸 ROCK GUITAR: Electric Guitar Sampler
         const guitar = new Tone.Sampler({
             urls: guitarSamples,
-            baseUrl: "/assets/samples/guitar/",
+            baseUrl: "assets/samples/guitar-acoustic/",
             onload: () => {
                 this.guitarLoaded = true;
-                console.log('[MusicManager] Guitar samples loaded');
+                console.log('[MusicManager] Electric Guitar samples loaded');
             }
         });
         const guitarChorus = new Tone.Chorus(4, 2.5, 0.3).start();
-        const guitarDist = new Tone.Distortion(0);
+        const guitarDist = new Tone.Distortion(0.4);
 
         guitar.connect(this.instrumentGains['guitar']);
         this.instrumentGains['guitar'].connect(guitarChorus);
         guitarChorus.connect(guitarDist);
         guitarDist.connect(this.mainFilter);
         this.instruments.guitar = guitar;
-        console.log('[MusicManager] Guitar sampler initialized');
+        console.log('[MusicManager] Electric Guitar sampler initialized');
 
-        // 🎸 BASS: Square wave + Deep Lowpass
-        const bass = new Tone.MonoSynth({
-            oscillator: { type: "square" },
-            envelope: { attack: 0.01, decay: 0.3, sustain: 0.6, release: 1 }
+        // 🎸 BASS: Electric Bass Sampler
+        const bass = new Tone.Sampler({
+            urls: bassCorrectedSamples,
+            baseUrl: "assets/samples/bass-electric/",
+            onload: () => {
+                this.bassLoaded = true;
+                console.log('[MusicManager] Electric Bass samples loaded');
+            }
         });
-        const bassFilter = new Tone.Filter(120, "lowpass");
+        const bassFilter = new Tone.Filter(200, "lowpass");
 
         bass.connect(this.instrumentGains['bass']);
         this.instrumentGains['bass'].connect(bassFilter);
         bassFilter.connect(this.mainFilter);
         this.instruments.bass = bass;
-        console.log('[MusicManager] Bass initialized');
+        console.log('[MusicManager] Electric Bass sampler initialized');
 
         // 🥁 DRUMS: Layered Percussion
         const drumOut = new Tone.Gain(this.volumes.drums);
@@ -201,6 +216,26 @@ class MusicManager {
             voice.sequence.dispose();
         });
         this.activeVoices.clear();
+    }
+
+    public async waitForInstruments(): Promise<void> {
+        console.log('[MusicManager] Waiting for instruments to load...');
+        return new Promise((resolve) => {
+            const timeout = setTimeout(() => {
+                clearInterval(check);
+                console.warn('[MusicManager] Loading timeout reached. Starting game with partial assets.');
+                resolve();
+            }, 5000);
+
+            const check = setInterval(() => {
+                if (this.guitarLoaded && this.bassLoaded) {
+                    clearInterval(check);
+                    clearTimeout(timeout);
+                    console.log('[MusicManager] All instruments loaded and ready!');
+                    resolve();
+                }
+            }, 100);
+        });
     }
 
     public triggerSummonImpact(time?: number) {

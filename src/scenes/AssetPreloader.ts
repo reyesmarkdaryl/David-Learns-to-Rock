@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import MusicManager from '../systems/MusicManager';
 
 export class AssetPreloader extends Phaser.Scene {
   constructor() {
@@ -39,8 +40,16 @@ export class AssetPreloader extends Phaser.Scene {
     this.load.image('Details', 'assets/tilemaps/clutter/details.png');
   }
 
-  create() {
-    console.log('Assets preloaded');
+  async create() {
+    console.log('Assets preloaded, waiting for music instruments...');
+
+    try {
+        await MusicManager.waitForInstruments();
+    } catch (e) {
+        console.error('Error loading music instruments:', e);
+    }
+
+    console.log('All assets and instruments ready');
     this.scene.start('MainMenuScene');
   }
 }
