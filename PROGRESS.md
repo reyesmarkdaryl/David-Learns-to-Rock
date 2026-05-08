@@ -62,21 +62,24 @@ Implementing a dynamic Enemy Wave System to replace static room spawning, allowi
 
 **Goal:** Transition from "arcade combat music" to "authentic metal energy" by focusing on rhythm, attack, and harmonic weight.
 
-- [ ] **Step 1: The "Heavy" Foundation**
+- [x] **Step 1: The "Heavy" Foundation**
     - Replace single notes with Power Chords (Root + Fifth) for guitars.
     - Switch from `triggerAttack` to `triggerAttackRelease` to create rhythmic "chugs" and prevent audio mud.
-    - Implement "Alternate Picking" velocity variance (slight volume difference between odd/even notes).
-- [ ] **Step 2: The "Groove" Update**
+    - Implement "Alternate Picking" velocity variance.
+- [x] **Step 2: The "Groove" Update**
     - Integrate authentic metal riff patterns: Thrash Gallops, Tremolo Picking, and Breakdowns.
     - Introduce "Rhythmic Silence" (nulls) to create space and tension.
-    - Experiment with 16th note rhythms for high-intensity segments.
-- [ ] **Step 3: The "Percussion" Punch**
+    - Dynamic Swing adjustment based on intensity.
+- [x] **Step 3: The "Percussion" Punch**
     - Update `drumRiffs` to include double-kick pedal patterns.
-    - Add cymbal accents (Crash/Ride) for measure starts and summon events.
-- [ ] **Step 4: Advanced Reactive Audio**
-    - Implement "Sidechain Compression" (ducking guitar volume when the kick hits).
-    - Expand `updateIntensity` to modify BPM and distortion levels dynamically.
-    - Map Minion Types to specific Metal Genres (e.g., Warrior $\rightarrow$ Thrash, Tank $\rightarrow$ Doom).
+    - Add cymbal accents (Crash/Ride/China) for measure starts and summons.
+- [x] **Step 4: Advanced Reactive Audio**
+    - Implement "Sidechain Compression" (ducking guitar volume when kick hits).
+    - Implement "Battle Director" (Dynamic BPM and Riff shifts based on Tension/HP/Enemies).
+- [ ] **Final Polish**
+    - Implement "Rhythmic Attack Integration" (Hero attacks trigger synced drum hits).
+    - Map Minion Types to specific Metal Genres (Warrior $\rightarrow$ Thrash, etc.).
+    - Implement "Symphonic Thinning" (Music stops for specific instrument if all minions of that type die). ✅ *Implemented*
 
 
 ### Enemy Wave System Implementation Plan                                                                              

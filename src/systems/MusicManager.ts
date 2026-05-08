@@ -2,6 +2,14 @@ import * as Tone from 'tone';
 
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
+export enum SongSection {
+    INTRO,
+    VERSE,
+    CHORUS,
+    BREAKDOWN,
+    BRIDGE
+}
+
 export interface BattleState {
     enemyCount: number;
     playerHP: number;
@@ -44,12 +52,20 @@ class MusicManager {
         ['K', 'H', 'S', 'K'], // 3: Power Groove
     ];
 
+    private readonly DRUM_VELOCITY_CURVE = [1.0, 0.75, 0.9, 0.8];
+
     private readonly drumFills: string[][] = [
         ['S', 'S', 'K', 'S', 'S', 'S', 'K', 'S'], // Linear snare roll
         ['K', 'S', 'K', 'S', 'H', 'H', 'S', 'S'], // Syncopated kick/snare
         ['S', 'H', 'S', 'H', 'K', 'K', 'S', '-'], // Mixed percussion
         ['-', 'S', '-', 'S', 'K', 'S', 'K', 'S'], // Gapped rhythmic fill
     ];
+
+    private readonly MOTIFS = {
+        allies: [0, 2, 0, 4],   // Heroic/Upward: Root -> 5th -> Root -> b7
+        bosses: [0, 3, 1, 0],   // Dark/Dissonant: Root -> b5 -> 3rd -> Root
+        david: [0, 2, 4, 2],    // Stable/Sacred: Root -> 5th -> b7 -> 5th
+    };
 
     private readonly CHORD_TONES: Record<string, string[]> = {
         'Am': ['A3', 'C4', 'E4', 'Eb4', 'G3'], // Root, 3rd, 5th, b5, b7
@@ -73,15 +89,23 @@ class MusicManager {
     private guitarLoaded: boolean = false;
     private bassLoaded: boolean = false;
     private currentTension: number = 0.5;
+    private currentSection: SongSection = SongSection.INTRO;
+    private sectionMeasureCount: number = 0;
+    private readonly GROOVE_OFFSETS = [0, -0.005, 0.002, -0.004, 0.001, -0.003, 0.004, -0.002];
+    private readonly TIMING_VARIANCE = {
+        guitar: 0.003,
+        drums: 0.008,
+        default: 0.005
+    };
 
     private instrumentGains: Record<string, Tone.Gain> = {};
     private volumes: Record<string, number> = {
-        guitar: 0.8,
-        bass: 0.4,
-        drums: 0.9,
+        guitar: 0.7,
+        bass: 0.6,
+        drums: 0.7,
         crash: 0.3,
         ride: 0.5,
-        china: 0.3
+        china: 0.4
     };
 
 
@@ -110,7 +134,7 @@ class MusicManager {
         console.log('[MusicManager] Running initInstruments...');
 
         // Define sample mappings first to avoid ReferenceErrors
-        const guitarSamples = {
+        const guitarSamplesMap = {
             "C3": "C3.wav",
             "E3": "E2.wav",
             "G3": "G3.wav",
@@ -145,24 +169,42 @@ class MusicManager {
         // We reroute guitar through the sidechain instead of directly to the gain node
         // This will be handled in the instrument connection section below.
 
-        // 🎸 ROCK GUITAR: Electric Guitar Sampler
-        const guitar = new Tone.Sampler({
-            urls: guitarSamples,
+        // 🎸 ROCK GUITAR: Double-Tracked Electric Guitar Samplers
+        const createGuitarSampler = (label: string) => new Tone.Sampler({
+            urls: guitarSamplesMap,
             baseUrl: "assets/samples/guitar-acoustic/",
             onload: () => {
-                this.guitarLoaded = true;
-                console.log('[MusicManager] Electric Guitar samples loaded');
+                if (label === 'L') this.guitarLoaded = true; // Simplify loading flag
+                console.log(`[MusicManager] Electric Guitar ${label} samples loaded`);
             }
         });
-        const guitarChorus = new Tone.Chorus(4, 2.5, 0.3).start();
-        const guitarDist = new Tone.Distortion(0.4);
 
-        guitar.connect(this.instrumentGains['guitar']);
-        this.instrumentGains['guitar'].connect(guitarChorus);
-        guitarChorus.connect(guitarDist);
-        guitarDist.connect(this.mainFilter);
-        this.instruments.guitar = guitar;
-        console.log('[MusicManager] Electric Guitar sampler initialized (Sidechain Bypassed)');
+        const guitarL = createGuitarSampler('L');
+        const guitarR = createGuitarSampler('R');
+
+        const guitarPannerL = new Tone.Panner(-0.4);
+        const guitarPannerR = new Tone.Panner(0.4);
+
+        const guitarDist = new Tone.Distortion(0.4);
+        const guitarEQ = new Tone.EQ3({ low: 2, mid: -4, high: -6 });
+        const guitarCab = new Tone.Filter(5000, "lowpass");
+
+        // Routing: Sampler -> Panner -> Distortion -> EQ -> Cab -> Gain
+        guitarL.connect(guitarPannerL);
+        guitarPannerL.connect(guitarDist);
+        guitarDist.connect(guitarEQ);
+        guitarEQ.connect(guitarCab);
+        guitarCab.connect(this.instrumentGains['guitar']);
+
+        guitarR.connect(guitarPannerR);
+        guitarPannerR.connect(guitarDist);
+        guitarDist.connect(guitarEQ);
+        guitarEQ.connect(guitarCab);
+        guitarCab.connect(this.instrumentGains['guitar']);
+
+        this.instruments.guitarL = guitarL;
+        this.instruments.guitarR = guitarR;
+        console.log('[MusicManager] Double-tracked guitars initialized');
 
         // 🎸 BASS: Electric Bass Sampler
         const bass = new Tone.Sampler({
@@ -173,13 +215,15 @@ class MusicManager {
                 console.log('[MusicManager] Electric Bass samples loaded');
             }
         });
+        const bassDist = new Tone.Distortion(0.2);
         const bassFilter = new Tone.Filter(200, "lowpass");
 
-        bass.connect(this.instrumentGains['bass']);
+        bass.connect(bassDist);
+        bassDist.connect(this.instrumentGains['bass']);
         this.instrumentGains['bass'].connect(bassFilter);
         bassFilter.connect(this.mainFilter);
         this.instruments.bass = bass;
-        console.log('[MusicManager] Electric Bass sampler initialized');
+        console.log('[MusicManager] Electric Bass sampler initialized with distortion blend');
 
         // 🥁 DRUMS: Layered Percussion
         const drumOut = new Tone.Gain(this.volumes.drums);
@@ -232,6 +276,14 @@ class MusicManager {
         // Chord Progression Tracker: Change chord every measure
         Tone.Transport.scheduleRepeat((time) => {
             this.totalMeasuresPlayed++;
+            this.sectionMeasureCount++;
+
+            // Section Transition: Every 8 or 16 measures, shift the song structure
+            const measuresPerSection = this.currentSection === SongSection.BREAKDOWN ? 16 : 8;
+            if (this.sectionMeasureCount >= measuresPerSection) {
+                this.changeSection(time);
+            }
+
             const progression = this.PROGRESSIONS[this.currentProgressionIndex];
             this.chordIndex = (this.chordIndex + 1) % progression.length;
 
@@ -261,6 +313,16 @@ class MusicManager {
         this.activeVoices.clear();
     }
 
+    public stopInstrument(type: string) {
+        if (this.activeVoices.has(type)) {
+            const voice = this.activeVoices.get(type)!;
+            voice.sequence.stop();
+            voice.sequence.dispose();
+            this.activeVoices.delete(type);
+            console.log(`[MusicManager] Stopped music for ${type} - all members fallen`);
+        }
+    }
+
     public async waitForInstruments(): Promise<void> {
         console.log('[MusicManager] Waiting for instruments to load...');
         return new Promise((resolve) => {
@@ -287,7 +349,13 @@ class MusicManager {
             console.warn('[MusicManager] crashCymbal not initialized yet');
             return;
         }
-        const triggerTime = time || Tone.now() + 0.01;
+
+        // Sync to the start of the NEXT measure for maximum impact (quantization)
+        const triggerTime = time ? time : Tone.now();
+
+        // Note: Tone.Transport.quantize doesn't exist in modern Tone.js.
+        // Using Tone.now() as a fallback for immediate trigger.
+        const finalTriggerTime = triggerTime;
 
         // Randomize between Crash and China for more variety in impact
         if (Math.random() > 0.7 && this.instruments.drums.china) {
@@ -305,6 +373,58 @@ class MusicManager {
         } else {
             console.error(`[MusicManager] No volume control found for instrument: ${instrument}`);
         }
+    }
+
+    private changeSection(time: number) {
+        console.log(`[MusicManager] Transitioning section from ${this.currentSection} to...`);
+
+        // Trigger a "Transition Impact" slightly before the section shift
+        if (this.activeVoices.size > 0) {
+            this.crashCymbal.triggerAttackRelease('1n', time - 0.5, 0.4);
+        }
+
+        // Cycle through sections: INTRO -> VERSE -> CHORUS -> VERSE -> BREAKDOWN -> BRIDGE -> CHORUS
+        const sequence = [
+            SongSection.INTRO,
+            SongSection.VERSE,
+            SongSection.CHORUS,
+            SongSection.VERSE,
+            SongSection.BREAKDOWN,
+            SongSection.BRIDGE,
+            SongSection.CHORUS
+        ];
+
+        const currentIndex = sequence.indexOf(this.currentSection);
+        const nextIndex = (currentIndex + 1) % sequence.length;
+        this.currentSection = sequence[nextIndex];
+        this.sectionMeasureCount = 0;
+
+        console.log(`[MusicManager] New Section: ${this.currentSection}`);
+
+        // Adjust musical parameters based on section
+        switch (this.currentSection) {
+            case SongSection.BREAKDOWN:
+                Tone.Transport.bpm.rampTo(90, 2);
+                this.currentProgressionIndex = 0; // Use lower intensity progression
+                break;
+            case SongSection.CHORUS:
+                Tone.Transport.bpm.rampTo(120, 2);
+                this.currentProgressionIndex = 2; // Use high intensity progression
+                break;
+            case SongSection.VERSE:
+                Tone.Transport.bpm.rampTo(105, 2);
+                this.currentProgressionIndex = 1; // Use mid intensity progression
+                break;
+            default:
+                Tone.Transport.bpm.rampTo(100, 2);
+        }
+
+        // Force riff update for all active voices to match new section energy
+        this.activeVoices.forEach((voice, type) => {
+            if (type !== 'drums') {
+                this.updateMinionPattern(type, []);
+            }
+        });
     }
 
     public updateBattleState(state: BattleState) {
@@ -375,7 +495,7 @@ class MusicManager {
             oldVoice.sequence.dispose();
         }
 
-        const instrument = this.instruments[type];
+        const instrument = type === 'guitar' ? { L: this.instruments.guitarL, R: this.instruments.guitarR } : this.instruments[type];
         if (!instrument) {
             console.error(`[MusicManager] No instrument found for type: ${type}`);
             return;
@@ -385,11 +505,23 @@ class MusicManager {
             (time, note) => {
                 if (note === null) return;
 
-                // DEBUG: Trace every note attempt
-                // console.log(`[MusicManager] Sequence trigger for ${type}: note ${note} at ${time.toFixed(3)}`);
+                // Rhythmic Silence: 10% chance to skip the note at the start of a measure for "half-beat pause" impact
+                if (this.totalMeasuresPlayed % 1 === 0 && Math.random() > 0.9) {
+                    // Only skip if we are at the very start of a measure
+                    const beat = (Tone.Transport.seconds * (Tone.Transport.bpm.value / 60)) % 4;
+                    if (beat < 0.1) return;
+                }
 
-                // Humanize timing: slight shift for more natural feel
-                const humanizedTime = time + (Math.random() * 0.02 - 0.01);
+                // Breakdown Gaps: If current riff is a breakdown (index 2 or 3), explicitly honor nulls and add extra gaps
+                if (this.currentBandRiffIndex >= 2 && Math.random() > 0.8) {
+                    // Occasional extra silence in breakdowns for tension
+                    return;
+                }
+
+                // Groove Timing: Use predefined offsets + small instrument-specific variance
+                const grooveOffset = this.GROOVE_OFFSETS[this.drumStepIndex % this.GROOVE_OFFSETS.length];
+                const variance = this.TIMING_VARIANCE[type] || this.TIMING_VARIANCE.default;
+                const humanizedTime = time + grooveOffset + (Math.random() * variance * 2 - variance);
 
                 const intensity = this.getIntensity();
                 const currentBeat = (Tone.Transport.seconds * (Tone.Transport.bpm.value / 60)) % 4;
@@ -436,7 +568,7 @@ class MusicManager {
                     }
 
                     if (type === 'guitar') {
-                        console.log(`[MusicManager] Triggering sampled guitar power chord: ${finalNotes} at ${humanizedTime.toFixed(3)}`);
+                        console.log(`[MusicManager] Triggering double-tracked guitar power chord: ${finalNotes} at ${humanizedTime.toFixed(3)}`);
                     }
 
                     // Humanize velocity + Alternate Picking Simulation
@@ -444,9 +576,20 @@ class MusicManager {
                     const pickVariance = stepIndex % 2 === 0 ? 1.0 : 0.85;
                     const vel = (0.7 + Math.random() * 0.2) * accent * intensity * pickVariance;
 
-                    // Use triggerAttackRelease to create "chugging" and avoid audio mud
-                    // '8n' matches the sequence timing for a tight, rhythmic feel
-                    instrument.triggerAttackRelease(finalNotes, '8n', humanizedTime, vel);
+                    // Palm Muting (The "Chug") logic
+                    const isPalmMute = Math.random() > 0.4;
+                    const duration = isPalmMute ? '16n' : '8n';
+                    const muteVel = isPalmMute ? vel * 0.7 : vel;
+
+                    const gL = this.instruments.guitarL;
+                    const gR = this.instruments.guitarR;
+
+                    // Double-tracking humanization: slight timing offsets
+                    const timeL = humanizedTime - 0.008;
+                    const timeR = humanizedTime + 0.006;
+
+                    gL.triggerAttackRelease(finalNotes, duration, timeL, muteVel);
+                    gR.triggerAttackRelease(finalNotes, duration, timeR, muteVel);
                 }
             },
             notes,
@@ -471,6 +614,27 @@ class MusicManager {
     }
 
     private generatePhrase(type: string): (string | number | null)[] {
+        // Randomly decide if we use a motif instead of a base riff (25% chance)
+        if (Math.random() > 0.75) {
+            let motif: number[] = [];
+            if (type === 'guitar' || type === 'bass') {
+                // Pick motif based on current battle state if possible, otherwise random
+                const motifKey = Math.random() > 0.5 ? 'allies' : (Math.random() > 0.5 ? 'bosses' : 'david');
+                motif = this.MOTIFS[motifKey as keyof typeof this.MOTIFS];
+            } else {
+                return this.selectBaseRiff(type); // Drums stick to base riffs
+            }
+
+            // Expand motif to fit 16-step structure (A A B A)
+            const phrase: (string | number | null)[] = [];
+            const extendedMotif = [...motif, ...new Array(8 - motif.length).fill(null)];
+            phrase.push(...extendedMotif); // A
+            phrase.push(...extendedMotif); // A
+            phrase.push(...extendedMotif.map(n => n === null ? null : (n as number) + 1)); // B (shifted)
+            phrase.push(...extendedMotif); // A
+            return phrase;
+        }
+
         const riff = this.selectBaseRiff(type);
         const phrase: (string | number | null)[] = [];
 
@@ -500,20 +664,34 @@ class MusicManager {
     private playDrumNote(note: string, time: number, velocity: number) {
         const drums = this.instruments.drums;
 
+        // Apply Groove Velocity Curve
+        const curveVel = this.DRUM_VELOCITY_CURVE[this.drumStepIndex % this.DRUM_VELOCITY_CURVE.length];
+        const finalVelocity = velocity * curveVel;
+
         // Sidechain Trigger: If it's a kick, duck the guitar
         if (note === 'K') {
             this.guitarSidechain.triggerAttackRelease(0.1, time);
         }
 
-        // Add random ghost notes for groove
-        if (Math.random() < 0.15) {
-            drums.hihat.triggerAttackRelease('16n', time, velocity * 0.4);
+        // Improved Ghost Notes: Higher probability before a backbeat (steps 3, 7, 11, 15)
+        const isBeforeBackbeat = (this.drumStepIndex + 1) % 4 === 0;
+        const ghostProb = isBeforeBackbeat ? 0.3 : 0.1;
+        if (Math.random() < ghostProb) {
+            drums.hihat.triggerAttackRelease('16n', time, finalVelocity * 0.3);
         }
 
         switch (note) {
-            case 'K': drums.kick.triggerAttackRelease('C2', '8n', time, velocity); break;
-            case 'S': drums.snare.triggerAttackRelease('8n', time, velocity); break;
-            case 'H': drums.hihat.triggerAttackRelease('8n', time, velocity); break;
+            case 'K': drums.kick.triggerAttackRelease('C2', '8n', time, finalVelocity); break;
+            case 'S': drums.snare.triggerAttackRelease('8n', time, finalVelocity); break;
+            case 'H': drums.hihat.triggerAttackRelease('8n', time, finalVelocity); break;
+        }
+
+        // Cymbal Choke Logic: For China/Crash, if we are in a heavy riff (index 2 or 3), choke the ring
+        if (note === 'C' || note === 'H') { // Simplified choke trigger
+            if (this.currentBandRiffIndex >= 2) {
+                drums.china?.triggerRelease(time + 0.2);
+                drums.ride?.triggerRelease(time + 0.2);
+            }
         }
     }
 }

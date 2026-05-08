@@ -662,6 +662,18 @@ export class GymScene extends Phaser.Scene {
       }
     });
 
+    // Dynamic Music: Stop instruments if no minions of that type remain
+    const activeMinions = this.enemies.getChildren().filter((e: any) => e.team === 'hero');
+    const counts = {
+      guitar: activeMinions.filter(m => m instanceof WarriorMinion).length,
+      bass: activeMinions.filter(m => m instanceof LancerMinion).length,
+      drums: activeMinions.filter(m => m instanceof ArcherMinion).length
+    };
+
+    if (counts.guitar === 0) MusicManager.stopInstrument('guitar');
+    if (counts.bass === 0) MusicManager.stopInstrument('bass');
+    if (counts.drums === 0) MusicManager.stopInstrument('drums');
+
     // Check for room clear
     if (this.waveSystem.isRoomComplete() && !this.isTransitioning) {
       console.log('[GymScene] Room cleared! Transitioning...');
