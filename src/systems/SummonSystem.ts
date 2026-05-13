@@ -20,26 +20,27 @@ export class SummonSystem {
 
   private initTracks(): void {
     const trackConfigs = [
-      { name: 'warrior', length: 6 },
-      { name: 'lancer', length: 6 },
-      { name: 'archer', length: 6 },
+      { name: 'warrior', sequence: ['UP', 'UP', 'LEFT', 'RIGHT'] as Direction[] },
+      { name: 'lancer', sequence: ['DOWN', 'DOWN', 'LEFT', 'RIGHT'] as Direction[] },
+      { name: 'archer', sequence: ['UP', 'DOWN', 'LEFT', 'RIGHT'] as Direction[] },
     ];
 
     trackConfigs.forEach(config => {
-      this.tracks.set(config.name, this.createTrack(config.name, config.length));
+      this.tracks.set(config.name, {
+        name: config.name,
+        targetSequence: config.sequence,
+        currentIndex: 0,
+        requiredLength: config.sequence.length,
+        lastCompletedSequence: [],
+      });
     });
   }
 
   private createTrack(name: string, length: number): SummonTrack {
-    const sequence: Direction[] = [];
-    for (let i = 0; i < length; i++) {
-      const randomDir = this.DIRECTIONS[Phaser.Math.Between(0, this.DIRECTIONS.length - 1)];
-      sequence.push(randomDir);
-    }
-
+    // No longer used with fixed sequences, but kept for interface compatibility if needed
     return {
       name,
-      targetSequence: sequence,
+      targetSequence: [],
       currentIndex: 0,
       requiredLength: length,
       lastCompletedSequence: [],
@@ -49,15 +50,6 @@ export class SummonSystem {
   private randomizeTrack(name: string): void {
     const track = this.tracks.get(name);
     if (!track) return;
-
-    const length = track.requiredLength;
-    const newSequence: Direction[] = [];
-    for (let i = 0; i < length; i++) {
-      const randomDir = this.DIRECTIONS[Phaser.Math.Between(0, this.DIRECTIONS.length - 1)];
-      newSequence.push(randomDir);
-    }
-
-    track.targetSequence = newSequence;
     track.currentIndex = 0;
   }
 

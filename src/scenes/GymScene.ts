@@ -580,10 +580,11 @@ export class GymScene extends Phaser.Scene {
 
     this.hero.update(customCursors, time);
 
-    // Handle Rhythm Summoning Input
+    // Handle Input: Arrow Keys trigger attacks AND track summoning sequences
     const keys = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
     keys.forEach(key => {
       if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[key]))) {
+        this.hero.performAttack(time);
         this.handleSummon(key);
       }
     });
@@ -739,6 +740,7 @@ export class GymScene extends Phaser.Scene {
     });
 
     if (Phaser.Input.Keyboard.JustDown(this.attackKey) || this.input.activePointer.isDown) {
+      // Space/Mouse can still trigger attack for now, or we can remove this to force arrow keys
       this.hero.performAttack(time);
     }
 
