@@ -8,6 +8,22 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   create() {
+    // Start music on first click to bypass browser autoplay restrictions
+    this.input.once('pointerdown', () => {
+      try {
+        const music = this.sound.add('menu-music', { loop: true, volume: 0.7 });
+        music.play();
+        console.log('[MainMenuScene] Menu music started via user interaction');
+      } catch (e) {
+        console.error('[MainMenuScene] Failed to play menu music:', e);
+      }
+    });
+
+    // Stop menu music when leaving this scene
+    this.events.on('shutdown', () => {
+      this.sound.stopAll();
+    });
+
     EventBus.emit('SCENE_CHANGE', 'MainMenuScene');
     const { width, height } = this.scale;
 
@@ -39,8 +55,7 @@ export class MainMenuScene extends Phaser.Scene {
 
       button.on('pointerover', () => button.setStyle({ color: '#ffffff', backgroundColor: '#555555' }));
       button.on('pointerout', () => button.setStyle({ color: '#aaaaaa', backgroundColor: '#333333' }));
-      button.on('pointerdown', async () => {
-        await MusicManager.start();
+      button.on('pointerdown', () => {
         this.scene.start(option.scene);
       });
     });

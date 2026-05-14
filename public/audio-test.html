@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Corruption Test</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #222; color: white; }
+        button { padding: 20px 40px; font-size: 20px; cursor: pointer; background: #444; color: white; border: 2px solid #fff; border-radius: 8px; }
+        button:hover { background: #666; }
+        .status { margin-top: 20px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Audio Corruption Test</h1>
+    <button id="playBtn">Play full-hymn.wav</button>
+    <div id="status" class="status">Status: Waiting for user...</div>
+
+    <script>
+        const btn = document.getElementById('playBtn');
+        const status = document.getElementById('status');
+
+        btn.addEventListener('click', () => {
+            status.innerText = 'Status: Attempting to play...';
+            const audio = new Audio('assets/music/battle-hymn/full-hymn.wav');
+
+            audio.play()
+                .then(() => {
+                    status.innerText = 'Status: Playing! If you hear nothing, check system volume or file content.';
+                    console.log('Audio playing successfully');
+                })
+                .catch(err => {
+                    status.innerText = 'Status: Error - ' + err.message;
+                    console.error('Audio playback failed:', err);
+                });
+        });
+    </script>
+</body>
+</html>

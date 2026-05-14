@@ -20,6 +20,11 @@ export class AssetPreloader extends Phaser.Scene {
     this.load.json('easy_mountain_room', 'assets/rooms/easy_mountain_room.json');
     this.load.json('medium_mountain2_room', 'assets/rooms/medium_mountain2_room.json');
     this.load.json('hard_mountain3_room', 'assets/rooms/hard_mountain3_room.json');
+    this.load.json('music-manifest', 'assets/music-manifest.json');
+    this.load.audio('menu-music', 'assets/music/battle-hymn/full-hymn.wav');
+    this.load.audio('stem-drums', 'assets/music/battle-hymn/drums.wav');
+    this.load.audio('stem-guitar', 'assets/music/battle-hymn/guitar.wav');
+    this.load.audio('stem-bass', 'assets/music/battle-hymn/bass.wav');
 
     // Since the manifest is JSON and we need it to load other images,
     // we can't easily do it in a single preload() call unless we hardcode
@@ -41,10 +46,15 @@ export class AssetPreloader extends Phaser.Scene {
   }
 
   async create() {
-    console.log('Assets preloaded, waiting for music instruments...');
+    console.log('Assets preloaded, loading music instruments...');
 
     try {
-        await MusicManager.waitForInstruments();
+        const musicManifest = this.cache.json.get('music-manifest');
+        if (musicManifest) {
+            await MusicManager.loadStems(musicManifest);
+        } else {
+            console.error('Music manifest not found in cache!');
+        }
     } catch (e) {
         console.error('Error loading music instruments:', e);
     }

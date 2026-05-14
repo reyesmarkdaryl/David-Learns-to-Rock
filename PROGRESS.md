@@ -43,6 +43,9 @@ Implementing a dynamic Enemy Wave System to replace static room spawning, allowi
 - [x] Dynamic Loading: Implement async room loading pipeline with `RoomAssetManager`
 - [x] Visual Polish: Fixed Lancer minion using red assets (corrected to blue)
 - [x] Bug Fix: Resolved Phaser internal `TypeError` (currentFrame undefined) by fixing Lancer animation keys
+- [x] Music System: Implemented Phaser-based Dynamic Stem System (Drums/Guitar/Bass) synchronized on minion summon
+- [x] Music System: Integrated menu music loop using `full-hymn.wav` with interaction trigger
+
 
 ### 🚧 In Progress
 - [x] **Enemy Wave System:** implementing `WaveSystem.ts` and integrating into `GymScene` to replace static spawning.

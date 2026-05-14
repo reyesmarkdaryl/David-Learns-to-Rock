@@ -208,8 +208,11 @@ export class GymScene extends Phaser.Scene {
 
     this.setupAnimations();
 
+    this.assetManager = new RoomAssetManager(this);
     this.summonSystem = new SummonSystem();
+    MusicManager.setScene(this);
     gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
+
 
     if (DEBUG_MODE) {
       this.debugText = this.add.text(10, 10, '', {
@@ -400,13 +403,14 @@ export class GymScene extends Phaser.Scene {
         this.showLoading();
       }
 
-      await MusicManager.start();
+      // Load music stems from manifest
+      const musicManifest = this.cache.json.get('music-manifest') || await
+      fetch('/assets/music-manifest.json').then(res => res.json());
+      await MusicManager.loadStems(musicManifest);
 
       const roomData = this.cache.json.get(roomKey);
       if (!roomData) throw new Error(`Room not found: ${roomKey}`);
 
-      // Load assets
-      this.assetManager = new RoomAssetManager(this, []);
       await this.assetManager.prepareRoom(roomData);
 
       // Build room
@@ -476,23 +480,16 @@ export class GymScene extends Phaser.Scene {
     }
   }
 
-  private handleSummon(key: string) {
+  private async handleSummon(key: string) {
     const completed = this.summonSystem.checkInput(key);
-    completed.forEach(type => {
+    completed.forEach(async (type) => {
       this.spawnFriendlyMinion(type);
 
-      // Map summon type to instrument type
-      const instrumentType = type === 'warrior' ? 'guitar' :
-                             type === 'lancer' ? 'bass' :
-                             type === 'archer' ? 'drums' : null;
+      // Start the synchronized band on the first summon
+      await MusicManager.start();
 
-      if (instrumentType) {
-        const track = this.summonSystem.getTracksState().find(t => t.name === type);
-        if (track) {
-          MusicManager.triggerSummonImpact();
-          MusicManager.updateMinionPattern(instrumentType, track.lastCompletedSequence);
-        }
-      }
+      // Map summon type to instrument type and queue unmute on the beat
+      MusicManager.queueInstrument(type);
 
       gameEvents.emit('summon-complete', { name: type });
     });
@@ -668,12 +665,12 @@ export class GymScene extends Phaser.Scene {
     const counts = {
       guitar: activeMinions.filter(m => m instanceof WarriorMinion).length,
       bass: activeMinions.filter(m => m instanceof LancerMinion).length,
-      drums: activeMinions.filter(m => m instanceof ArcherMinion).length
+      vocal: activeMinions.filter(m => m instanceof ArcherMinion).length
     };
 
-    if (counts.guitar === 0) MusicManager.stopInstrument('guitar');
-    if (counts.bass === 0) MusicManager.stopInstrument('bass');
-    if (counts.drums === 0) MusicManager.stopInstrument('drums');
+    if (counts.guitar === 0) MusicManager.stopInstrument('warrior');
+    if (counts.bass === 0) MusicManager.stopInstrument('lancer');
+    if (counts.vocal === 0) MusicManager.stopInstrument('archer');
 
     // Check for room clear
     if (this.waveSystem.isRoomComplete() && !this.isTransitioning) {

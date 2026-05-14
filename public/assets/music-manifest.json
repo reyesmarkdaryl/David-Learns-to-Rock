@@ -1,0 +1,8 @@
+{
+  "battle-hymn": {
+    "bass": "assets/music/battle-hymn/bass.wav",
+    "drums": "assets/music/battle-hymn/drums.wav",
+    "guitar": "assets/music/battle-hymn/guitar.wav",
+    "vocal": "assets/music/battle-hymn/vocal.wav"
+  }
+}
