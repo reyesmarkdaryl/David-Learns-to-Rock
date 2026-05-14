@@ -22,8 +22,10 @@ export class RhythmSystem {
   private lastBeatTime: number = 0;
   private beatCount: number = 0;
 
-  // Forgiving hit window (in seconds)
-  private readonly WINDOW_HIT = 0.25;
+  // Tiered hit windows (in seconds)
+  private readonly WINDOW_PERFECT = 0.05;
+  private readonly WINDOW_GOOD = 0.125;
+  private readonly WINDOW_OKAY = 0.2;
 
   private constructor() {}
 
@@ -59,9 +61,9 @@ export class RhythmSystem {
 
   /**
    * Evaluates if an action happened on the beat.
-   * @returns true if it was a hit, false if it was a miss.
+   * @returns the quality of the hit ('perfect', 'good', 'okay', 'miss')
    */
-  public evaluateHit(): boolean {
+  public evaluateHit(): string {
     const currentTime = performance.now() / 1000;
     const beatInterval = 60 / this.bpm;
 
@@ -72,17 +74,23 @@ export class RhythmSystem {
 
     this.totalNotes++;
 
-    if (offset <= this.WINDOW_HIT) {
-      this.handleHit(true);
-      return true;
+    if (offset <= this.WINDOW_PERFECT) {
+      this.handleHit('perfect');
+      return 'perfect';
+    } else if (offset <= this.WINDOW_GOOD) {
+      this.handleHit('good');
+      return 'good';
+    } else if (offset <= this.WINDOW_OKAY) {
+      this.handleHit('okay');
+      return 'okay';
     } else {
-      this.handleHit(false);
-      return false;
+      this.handleHit('miss');
+      return 'miss';
     }
   }
 
-  private handleHit(isHit: boolean) {
-    if (!isHit) {
+  private handleHit(quality: string) {
+    if (quality === 'miss') {
       this.combo = 0;
     } else {
       this.combo++;
@@ -92,7 +100,7 @@ export class RhythmSystem {
     this.updateMultiplier();
 
     gameEvents.emit('rhythm-hit', {
-      hit: isHit,
+      quality: quality,
       combo: this.combo,
       multiplier: this.multiplier,
       accuracy: this.calculateAccuracy(),

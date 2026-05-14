@@ -38,8 +38,8 @@ export default function RhythmBar() {
     const onRhythmHit = (data) => {
       setState(prev => ({ ...prev, combo: data.combo, multiplier: data.multiplier, accuracy: data.accuracy }));
       setFeedback({
-        text: data.hit ? 'HIT' : 'MISS',
-        quality: data.hit ? 'perfect' : 'miss'
+        text: data.quality.toUpperCase(),
+        quality: data.quality
       });
       setTimeout(() => setFeedback({ text: '', quality: '' }), 500);
     };
@@ -210,7 +210,7 @@ export default function RhythmBar() {
           transform: 'translate(-50%, -50%)',
           width: '36px',
           height: '56px',
-          border: `2px solid ${feedback.quality === 'perfect' ? '#7de84a' : feedback.quality === 'good' ? '#e8c46a' : feedback.quality === 'miss' ? '#e84a4a' : '#e8c46a'}`,
+          border: `2px solid ${feedback.quality === 'perfect' ? '#7de84a' : feedback.quality === 'good' ? '#e8c46a' : feedback.quality === 'okay' ? '#e8734a' : feedback.quality === 'okay' ? '#e8734a' : feedback.quality === 'miss' ? '#e84a4a' : '#e8c46a'}`,
           borderRadius: '3px',
           zIndex: 10,
           transition: 'all 0.08s',

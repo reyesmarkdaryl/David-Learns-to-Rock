@@ -485,7 +485,6 @@ export class GymScene extends Phaser.Scene {
   private async handleSummon(key: string) {
     const completed = this.summonSystem.checkInput(key);
     completed.forEach(async (type) => {
-      RhythmSystem.getInstance().evaluateHit();
       this.spawnFriendlyMinion(type);
 
       // Start the synchronized band on the first summon
@@ -586,9 +585,15 @@ export class GymScene extends Phaser.Scene {
     const keys = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
     keys.forEach(key => {
       if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[key]))) {
-        RhythmSystem.getInstance().evaluateHit();
+        const quality = RhythmSystem.getInstance().evaluateHit();
+
+        // Hero attack happens regardless of rhythm (or you could gate this too)
         this.hero.performAttack(time);
-        this.handleSummon(key);
+
+        // Rhythm Gate: Only register summon progress if not a miss
+        if (quality !== 'miss') {
+          this.handleSummon(key);
+        }
       }
     });
 
