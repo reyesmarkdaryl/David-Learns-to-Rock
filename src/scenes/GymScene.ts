@@ -13,6 +13,7 @@ import { DEBUG_MODE, GYM_WAVES } from '../config';
 import { SummonSystem } from '../systems/SummonSystem';
 import { RhythmSystem } from '../systems/RhythmSystem';
 import { gameEvents } from '../systems/GameEvents';
+import RhythmAudioSystem from '../systems/RhythmAudioSystem';
 import { RoomRegistry } from '../room/RoomRegistry';
 import { RoomBuilder } from '../room/RoomBuilder';
 import { GridSystem } from '../editor/GridSystem';
@@ -214,6 +215,9 @@ export class GymScene extends Phaser.Scene {
     RhythmSystem.getInstance().start();
     MusicManager.setScene(this);
     gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
+
+    // Initialize the auditory beat cue
+    RhythmAudioSystem.init().catch(err => console.error('RhythmAudioSystem failed:', err));
 
 
     if (DEBUG_MODE) {

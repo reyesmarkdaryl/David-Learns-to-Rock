@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import { DEBUG_MODE } from "../../config";
 import { Enemy } from '../enemies/Enemy';
+import { RhythmSystem } from '../../systems/RhythmSystem';
 
 export enum HeroState {
   IDLE = 'IDLE',
@@ -33,16 +34,21 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
     this.setCollideWorldBounds(true);
     // Set the body to be a circle with a radius of 16px, centered on the sprite (assuming the original sprite is 192x192)
-    
+
     this.body.setCircle(32, 64, 64);
+
+    // Set depth to ensure we are above the floor
+    this.setDepth(10);
 
     // Set the hero to exactly 92px height and width
     this.setDisplaySize(192, 192);
   }
 
+
   private setSizing(width: number, height: number): void {
     this.setDisplaySize(width, height);
   }
+
 
   update(cursors: any, time: number): void {
     if (this.state === HeroState.ATTACK) {
@@ -144,15 +150,15 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     return this.stats.hp <= 0;
   }
 
-  getAttackHitbox(): Phaser.Geom.Rectangle {
-    const range = this.stats.attackRange;
-    return new Phaser.Geom.Rectangle(this.x - range, this.y - range, range * 2, range * 2);
-  }
-
   getHurtbox(): Phaser.Geom.Rectangle {
     const width = 32;
     const height = 32;
     return new Phaser.Geom.Rectangle(this.x - width / 2, this.y - height / 2, width, height);
+  }
+
+  getAttackHitbox(): Phaser.Geom.Rectangle {
+    const range = this.stats.attackRange;
+    return new Phaser.Geom.Rectangle(this.x - range, this.y - range, range * 2, range * 2);
   }
 
   drawDebug(graphics: Phaser.GameObjects.Graphics): void {

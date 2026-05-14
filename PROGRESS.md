@@ -20,7 +20,7 @@ Implementing a dynamic Enemy Wave System to replace static room spawning, allowi
 - [x] Visual Fidelity: Implement frame-perfect tile rendering
 - [x] Gameplay: Set dynamic world bounds based on room dimensions
 - [x] Gameplay: Fix Hero physics body offset
-- [x] Debugging: Remove unused `drawWorldBounds` call in `GymScene`
+- [x] Debugging: Remove unused `drawWorldBounds` call in `GymScene` debug view
 - [x] Debugging: Center enemy attack range circles in `GymScene` debug view
 - [x] Physics Alignment: Unified all entity physics circles and offsets
 - [x] Asset Integration: Updated manifest and GymScene to support Velmora tilesets
@@ -37,7 +37,7 @@ Implementing a dynamic Enemy Wave System to replace static room spawning, allowi
 - [x] Bug Fix: Resolve `TypeError` in `WarriorMinion` and `Enemy`
 - [x] Bug Fix: Fixed room transition infinite loop
 - [x] Bug Fix: Prevented crashes during scene transitions
-- [x] Bug Fix: Resolved health bar leak
+- [x] Bug Fix: Resolved health laek
 - [x] Debug Visualization: Fix attack range visualization for minions
 - [x] UI Bug Fix: Resolve layout shift in Room Editor UI
 - [x] Dynamic Loading: Implement async room loading pipeline with `RoomAssetManager`
@@ -46,7 +46,7 @@ Implementing a dynamic Enemy Wave System to replace static room spawning, allowi
 - [x] Music System: Implemented Phaser-based Dynamic Stem System (Drums/Guitar/Bass) synchronized on minion summon
 - [x] Music System: Integrated menu music loop using `full-hymn.wav` with interaction trigger
 - [x] Rhythm UI: Integrated `gdd/rhythm_beat_ui.html` into `GameUI` with a dynamic `RhythmBar` and `RhythmSystem` backend
-
+- [x] Rhythm Logic: Implemented tiered hit windows (Perfect, Good, Okay, Miss) and gated summoning sequences on rhythm success.
 
 ### 🚧 In Progress
 - [x] **Enemy Wave System:** implementing `WaveSystem.ts` and integrating into `GymScene` to replace static spawning.
@@ -58,86 +58,21 @@ Implementing a dynamic Enemy Wave System to replace static room spawning, allowi
 - [ ] **Gameplay Loop:** Continue integrating "Doors" and "Enemy Spawns" into the active gameplay wave system.
 - [ ] **Music System: Final Polish & Dynamic Score:**
     - [ ] Implement "Battle Intensity Filter" (Dynamic LPF based on enemy count/proximity).
-    - [ ] Add "Rhythmic Attack Integration" (Hero attacks trigger synced drum hits).
+    - [ la] Add "Rhythmic Attack Integration" (Hero attacks trigger synced drum hits).
     - [ ] Implement "Harmonic Evolution" (Key shifts based on wave progression).
 
-### 🎸 Music System: "Metal Polish" Implementation Plan
-(Reference: `gdd/music_direction/improve_music5.md`)
+---
 
-**Goal:** Transition from "arcade combat music" to "authentic metal energy" by focusing on rhythm, attack, and harmonic weight.
+## 🎨 UX Iteration: The "Attention Split" Problem
+**Context:** The player is currently splitting focus between the Hero (Combat) and the Rhythm Bar (Timing). This breaks the "flow" and takes away from the action-game feel.
 
-- [x] **Step 1: The "Heavy" Foundation**
-    - Replace single notes with Power Chords (Root + Fifth) for guitars.
-    - Switch from `triggerAttack` to `triggerAttackRelease` to create rhythmic "chugs" and prevent audio mud.
-    - Implement "Alternate Picking" velocity variance.
-- [x] **Step 2: The "Groove" Update**
-    - Integrate authentic metal riff patterns: Thrash Gallops, Tremolo Picking, and Breakdowns.
-    - Introduce "Rhythmic Silence" (nulls) to create space and tension.
-    - Dynamic Swing adjustment based on intensity.
-- [x] **Step 3: The "Percussion" Punch**
-    - Update `drumRiffs` to include double-kick pedal patterns.
-    - Add cymbal accents (Crash/Ride/China) for measure starts and summons.
-- [x] **Step 4: Advanced Reactive Audio**
-    - Implement "Sidechain Compression" (ducking guitar volume when kick hits).
-    - Implement "Battle Director" (Dynamic BPM and Riff shifts based on Tension/HP/Enemies).
-- [ ] **Final Polish**
-    - Implement "Rhythmic Attack Integration" (Hero attacks trigger synced drum hits).
-    - Map Minion Types to specific Metal Genres (Warrior $\rightarrow$ Thrash, etc.).
-    - Implement "Symphonic Thinning" (Music stops for specific instrument if all minions of that type die). ✅ *Implemented*
+### Proposed Approaches
+1. **Combat Pop-ups:** Move "PERFECT/GOOD/MISS" labels from the Rhythm Bar to floating text above the Hero.
+2. **Rhythm Aura:** Implement a visual "Beat Ring" around the Hero that pulses and flashes colors in sync with the BPM.
+3. **World Pulse:** Remove the scrolling notes. The entire world (Hero sprite, ground tiles, enemies) subtly pulses or sways to the rhythm.
 
-
-### Enemy Wave System Implementation Plan                                                                              
-     Context                                                                                                            
-     Currently, enemies in GymScene spawn in a single static batch when a room loads. This creates a simplistic combat
-     experience. We are replacing this with a dynamic WaveSystem that spawns enemies in waves over time, introducing
-     intervals, cooldowns, and a structured progression of enemy types.
-
-     Recommended Approach
-
-     1. Configuration Update (src/config.ts)
-
-     Replace the flat GYM_ENEMY_SPAWNS array with a structured GYM_WAVES definition.
-     - Define WaveDefinition interface: { waveNumber: number, enemies: { type: string, count: number }[], interval:
-     number, cooldown: number }.
-     - Define GYM_WAVES containing the progression for the gym room.
-
-     2. New System: WaveSystem (src/systems/WaveSystem.ts)
-
-     Create a state-driven manager for the combat flow of a room.
-     - States: WAITING $\rightarrow$ SPAWNING $\rightarrow$ COOLDOWN $\rightarrow$ COMPLETE.
-     - Logic:
-       - Tracks currentWaveIndex.
-       - Uses a waveQueue to manage pending spawns for the active wave.
-       - Manages a spawnTimer (per-enemy interval) and a cooldownTimer (between waves).
-       - Integrates with SpawnManager to execute spawning at valid room points.
-       - Signals isRoomComplete() when all defined waves are finished and all enemies are dead.
-
-     3. GymScene Integration (src/scenes/GymScene.ts)
-
-     Refactor the scene to delegate combat orchestration to the WaveSystem.
-     - Initialization: Instantiate WaveSystem and call waveSystem.start() in startRoomFlow, removing the static
-     GYM_ENEMY_SPAWNS loop.
-     - Loop: Call waveSystem.update(time, delta, enemyCount) in the main update loop.
-     - Transition: Change the room clear trigger from remainingEnemies.length === 0 to waveSystem.isRoomComplete().
-
-     4. UX & Events
-
-     - Emit wave-changed event via gameEvents whenever a new wave starts.
-     - (Optional) Hook this event into the HUD to display "Wave X" to the player.
-
-     Critical Files
-
-     - src/config.ts: Update spawn configurations.
-     - src/systems/WaveSystem.ts: Create new wave management logic.
-     - src/scenes/GymScene.ts: Update scene lifecycle and update loop.
-     - src/systems/SpawnManager.ts: Reuse for enemy instantiation.
-     - src/systems/GameEvents.ts: For wave transition notifications.
-
-     Verification Plan
-
-     1. Spawn Sequence: Verify that enemies spawn one by one (or in small groups) at the defined interval rather than
-     all at once.
-     2. Wave Transitions: Ensure a cooldown period exists after a wave is cleared before the next wave begins spawning.
-     3. Room Completion: Verify that transitionToNextRoom is only triggered after the final wave is cleared.
-     4. UI Check: Confirm that the wave-changed event is emitted correctly.
-
+### Recommended Hybrid Approach
+Combine the best of all three:
+- **World-Space Feedback:** Labels pop up over the Hero.
+- **Rhythm Aura:** A central visual pulse for timing reference.
+- **Minimalist Bar:** Keep the `RhythmBar` for high-level stats (Combo, Multiplier, Accuracy) but remove the primary timing focus.
