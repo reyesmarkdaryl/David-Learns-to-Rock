@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { gameEvents } from "../systems/GameEvents";
+import RhythmBar from "./RhythmBar";
 
 // ─── Pixel-art SVG Arrow Keys ────────────────────────────────────────────────
 
@@ -562,6 +563,7 @@ function PlayingField({ summonLog }) {
           ARROWS SUMMON
         </span>
       </div>
+      <RhythmBar />
     </div>
   );
 }

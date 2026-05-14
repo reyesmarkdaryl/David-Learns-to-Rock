@@ -1,0 +1,796 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0e0a05;
+    font-family: 'Press Start 2P', monospace;
+    color: #e8c46a;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  #root {
+    width: 100%;
+    height: 220px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #120d06 0%, #0e0a04 100%);
+    border-top: 2px solid #2e1e0a;
+    overflow: hidden;
+  }
+
+  /* Scanline texture overlay */
+  #root::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  /* ── TOP ROW: BPM + Combo + Multiplier ── */
+  .beat-topbar {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 20px;
+    border-bottom: 1px solid #2e1e0a;
+    background: linear-gradient(180deg, #1a1208 0%, #120d06 100%);
+    flex-shrink: 0;
+  }
+
+  .bpm-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .bpm-label { font-size: 5px; color: #3a2810; letter-spacing: 2px; }
+  .bpm-value { font-size: 8px; color: #e8c46a; text-shadow: 0 0 8px rgba(232,196,106,0.4); }
+  .bpm-dot {
+    width: 6px; height: 6px;
+    border-radius: 1px;
+    background: #e8c46a;
+    transition: opacity 0.05s;
+  }
+  .bpm-dot.lit { box-shadow: 0 0 6px #e8c46a; opacity: 1; }
+  .bpm-dot.dim { opacity: 0.15; }
+
+  .divider-v {
+    width: 1px; height: 14px;
+    background: #2e1e0a;
+    flex-shrink: 0;
+  }
+
+  .combo-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .combo-label { font-size: 5px; color: #3a2810; letter-spacing: 2px; }
+  .combo-value {
+    font-size: 9px;
+    transition: color 0.15s, text-shadow 0.15s;
+  }
+  .combo-value.c0 { color: #3a2810; }
+  .combo-value.c1 { color: #c8944a; text-shadow: 0 0 6px rgba(200,148,74,0.5); }
+  .combo-value.c2 { color: #e8734a; text-shadow: 0 0 8px rgba(232,115,74,0.6); }
+  .combo-value.c3 { color: #e8c46a; text-shadow: 0 0 12px rgba(232,196,106,0.8); }
+
+  .multiplier-display {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+  }
+  .multiplier-label { font-size: 5px; color: #3a2810; letter-spacing: 1px; }
+  .multiplier-pips { display: flex; gap: 3px; }
+  .pip {
+    width: 8px; height: 8px;
+    border: 1px solid #2e1e0a;
+    border-radius: 1px;
+    background: #1a1208;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .pip.active { background: #e8c46a; box-shadow: 0 0 5px rgba(232,196,106,0.7); border-color: #e8c46a; }
+  .pip.active.red { background: #e84a4a; box-shadow: 0 0 5px rgba(232,74,74,0.7); border-color: #e84a4a; }
+  .pip.active.orange { background: #e8734a; box-shadow: 0 0 5px rgba(232,115,74,0.7); border-color: #e8734a; }
+
+  .mult-value { font-size: 8px; color: #e8c46a; min-width: 20px; text-align: right; }
+
+  /* ── BEAT TRACK ── */
+  .beat-track-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  /* The scrolling beat lane */
+  #beat-lane {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Hit zone — fixed in center */
+  .hit-zone {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 56px;
+    border: 2px solid #e8c46a;
+    border-radius: 3px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.08s, box-shadow 0.08s;
+    background: rgba(232,196,106,0.04);
+  }
+  .hit-zone.perfect {
+    border-color: #7de84a;
+    box-shadow: 0 0 16px rgba(125,232,74,0.6), inset 0 0 8px rgba(125,232,74,0.2);
+    background: rgba(125,232,74,0.08);
+  }
+  .hit-zone.good {
+    border-color: #e8c46a;
+    box-shadow: 0 0 12px rgba(232,196,106,0.5), inset 0 0 6px rgba(232,196,106,0.15);
+  }
+  .hit-zone.miss {
+    border-color: #e84a4a;
+    box-shadow: 0 0 10px rgba(232,74,74,0.5), inset 0 0 5px rgba(232,74,74,0.1);
+  }
+
+  /* Hit zone inner reticle */
+  .hit-zone-inner {
+    width: 6px; height: 6px;
+    border-radius: 1px;
+    background: #e8c46a;
+    opacity: 0.4;
+    transition: opacity 0.1s;
+  }
+  .hit-zone.perfect .hit-zone-inner { background: #7de84a; opacity: 0.9; }
+
+  /* The scrolling canvas lives here */
+  #beat-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  /* ── FEEDBACK LABEL ── */
+  .feedback-label {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 7px;
+    letter-spacing: 2px;
+    pointer-events: none;
+    z-index: 15;
+    opacity: 0;
+    transition: opacity 0.08s;
+  }
+  .feedback-label.show { opacity: 1; }
+  .feedback-label.perfect { color: #7de84a; text-shadow: 0 0 8px rgba(125,232,74,0.8); }
+  .feedback-label.good    { color: #e8c46a; text-shadow: 0 0 6px rgba(232,196,106,0.7); }
+  .feedback-label.miss    { color: #e84a4a; text-shadow: 0 0 6px rgba(232,74,74,0.7); }
+
+  /* ── BOTTOM BAR: Accuracy meter ── */
+  .beat-bottombar {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 10px;
+    border-top: 1px solid #2e1e0a;
+    background: linear-gradient(180deg, #120d06 0%, #1a1208 100%);
+    flex-shrink: 0;
+  }
+
+  .acc-label { font-size: 5px; color: #3a2810; letter-spacing: 2px; flex-shrink: 0; }
+
+  .acc-bar-wrap {
+    flex: 1;
+    height: 8px;
+    background: #1a1208;
+    border: 1px solid #2e1e0a;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .acc-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease, background 0.4s ease;
+  }
+  .acc-value { font-size: 6px; color: #4a3018; min-width: 28px; text-align: right; }
+
+  /* Beat indicator segments — top of the bar */
+  .beat-pips-row {
+    position: absolute;
+    top: 0;
+    right: 14px;
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    height: 30px;
+  }
+
+  .beat-seg {
+    width: 7px; height: 14px;
+    border-radius: 1px;
+    background: #1a1208;
+    border: 1px solid #2e1e0a;
+    transition: background 0.05s, box-shadow 0.05s;
+  }
+  .beat-seg.on { background: #e8c46a; box-shadow: 0 0 5px rgba(232,196,106,0.7); border-color: #e8c46a; }
+  .beat-seg.on.b1 { height: 22px; }
+  .beat-seg.on.b2 { height: 16px; }
+
+  /* Speed control */
+  .speed-ctrl {
+    font-size: 5px;
+    color: #3a2810;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .speed-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: #e8c46a;
+    background: #1a1208;
+    border: 1px solid #2e1e0a;
+    border-radius: 2px;
+    padding: 2px 5px;
+    cursor: pointer;
+    transition: background 0.1s, box-shadow 0.1s;
+    pointer-events: all;
+  }
+  .speed-btn:hover { background: #221608; box-shadow: 0 0 4px rgba(232,196,106,0.3); }
+  .speed-btn:active { transform: translateY(1px); }
+
+  @keyframes noteHit {
+    0%   { transform: scale(1.3) rotate(45deg); opacity: 1; }
+    100% { transform: scale(0.5) rotate(45deg); opacity: 0; }
+  }
+  @keyframes feedbackPop {
+    0%   { transform: translateX(-50%) scale(1.2); }
+    100% { transform: translateX(-50%) scale(1); }
+  }
+  .feedback-label.show { animation: feedbackPop 0.15s ease-out; }
+
+  @keyframes missPulse {
+    0%,100% { opacity:0.15; }
+    50%      { opacity:0.6; }
+  }
+
+  @keyframes shakeHitzone {
+    0%,100% { left: 50%; }
+    25%  { left: calc(50% - 4px); }
+    75%  { left: calc(50% + 4px); }
+  }
+  .hit-zone.shake { animation: shakeHitzone 0.15s ease; }
+</style>
+</head>
+<body>
+<div id="root">
+
+  <!-- TOP BAR -->
+  <div class="beat-topbar">
+    <div class="bpm-display">
+      <div class="bpm-dot dim" id="bpm-dot"></div>
+      <span class="bpm-label">BPM</span>
+      <span class="bpm-value" id="bpm-val">120</span>
+    </div>
+
+    <div class="divider-v"></div>
+
+    <div class="combo-display">
+      <span class="combo-label">COMBO</span>
+      <span class="combo-value c0" id="combo-val">×0</span>
+    </div>
+
+    <div class="divider-v"></div>
+
+    <div style="display:flex;align-items:center;gap:5px;">
+      <span class="bpm-label">STREAK</span>
+      <span style="font-size:6px;color:#4a3018" id="streak-val">0</span>
+    </div>
+
+    <div class="multiplier-display">
+      <span class="multiplier-label">MULT</span>
+      <div class="multiplier-pips" id="mult-pips">
+        <div class="pip"></div>
+        <div class="pip"></div>
+        <div class="pip"></div>
+        <div class="pip"></div>
+      </div>
+      <span class="mult-value" id="mult-val">×1</span>
+    </div>
+  </div>
+
+  <!-- BEAT TRACK -->
+  <div class="beat-track-wrap">
+    <canvas id="beat-canvas"></canvas>
+
+    <!-- Hit zone -->
+    <div class="hit-zone" id="hit-zone">
+      <div class="hit-zone-inner"></div>
+    </div>
+
+    <!-- Feedback label -->
+    <div class="feedback-label" id="feedback-label">PERFECT</div>
+
+    <!-- Beat pips (top-right of track) -->
+    <div class="beat-pips-row" id="beat-pips">
+      <div class="beat-seg" id="bs0"></div>
+      <div class="beat-seg" id="bs1"></div>
+      <div class="beat-seg" id="bs2"></div>
+      <div class="beat-seg" id="bs3"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="beat-bottombar">
+    <span class="acc-label">ACCURACY</span>
+    <div class="acc-bar-wrap">
+      <div class="acc-bar-fill" id="acc-bar" style="width:100%;background:linear-gradient(90deg,#4ae84a88,#4ae84a)"></div>
+    </div>
+    <span class="acc-value" id="acc-val">100%</span>
+
+    <div class="divider-v" style="margin:0 4px"></div>
+
+    <div class="speed-ctrl">
+      <span>BPM</span>
+      <button class="speed-btn" onclick="changeBPM(-10)">−</button>
+      <button class="speed-btn" onclick="changeBPM(10)">+</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+
+let BPM = 120;
+let combo = 0;
+let streak = 0;
+let totalHits = 0;
+let totalNotes = 0;
+let multiplier = 1;
+let lastFeedbackTimer = null;
+
+const HIT_WINDOW_PERFECT = 0.12; // seconds
+const HIT_WINDOW_GOOD    = 0.22;
+const NOTE_SPEED = 220;   // px per second
+const HIT_ZONE_X = () => canvas.width / 2;
+
+// ── Canvas setup ─────────────────────────────────────────────────────────────
+
+const canvas = document.getElementById('beat-canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width  = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ── Note types ───────────────────────────────────────────────────────────────
+// Each note has: x, type ('beat'|'half'), hit state, lane
+
+const COLORS = {
+  beat: { fill: '#e8c46a', glow: 'rgba(232,196,106,0.35)', border: '#c8944a' },
+  half: { fill: '#4ab8e8', glow: 'rgba(74,184,232,0.35)', border: '#2a98c8' },
+  accent: { fill: '#e8734a', glow: 'rgba(232,115,74,0.45)', border: '#c85020' },
+};
+
+let notes = [];
+let spawnTimer = 0;
+let beatPhase = 0;     // 0..1, synced to BPM
+let beatCount = 0;
+let lastTime = null;
+let particles = [];
+
+// Generate a repeating pattern of notes
+const PATTERNS = [
+  ['beat','beat','half','beat'],
+  ['beat','accent','beat','beat','half'],
+  ['half','beat','beat','accent','beat'],
+  ['beat','beat','beat','accent'],
+];
+let patternIdx = 0;
+let inPatternIdx = 0;
+
+function nextNoteType() {
+  const pat = PATTERNS[patternIdx % PATTERNS.length];
+  const t = pat[inPatternIdx % pat.length];
+  inPatternIdx++;
+  if (inPatternIdx >= pat.length) {
+    inPatternIdx = 0;
+    patternIdx++;
+  }
+  return t;
+}
+
+function spawnNote() {
+  notes.push({
+    x: canvas.width + 28,
+    type: nextNoteType(),
+    hit: null,   // null | 'perfect' | 'good' | 'miss'
+    age: 0,
+  });
+  totalNotes++;
+}
+
+// ── Beat scheduler ───────────────────────────────────────────────────────────
+
+const beatInterval = () => 60 / BPM;
+let nextBeatTime = 0;
+
+function tickBeat(t) {
+  if (t >= nextBeatTime) {
+    nextBeatTime = t + beatInterval();
+    beatCount++;
+    // Flash beat pips
+    flashBeatPips(beatCount);
+    // BPM dot flash
+    const dot = document.getElementById('bpm-dot');
+    dot.classList.add('lit');
+    dot.classList.remove('dim');
+    setTimeout(() => { dot.classList.remove('lit'); dot.classList.add('dim'); }, 80);
+    // Spawn note
+    spawnNote();
+  }
+}
+
+function flashBeatPips(count) {
+  const segs = ['bs0','bs1','bs2','bs3'];
+  const step = (count - 1) % 4;
+  segs.forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('on','b1','b2');
+    if (i <= step) {
+      el.classList.add('on');
+      if (i === 0) el.classList.add('b1');
+      else if (i === step) el.classList.add('b2');
+    }
+  });
+}
+
+// ── Particle system ──────────────────────────────────────────────────────────
+
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 40 + Math.random() * 80;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1,
+      decay: 0.04 + Math.random() * 0.04,
+      size: 2 + Math.random() * 3,
+      color,
+    });
+  }
+}
+
+// ── Draw ─────────────────────────────────────────────────────────────────────
+
+function drawNote(note) {
+  const { x, type, hit } = note;
+  const cy = canvas.height / 2;
+  const size = 14;
+  const c = COLORS[type];
+
+  if (hit && note.age > 0.15) return; // hide after hit animation
+  if (x < -40) return;
+
+  const alpha = hit ? Math.max(0, 1 - note.age * 8) : 1;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, cy);
+
+  // If hit, animate scale
+  if (hit) {
+    const scale = 1 + note.age * 4;
+    ctx.scale(scale, scale);
+  }
+
+  // Rotate notes for variety
+  ctx.rotate(Math.PI / 4);
+
+  // Glow
+  ctx.shadowColor = c.glow;
+  ctx.shadowBlur = hit ? 0 : 12;
+
+  // Border
+  ctx.strokeStyle = c.border;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(-size/2, -size/2, size, size);
+
+  // Fill
+  ctx.fillStyle = c.fill;
+  ctx.fillRect(-size/2 + 1, -size/2 + 1, size - 2, size - 2);
+
+  // Inner highlight (pixel art style)
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.fillRect(-size/2 + 2, -size/2 + 2, size/2 - 2, 2);
+  ctx.fillRect(-size/2 + 2, -size/2 + 2, 2, size/2 - 2);
+
+  ctx.restore();
+}
+
+function drawLane() {
+  const cy = canvas.height / 2;
+  const w = canvas.width;
+
+  // Center lane guide
+  ctx.save();
+  ctx.strokeStyle = '#2e1e0a';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 6]);
+  ctx.beginPath();
+  ctx.moveTo(0, cy);
+  ctx.lineTo(w, cy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Lane borders
+  ctx.strokeStyle = '#1a1208';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, cy - 34);
+  ctx.lineTo(w, cy - 34);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, cy + 34);
+  ctx.lineTo(w, cy + 34);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawHitZoneOverlay() {
+  const hx = HIT_ZONE_X();
+  const cy = canvas.height / 2;
+
+  ctx.save();
+  // Perfect window indicator (subtle)
+  ctx.fillStyle = 'rgba(125,232,74,0.04)';
+  const pw = NOTE_SPEED * HIT_WINDOW_PERFECT * 2;
+  ctx.fillRect(hx - pw/2, cy - 34, pw, 68);
+
+  // Good window
+  ctx.fillStyle = 'rgba(232,196,106,0.03)';
+  const gw = NOTE_SPEED * HIT_WINDOW_GOOD * 2;
+  ctx.fillRect(hx - gw/2, cy - 34, gw, 68);
+  ctx.restore();
+}
+
+function drawParticles(dt) {
+  particles = particles.filter(p => p.life > 0);
+  for (const p of particles) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 60 * dt; // gravity
+    p.life -= p.decay;
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 4;
+    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+    ctx.restore();
+  }
+}
+
+// ── Update ───────────────────────────────────────────────────────────────────
+
+function update(dt, t) {
+  // Move notes
+  for (const note of notes) {
+    if (!note.hit) {
+      note.x -= NOTE_SPEED * dt;
+    }
+    note.age += dt;
+  }
+
+  // Auto-miss notes that passed the hit zone
+  const hx = HIT_ZONE_X();
+  for (const note of notes) {
+    if (!note.hit && note.x < hx - NOTE_SPEED * HIT_WINDOW_GOOD - 10) {
+      note.hit = 'miss';
+      registerHit('miss');
+    }
+  }
+
+  // Clean up old notes
+  notes = notes.filter(n => n.x > -80 && n.age < 1.5);
+
+  tickBeat(t);
+}
+
+// ── Render loop ──────────────────────────────────────────────────────────────
+
+function render(dt) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawLane();
+  drawHitZoneOverlay();
+  for (const note of notes) drawNote(note);
+  drawParticles(dt);
+}
+
+let animId;
+function loop(ts) {
+  if (!lastTime) lastTime = ts;
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+
+  update(dt, ts / 1000);
+  render(dt);
+
+  animId = requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ── Hit detection ─────────────────────────────────────────────────────────────
+
+function tryHit() {
+  const hx = HIT_ZONE_X();
+  let best = null;
+  let bestDist = Infinity;
+
+  for (const note of notes) {
+    if (note.hit) continue;
+    const dist = Math.abs(note.x - hx);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = note;
+    }
+  }
+
+  if (!best) {
+    registerHit('miss');
+    return;
+  }
+
+  const secs = bestDist / NOTE_SPEED;
+  if (secs <= HIT_WINDOW_PERFECT) {
+    best.hit = 'perfect';
+    spawnParticles(best.x, canvas.height / 2, COLORS[best.type].fill, 10);
+    registerHit('perfect');
+  } else if (secs <= HIT_WINDOW_GOOD) {
+    best.hit = 'good';
+    spawnParticles(best.x, canvas.height / 2, COLORS[best.type].fill, 5);
+    registerHit('good');
+  } else {
+    registerHit('miss');
+  }
+}
+
+// ── Hit response UI ───────────────────────────────────────────────────────────
+
+function registerHit(type) {
+  const hz = document.getElementById('hit-zone');
+  const fb = document.getElementById('feedback-label');
+
+  hz.classList.remove('perfect','good','miss','shake');
+  fb.classList.remove('show','perfect','good','miss');
+
+  void hz.offsetWidth; // force reflow
+
+  if (type === 'perfect') {
+    totalHits++;
+    combo++;
+    streak++;
+    hz.classList.add('perfect');
+    fb.textContent = 'PERFECT';
+    fb.classList.add('show','perfect');
+  } else if (type === 'good') {
+    totalHits += 0.5;
+    combo++;
+    streak++;
+    hz.classList.add('good');
+    fb.textContent = 'GOOD';
+    fb.classList.add('show','good');
+  } else {
+    combo = 0;
+    hz.classList.add('miss','shake');
+    fb.textContent = 'MISS';
+    fb.classList.add('show','miss');
+  }
+
+  updateComboUI();
+  updateMultiplierUI();
+  updateAccUI();
+
+  clearTimeout(lastFeedbackTimer);
+  lastFeedbackTimer = setTimeout(() => {
+    hz.classList.remove('perfect','good','miss');
+    fb.classList.remove('show','perfect','good','miss');
+  }, 500);
+}
+
+function updateComboUI() {
+  const el = document.getElementById('combo-val');
+  const se = document.getElementById('streak-val');
+  el.textContent = `×${combo}`;
+  se.textContent = streak;
+  el.classList.remove('c0','c1','c2','c3');
+  if (combo === 0) el.classList.add('c0');
+  else if (combo < 5) el.classList.add('c1');
+  else if (combo < 10) el.classList.add('c2');
+  else el.classList.add('c3');
+}
+
+function updateMultiplierUI() {
+  multiplier = combo >= 15 ? 4 : combo >= 10 ? 3 : combo >= 5 ? 2 : 1;
+  document.getElementById('mult-val').textContent = `×${multiplier}`;
+  const pips = document.querySelectorAll('.pip');
+  pips.forEach((p, i) => {
+    p.classList.remove('active','red','orange');
+    if (i < multiplier) {
+      p.classList.add('active');
+      if (multiplier === 4) p.classList.add('red');
+      else if (multiplier === 3) p.classList.add('orange');
+    }
+  });
+}
+
+function updateAccUI() {
+  if (totalNotes === 0) return;
+  const pct = Math.round((totalHits / totalNotes) * 100);
+  const bar = document.getElementById('acc-bar');
+  const val = document.getElementById('acc-val');
+  val.textContent = `${pct}%`;
+  bar.style.width = pct + '%';
+  if (pct >= 90) bar.style.background = 'linear-gradient(90deg,#4ae84a88,#4ae84a)';
+  else if (pct >= 70) bar.style.background = 'linear-gradient(90deg,#e8c46a88,#e8c46a)';
+  else bar.style.background = 'linear-gradient(90deg,#e84a4a88,#e84a4a)';
+}
+
+// ── Input ────────────────────────────────────────────────────────────────────
+
+window.addEventListener('keydown', (e) => {
+  if (['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyZ','KeyX'].includes(e.code)) {
+    e.preventDefault();
+    tryHit();
+  }
+});
+document.getElementById('beat-canvas').addEventListener('click', tryHit);
+
+// ── BPM control ───────────────────────────────────────────────────────────────
+
+function changeBPM(delta) {
+  BPM = Math.max(60, Math.min(200, BPM + delta));
+  document.getElementById('bpm-val').textContent = BPM;
+}
+</script>
+</body>
+</html>

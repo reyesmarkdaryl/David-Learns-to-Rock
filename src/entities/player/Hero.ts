@@ -11,7 +11,7 @@ export enum HeroState {
 export class Hero extends Phaser.Physics.Arcade.Sprite {
   private state: HeroState = HeroState.IDLE;
   private attackCooldown: number = 0;
-  private readonly ATTACK_COOLDOWN_MS = 500;
+  private readonly ATTACK_COOLDOWN_MS = 300;
   private hitEnemies: Set<Enemy> = new Set();
 
   // stats that can be modified

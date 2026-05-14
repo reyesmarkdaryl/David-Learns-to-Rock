@@ -11,6 +11,7 @@ import { SpawnManager } from '../systems/SpawnManager';
 import { RoomDataConverter } from '../editor/RoomDataConverter';
 import { DEBUG_MODE, GYM_WAVES } from '../config';
 import { SummonSystem } from '../systems/SummonSystem';
+import { RhythmSystem } from '../systems/RhythmSystem';
 import { gameEvents } from '../systems/GameEvents';
 import { RoomRegistry } from '../room/RoomRegistry';
 import { RoomBuilder } from '../room/RoomBuilder';
@@ -210,6 +211,7 @@ export class GymScene extends Phaser.Scene {
 
     this.assetManager = new RoomAssetManager(this);
     this.summonSystem = new SummonSystem();
+    RhythmSystem.getInstance().start();
     MusicManager.setScene(this);
     gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
 
@@ -483,6 +485,7 @@ export class GymScene extends Phaser.Scene {
   private async handleSummon(key: string) {
     const completed = this.summonSystem.checkInput(key);
     completed.forEach(async (type) => {
+      RhythmSystem.getInstance().evaluateHit();
       this.spawnFriendlyMinion(type);
 
       // Start the synchronized band on the first summon
@@ -562,6 +565,8 @@ export class GymScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (!this.isRoomReady || !this.hero || this.isGameOver || this.isTransitioning) return;
 
+    RhythmSystem.getInstance().update(this.time.now / 1000);
+
     if (this.isHitStopped) return; // Skip update during hit-stop
 
     this.waveSystem.update(time, delta, this.enemies.getChildren().filter((e: any) => e.team === 'enemy').length);
@@ -581,6 +586,7 @@ export class GymScene extends Phaser.Scene {
     const keys = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
     keys.forEach(key => {
       if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[key]))) {
+        RhythmSystem.getInstance().evaluateHit();
         this.hero.performAttack(time);
         this.handleSummon(key);
       }
