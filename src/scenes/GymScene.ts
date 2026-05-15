@@ -219,6 +219,10 @@ export class GymScene extends Phaser.Scene {
     // Initialize the auditory beat cue
     RhythmAudioSystem.init().catch(err => console.error('RhythmAudioSystem failed:', err));
 
+    gameEvents.on('rhythm-hit', ({ quality }) => {
+      this.spawnRhythmFeedback(quality);
+    });
+
 
     if (DEBUG_MODE) {
       this.debugText = this.add.text(10, 10, '', {
@@ -488,7 +492,7 @@ export class GymScene extends Phaser.Scene {
 
   private async handleSummon(key: string) {
     const completed = this.summonSystem.checkInput(key);
-    completed.forEach(async (type) => {
+    for (const type of completed) {
       this.spawnFriendlyMinion(type);
 
       // Start the synchronized band on the first summon
@@ -498,7 +502,7 @@ export class GymScene extends Phaser.Scene {
       MusicManager.queueInstrument(type);
 
       gameEvents.emit('summon-complete', { name: type });
-    });
+    }
     gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
   }
 
@@ -556,6 +560,32 @@ export class GymScene extends Phaser.Scene {
       this.enemies.add(minion);
       this.spawnDustEffect(x, y);
     }
+  }
+
+  private spawnRhythmFeedback(quality: string) {
+    const colors = {
+      perfect: 0x7de84a,
+      good: 0xe8c46a,
+      okay: 0xe8734a,
+      miss: 0xe84a4a,
+    };
+
+    const text = this.add.text(this.hero.x, this.hero.y - 60, quality.toUpperCase(), {
+      fontSize: '20px',
+      fontFamily: 'Press Start 2P',
+      color: colors[quality] || 0xffffff,
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5).setDepth(1000);
+
+    this.tweens.add({
+      targets: text,
+      y: text.y - 40,
+      alpha: 0,
+      duration: 800,
+      ease: 'Power2',
+      onComplete: () => text.destroy(),
+    });
   }
 
   private applyHitStop(duration: number) {

@@ -22,9 +22,9 @@ export class AssetPreloader extends Phaser.Scene {
     this.load.json('hard_mountain3_room', 'assets/rooms/hard_mountain3_room.json');
     this.load.json('music-manifest', 'assets/music-manifest.json');
     this.load.audio('menu-music', 'assets/music/battle-hymn/full-hymn.wav');
-    this.load.audio('stem-drums', 'assets/music/battle-hymn/drums.wav');
-    this.load.audio('stem-guitar', 'assets/music/battle-hymn/guitar.wav');
-    this.load.audio('stem-bass', 'assets/music/battle-hymn/bass.wav');
+    this.load.audio('stem-drums', 'assets/music/heavy-hymn/drums.wav');
+    this.load.audio('stem-guitar', 'assets/music/heavy-hymn/guitar.wav');
+    this.load.audio('stem-bass', 'assets/music/heavy-hymn/bass.wav');
 
     // Since the manifest is JSON and we need it to load other images,
     // we can't easily do it in a single preload() call unless we hardcode

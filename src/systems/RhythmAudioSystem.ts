@@ -4,6 +4,7 @@ import { gameEvents } from './GameEvents';
 export class RhythmAudioSystem {
     private static instance: RhythmAudioSystem;
     private kick: Tone.MembraneSynth | null = null;
+    private snap: Tone.NoiseSynth | null = null;
     private isInitialized: boolean = false;
 
     private constructor() {}
@@ -20,7 +21,7 @@ export class RhythmAudioSystem {
 
         await Tone.start();
 
-        // Simple a a a a low-pass kick drum for a subtle auditory cue
+        // Low-pass kick drum for the "feel"
         this.kick = new Tone.MembraneSynth({
             pitchDecay: 0.05,
             octaves: 4,
@@ -35,12 +36,26 @@ export class RhythmAudioSystem {
             }
         }).toDestination();
 
-        // Keep it slightly audible (roughly -15dB to -20dB)
+        // Percussive "snap" using white noise for a natural drum-like transient
+        this.snap = new Tone.NoiseSynth({
+            noise: {
+                type: 'white'
+            },
+            envelope: {
+                attack: 0.001,
+                decay: 0.005,
+                sustain: 0,
+                release: 0.005
+            }
+        }).toDestination();
+
+        // Volume balancing
         this.kick.volume.value = -18;
+        this.snap.volume.value = -22; // Sharp but not piercing
 
         this.setupListeners();
         this.isInitialized = true;
-        console.log('[RhythmAudioSystem] Metronome initialized');
+        console.log('[RhythmAudioSystem] Metronome initialized with percussive snap');
     }
 
     private setupListeners() {
@@ -50,11 +65,16 @@ export class RhythmAudioSystem {
     }
 
     private playBeat() {
-        if (!this.kick) return;
+        const now = Tone.now();
 
-        // Trigger a low kick on every beat
-        // We use Tone.now() to ensure it's scheduled as accurately as possible
-        this.kick.triggerAttackRelease('C1', '8n', Tone.now());
+        if (this.kick) {
+            this.kick.triggerAttackRelease('C1', '8n', now);
+        }
+
+        if (this.snap) {
+            // NoiseSynth doesn't take a pitch, just a duration
+            this.snap.triggerAttackRelease('16n', now);
+        }
     }
 }
 
