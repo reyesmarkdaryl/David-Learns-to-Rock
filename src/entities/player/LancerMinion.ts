@@ -29,6 +29,7 @@ export class LancerMinion extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.body.setCircle(32, 128, 128);
+    this.setDepth(10002); // Above the darkness and the glow
 
     this.createHealthBar(scene);
 

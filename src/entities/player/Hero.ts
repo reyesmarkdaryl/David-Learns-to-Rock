@@ -6,13 +6,18 @@ import { RhythmSystem } from '../../systems/RhythmSystem';
 export enum HeroState {
   IDLE = 'IDLE',
   WALK = 'WALK',
-  ATTACK = 'ATTACK'
+  ATTACK = 'ATTACK',
+  DASH = 'DASH'
 }
 
 export class Hero extends Phaser.Physics.Arcade.Sprite {
   private state: HeroState = HeroState.IDLE;
   private attackCooldown: number = 0;
   private readonly ATTACK_COOLDOWN_MS = 300;
+  private dashEndTime: number = 0;
+  private dashCooldownTimer: number = 0;
+  private readonly DASH_COOLDOWN_MS = 1000;
+  private readonly DASH_DURATION_MS = 200;
   private hitEnemies: Set<Enemy> = new Set();
 
   // stats that can be modified
@@ -20,28 +25,47 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     hp: 100,
     maxHp: 100,
     moveSpeed: 160,
-    attackRange: 60,
+    attackRange: 90,
     attackDamage: 25,
+    dashDistance: 200, // Distance in pixels to travel during the dash
   };
 
   private facingDirection: number = 0; // 0: Right, 1: Left
   private attackComboIndex: number = 0;
+  private rangeVisual!: Phaser.GameObjects.Graphics;
+  private glowSprite!: Phaser.GameObjects.Sprite;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, 'hero_idle');
+    super(scene, x, y, 'hero_tex_0');
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
     this.setCollideWorldBounds(true);
     // Set the body to be a circle with a radius of 16px, centered on the sprite (assuming the original sprite is 192x192)
 
-    this.body.setCircle(32, 64, 64);
+    this.body.setCircle(16, 104, 48);
 
     // Set depth to ensure we are above the floor
-    this.setDepth(10);
+    this.setDepth(10002); // Above the darkness and the glow
 
-    // Set the hero to exactly 92px height and width
-    this.setDisplaySize(192, 192);
+
+    // Set the hero to a larger size
+    this.setDisplaySize(480, 256);
+
+    if (this.anims && this.anims.exists('hero_idle_anim')) {
+      this.play('hero_idle_anim');
+    }
+
+    // Luminous Glow effect
+    this.glowSprite = this.scene.add.sprite(this.x, this.y, 'glow');
+    this.glowSprite.setBlendMode(Phaser.BlendModes.ADD);
+    this.glowSprite.setDepth(9); // Behind the hero, under the darkness
+    this.glowSprite.setScale(1.0);
+    this.glowSprite.setAlpha(0.8);
+
+    // Visual attack range
+    this.rangeVisual = scene.add.graphics();
+    this.rangeVisual.setDepth(9); // Just below the hero
   }
 
 
@@ -51,9 +75,27 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
 
   update(cursors: any, time: number): void {
+    // Update glow sprite position
+    this.glowSprite.setPosition(this.x, this.y);
+
+    // Update range visual position
+    this.rangeVisual.clear();
+    this.rangeVisual.lineStyle(2, 0xffffff, 0.3);
+    this.rangeVisual.strokeCircle(this.x, this.y, this.stats.attackRange);
+
+    // Handle Dash state
+    if (this.state === HeroState.DASH) {
+      if (time >= this.dashEndTime) {
+        this.state = HeroState.IDLE;
+        if (this.anims) {
+          this.play('hero_idle_anim');
+        }
+      }
+      return;
+    }
+
     if (this.state === HeroState.ATTACK) {
       if (time >= this.attackCooldown) {
-        // Update combo index based on whether the attack hit anything
         if (this.attackComboIndex === 0 && this.hitEnemies.size > 0) {
           this.attackComboIndex = 1;
         } else {
@@ -61,7 +103,6 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.state = HeroState.IDLE;
-        this.setTexture('hero_idle');
         if (this.anims) {
           this.play('hero_idle_anim');
         }
@@ -75,9 +116,10 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     if (moveX !== 0 || moveY !== 0) {
       if (this.state !== HeroState.WALK) {
         this.state = HeroState.WALK;
-        this.setTexture('hero_run');
         if (this.anims) {
-          this.play('hero_run_anim', true);
+          console.log(`[Hero] Switching to WALK. Playing: hero_run_anim. CurrentAnim:
+          ${this.anims.currentAnim?.key}`);
+          this.play('hero_run_anim');
         }
       }
 
@@ -96,21 +138,58 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     } else {
       if (this.state !== HeroState.IDLE) {
         this.state = HeroState.IDLE;
-        this.setTexture('hero_idle');
         if (this.anims) {
-          this.play('hero_idle_anim', true);
+          console.log(`[Hero] Switching to IDLE. Playing: hero_idle_anim. CurrentAnim:
+          ${this.anims.currentAnim?.key}`);
+          this.play('hero_idle_anim');
         }
       }
       if (this.body) this.setVelocity(0);
     }
   }
 
-  performAttack(time: number): void {
+  dash(time: number): void {
+    if (this.state === HeroState.DASH || time < this.dashCooldownTimer) return;
+
+    this.state = HeroState.DASH;
+    this.dashEndTime = time + this.DASH_DURATION_MS;
+
+    // Calculate required velocity to cover dashDistance in DASH_DURATION_MS
+    // Velocity = Distance / Time (Time in seconds)
+    const dashVelocity = this.stats.dashDistance / (this.DASH_DURATION_MS / 1000);
+    const vx = this.facingDirection === 0 ? dashVelocity : -dashVelocity;
+
+    if (this.body) {
+      this.setVelocity(vx, 0);
+    }
+
+    if (this.anims) {
+      this.play('hero_dash_simple_anim');
+    }
+
+    // Reset cooldown after duration
+    this.scene.time.delayedCall(this.DASH_COOLDOWN_MS, () => {
+      this.dashCooldownTimer = 0;
+    });
+  }
+
+  performAttack(time: number, direction?: string): void {
     if (this.state === HeroState.ATTACK) return;
 
     this.state = HeroState.ATTACK;
 
-    const attackAnim = this.attackComboIndex === 0 ? 'hero_attack1_anim' : 'hero_attack2_anim';
+    let attackAnim = '';
+    if (direction === 'UP') {
+      attackAnim = 'hero_idle_up_attack_anim';
+    } else if (direction === 'DOWN') {
+      attackAnim = 'hero_jump_attack_down_anim';
+    } else {
+      attackAnim = this.attackComboIndex === 0 ? 'hero_attack1_anim' : 'hero_attack2_anim';
+      // Only flip if we are attacking left/right
+      if (direction === 'LEFT') this.setFlipX(true);
+      if (direction === 'RIGHT') this.setFlipX(false);
+    }
+
     if (this.anims) {
       this.play(attackAnim);
     }
@@ -124,7 +203,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     this.attackComboIndex = this.attackComboIndex; // Maintain current index for the attack animation
 
     if (DEBUG_MODE) {
-      console.log(`Hero attacked with ${attackAnim} facing ${this.facingDirection === 0 ? 'Right' : 'Left'}`);
+      console.log(`Hero attacked with ${attackAnim} facing ${this.facingDirection === 0 ? 'Right' : 'Left'} [Dir: ${direction}]`);
     }
   }
 
@@ -137,6 +216,8 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   }
 
   takeDamage(amount: number): void {
+    if (this.state === HeroState.DASH) return; // Invulnerable during dash
+
     this.stats.hp -= amount;
     this.setTint(0xff0000);
     if (this.scene && this.scene.time) {

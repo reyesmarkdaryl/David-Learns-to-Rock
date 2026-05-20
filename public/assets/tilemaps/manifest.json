@@ -20,5 +20,7 @@
   { "name": "Objects Animated", "path": "assets/tilemaps/clutter/Objects_animated.png", "tileSize": 16 },
   { "name": "Objects Animated 2", "path": "assets/tilemaps/clutter/Objects_animated2.png", "tileSize": 16 },
   { "name": "Objects Animated 3", "path": "assets/tilemaps/clutter/Objects_animated3.png", "tileSize": 16 },
-  { "name": "Details", "path": "assets/tilemaps/clutter/details.png", "tileSize": 16 }
+  { "name": "Details", "path": "assets/tilemaps/clutter/details.png", "tileSize": 16 },
+  { "name": "White World", "path": "assets/tilemaps/map/whiteworld.png", "tileSize": 16 },
+  { "name": "Black World", "path": "assets/tilemaps/map/black_world.png", "tileSize": 16 }
 ]

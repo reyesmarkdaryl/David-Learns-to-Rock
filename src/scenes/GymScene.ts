@@ -20,6 +20,7 @@ import { GridSystem } from '../editor/GridSystem';
 import { EventBus } from '../editor/EventBus';
 import FlowFieldManager from '../systems/FlowFieldManager';
 import RoomAssetManager from '../systems/RoomAssetManager';
+import { LightingSystem } from '../systems/LightingSystem';
 import { MinionPersistenceManager, MinionData } from '../systems/MinionPersistenceManager';
 import MusicManager from '../systems/MusicManager';
 
@@ -40,6 +41,7 @@ export class GymScene extends Phaser.Scene {
   private flowField!: FlowFieldManager;
   private arrowKeys: any;
   private assetManager!: RoomAssetManager;
+  private lightingSystem!: LightingSystem;
   private waveSystem!: WaveSystem;
   private spawnManager!: SpawnManager;
   private isRoomReady: boolean = false;
@@ -58,22 +60,20 @@ export class GymScene extends Phaser.Scene {
     this.load.json('gym_room', '/assets/rooms/gym_room.json');
 
     const team = 'Blue';
-    const warriorSprites = [
-      { file: "Warrior_Idle.png", key: "hero_idle" },
-      { file: "Warrior_Run.png", key: "hero_run" },
-      { file: "Warrior_Attack1.png", key: "hero_attack1" },
-      { file: "Warrior_Attack2.png", key: "hero_attack2" },
-      { file: "Warrior_Guard.png", key: "hero_guard" }
-    ];
-    const basePath = `/assets/tinysword/Units/${team} Units/Warrior/`;
-    const heroBasePath = `/assets/tinysword/Units/Hero/`;
 
-    warriorSprites.forEach((sprite: any) => {
-      this.load.spritesheet(sprite.key, `${basePath}${sprite.file}`, {
-        frameWidth: 192,
-        frameHeight: 192,
-        startFrame: 0,
-        endFrame: 7
+    // Load Hero shadow separate files
+    const heroFiles = [
+      "1 - Idle.png", "2 - Run.png", "3 - jump.png", "4 - mid-air.png",
+      "5 - fall.png", "6 - dash.png", "7 - jump-up-attack.png",
+      "8 - jump-down-attack.png", "9 - idle-up-attack.png",
+      "10 - attack 1.png", "11 - attack 2.png", "12 - dash attack.png",
+      "13 - special dash.png", "14 - hit.png", "15 - death.png"
+    ];
+    const heroBasePath = '/assets/sprites/shadow/';
+    heroFiles.forEach((file, index) => {
+      this.load.spritesheet(`hero_tex_${index}`, `${heroBasePath}${file}`, {
+        frameWidth: 240,
+        frameHeight: 128,
       });
     });
 
@@ -177,7 +177,7 @@ export class GymScene extends Phaser.Scene {
     });
 
     // Global assets used across all rooms
-    this.load.image('Objects', '/assets/tilemaps/clutter/Objects.png');
+    this.load.image('glow', '/assets/sprites/glow.png');
   }
 
   create() {
@@ -211,6 +211,7 @@ export class GymScene extends Phaser.Scene {
     this.setupAnimations();
 
     this.assetManager = new RoomAssetManager(this);
+    this.lightingSystem = new LightingSystem(this);
     this.summonSystem = new SummonSystem();
     RhythmSystem.getInstance().start();
     MusicManager.setScene(this);
@@ -246,23 +247,58 @@ export class GymScene extends Phaser.Scene {
 
 
   private setupAnimations() {
-    const createAnim = (key: string, framesKey: string, frameRate: number, repeat: number) => {
+    const createAnim = (key: string, framesKey: string, frameRate: number, repeat: number, startFrame = 0, endFrame = 0) => {
       if (!this.anims.exists(key)) {
-        this.anims.create({
-          key,
-          frames: this.anims.generateFrameNumbers(framesKey),
-          frameRate,
-          repeat
-        });
+        const texture = this.textures.get(framesKey);
+        if (!texture) {
+          console.warn(`[Animation] Texture ${framesKey} not found. Skipping ${key}.`);
+          return;
+        }
+
+        const frames = texture.frames;
+        const frameCount = frames ? Object.keys(frames).length : 0;
+
+        if (frameCount === 0) {
+          console.warn(`[Animation] Texture ${framesKey} has no frames. Skipping ${key}.`);
+          return;
+        }
+
+        const actualEndFrame = Math.min(endFrame, frameCount - 1);
+        const finalStartFrame = Math.min(startFrame, actualEndFrame);
+
+        console.log(`[Animation] ${key} -> Texture: ${framesKey}, Frames: ${finalStartFrame} to ${actualEndFrame} (Count: ${frameCount})`);
+
+        try {
+          this.anims.create({
+            key,
+            frames: this.anims.generateFrameNumbers(framesKey, finalStartFrame, actualEndFrame),
+            frameRate,
+            repeat
+          });
+        } catch (e) {
+          console.error(`[Animation] Failed to create animation ${key}:`, e);
+        }
       }
     };
 
+    // Hero animations from asset index
+    const shadowAnims = this.assetIndex?.sprites?.mappings?.hero?.animations;
+    if (shadowAnims) {
+      Object.entries(shadowAnims).forEach(([name, config]: [string, any], index) => {
+        createAnim(
+          `hero_${name}_anim`,
+          `hero_tex_${index}`,
+          config.frameRate,
+          config.repeat,
+          config.startFrame ?? 0,
+          config.endFrame ?? 0
+        );
+      });
+    } else {
+      console.error('Hero animations mapping not found in asset-index!', this.assetIndex);
+    }
+
     createAnim('dust_anim', 'dust_particle', 12, 0);
-    createAnim('hero_idle_anim', 'hero_idle', 8, -1);
-    createAnim('hero_run_anim', 'hero_run', 10, -1);
-    createAnim('hero_attack1_anim', 'hero_attack1', 12, 0);
-    createAnim('hero_attack2_anim', 'hero_attack2', 12, 0);
-    createAnim('minion_warrior_attack_anim', 'hero_attack1', 12, 0);
     createAnim('enemy_run_anim', 'enemy_run', 10, -1);
     createAnim('enemy_idle_anim', 'enemy_idle', 8, -1);
     createAnim('enemy_attack_anim', 'enemy_attack1', 12, 0);
@@ -495,12 +531,6 @@ export class GymScene extends Phaser.Scene {
     for (const type of completed) {
       this.spawnFriendlyMinion(type);
 
-      // Start the synchronized band on the first summon
-      await MusicManager.start();
-
-      // Map summon type to instrument type and queue unmute on the beat
-      MusicManager.queueInstrument(type);
-
       gameEvents.emit('summon-complete', { name: type });
     }
     gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
@@ -615,6 +645,18 @@ export class GymScene extends Phaser.Scene {
 
     this.hero.update(customCursors, time);
 
+    // Update lighting
+    const lightSources = [
+      { id: 'hero', x: this.hero.x, y: this.hero.y },
+      ...this.enemies.getChildren().filter((e: any) => e.team === 'hero').map((m: any, index: number) => ({
+        id: `minion-${index}`,
+        x: m.x,
+        y: m.y
+      }))
+    ];
+    this.lightingSystem.update(lightSources);
+
+
     // Handle Input: Arrow Keys trigger attacks AND track summoning sequences
     const keys = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
     keys.forEach(key => {
@@ -622,7 +664,7 @@ export class GymScene extends Phaser.Scene {
         const quality = RhythmSystem.getInstance().evaluateHit();
 
         // Hero attack happens regardless of rhythm (or you could gate this too)
-        this.hero.performAttack(time);
+        this.hero.performAttack(time, key);
 
         // Rhythm Gate: Only register summon progress if not a miss
         if (quality !== 'miss') {
@@ -781,8 +823,9 @@ export class GymScene extends Phaser.Scene {
       }
     });
 
-    if (Phaser.Input.Keyboard.JustDown(this.attackKey) || this.input.activePointer.isDown) {
-      // Space/Mouse can still trigger attack for now, or we can remove this to force arrow keys
+    if (Phaser.Input.Keyboard.JustDown(this.attackKey)) {
+      this.hero.dash(time);
+    } else if (this.input.activePointer.isDown) {
       this.hero.performAttack(time);
     }
 

@@ -30,6 +30,7 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.body.setCircle(32, 64, 64);
+    this.setDepth(10002); // Above the darkness and the glow
 
     const gameScene = scene as any;
     if (gameScene.projectiles) {

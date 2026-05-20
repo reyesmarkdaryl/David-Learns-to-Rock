@@ -1,6 +1,6 @@
 # Room Maker Progress Log
 
-## Current Status (2026-05-05)
+## Current Status (2026-05-17)
 Implementing a dynamic Enemy Wave System to replace static room spawning, allowing for structured combat progression and timed spawns.
 
 ### ✅ Completed
@@ -47,6 +47,10 @@ Implementing a dynamic Enemy Wave System to replace static room spawning, allowi
 - [x] Music System: Integrated menu music loop using `full-hymn.wav` with interaction trigger
 - [x] Rhythm UI: Integrated `gdd/rhythm_beat_ui.html` into `GameUI` with a dynamic `RhythmBar` and `RhythmSystem` backend
 - [x] Rhythm Logic: Implemented tiered hit windows (Perfect, Good, Okay, Miss) and gated summoning sequences on rhythm success.
+- [x] Gameplay: Implement dash invulnerability (Hero cannot take damage while in DASH state)
+- [x] Bug Fix: Fix animation frame range crashes in `GymScene` by using explicit frames from `index.json`
+- [x] Bug Fix: Correct asset naming typo for "special dash" spritesheet
+- [x] Experimentation: Tested special dash animation with physics offsets (reverted to simple dash for stability)
 
 ### 🚧 In Progress
 - [x] **Enemy Wave System:** implementing `WaveSystem.ts` and integrating into `GymScene` to replace static spawning.
