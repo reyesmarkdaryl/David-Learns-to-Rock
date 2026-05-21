@@ -9,6 +9,7 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
   attackRange: number;
   aggroRange: number = 600;
   team: 'hero' | 'enemy' = 'hero';
+  public light?: any;
   attackCooldown: number = 2000;
   lastAttackTime: number = 0;
   protected isAttacking: boolean = false;
@@ -30,6 +31,7 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.body.setCircle(32, 64, 64);
+    this.setDepth(10);
     this.setDepth(10002); // Above the darkness and the glow
 
     const gameScene = scene as any;
@@ -302,6 +304,7 @@ export class ArcherMinion extends Phaser.Physics.Arcade.Sprite {
   }
 
   override destroy() {
+    if (this.light) this.light.destroy();
     if (this.healthBar) this.healthBar.destroy();
     if (this.healthBarBg) this.healthBarBg.destroy();
     super.destroy();

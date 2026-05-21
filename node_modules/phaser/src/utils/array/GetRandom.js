@@ -25,7 +25,7 @@ var GetRandom = function (array, startIndex, length)
     if (startIndex === undefined) { startIndex = 0; }
     if (length === undefined) { length = array.length; }
 
-    var randomIndex = startIndex + Math.floor(Math.random() * length);
+    var randomIndex = startIndex + Math.floor(Math.random() * (length - startIndex));
 
     return (array[randomIndex] === undefined) ? null : array[randomIndex];
 };

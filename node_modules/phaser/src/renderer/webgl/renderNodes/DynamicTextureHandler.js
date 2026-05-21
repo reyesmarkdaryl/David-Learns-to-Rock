@@ -340,6 +340,9 @@ var DynamicTextureHandler = new Class({
         // Finish rendering.
         currentContext.release();
 
+        // Regenerate any mipmap before using the texture.
+        glTexture.needsMipmapRegeneration = true;
+
         camera.emit(CameraEvents.POST_RENDER, camera);
 
         this.onRunEnd(drawingContext);

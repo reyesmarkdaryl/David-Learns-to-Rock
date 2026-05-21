@@ -37,15 +37,15 @@ import Phaser from 'phaser';
 [Phaser is on jsDelivr](https://www.jsdelivr.com/package/npm/phaser) which is a "super-fast CDN for developers". Include _either_ of the following in your html:
 
 ```html
-<script src="//cdn.jsdelivr.net/npm/phaser@4.0.0/dist/phaser.js"></script>
-<script src="//cdn.jsdelivr.net/npm/phaser@4.0.0/dist/phaser.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/phaser@4.1.0/dist/phaser.js"></script>
+<script src="//cdn.jsdelivr.net/npm/phaser@4.1.0/dist/phaser.min.js"></script>
 ```
 
 It is also available from Cloudflare's [cdnjs](https://cdnjs.com/libraries/phaser):
 
 ```html
-<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/4.0.0/phaser.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/4.0.0/phaser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/4.1.0/phaser.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/4.1.0/phaser.min.js"></script>
 ```
 
 ## Create Phaser Game App
@@ -89,7 +89,7 @@ The minified build, `phaser.min.js`, strips all of that out and comes in at **34
 
 Phaser 4 is a major release built on a brand-new WebGL renderer. The entire rendering pipeline from v3 has been replaced with a modern, node-based architecture that manages WebGL state properly, handles context loss gracefully, and is significantly faster. If you've built games with Phaser 3, the public API is mostly familiar - but under the hood, everything has changed for the better.
 
-Here are the headline features. For the full picture, see the [Changelog](changelog/v4/4.0/CHANGELOG-v4.0.0.md) and [Migration Guide](changelog/v4/4.0/MIGRATION-GUIDE.md).
+Here are the headline features. For the full picture, see the [v4.0 Changelog](changelog/v4/4.0/CHANGELOG-v4.0.0.md) and [Migration Guide](changelog/v4/4.0/MIGRATION-GUIDE.md).
 
 ### New Render Node Architecture
 
@@ -199,6 +199,7 @@ We've also included a dedicated [v3 to v4 migration skill](skills/v3-to-v4-migra
 
 We meticulously keep track of new features, updates and bug fixes in our change logs. Each version of Phaser has its own change log:
 
+* [v4.1.0 Change Log](changelog/v4/4.1/CHANGELOG-v4.1.0.md)
 * [v4.0.0 Change Log](changelog/v4/4.0/CHANGELOG-v4.0.0.md)
 * [All Phaser Change Logs](CHANGELOG.md)
 

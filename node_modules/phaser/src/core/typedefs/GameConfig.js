@@ -51,6 +51,7 @@
  * @property {number} [maxLights=10] - The maximum number of lights allowed to be visible within range of a single Camera in the LightManager.
  * @property {number} [maxTextures=-1] - When in WebGL mode, this sets the maximum number of GPU Textures to use. The default, -1, will use all available units. The WebGL1 spec says all browsers should provide a minimum of 8.
  * @property {string} [mipmapFilter='LINEAR'] - The mipmap magFilter to be used when creating WebGL textures.
+ * @property {boolean} [mipmapRegeneration=false] - Whether to regenerate mipmaps for framebuffers.
  * @property {boolean} [autoMobileTextures=true] - If iOS or Android detected, automatically restrict WebGL to use 1 texture per batch. This can help performance on some devices.
  * @property {boolean} [expandParent=true] - Is the Scale Manager allowed to adjust the CSS height property of the parent and/or document body to be 100%?
  * @property {Phaser.Scale.ScaleModeType} [mode=Phaser.Scale.ScaleModes.NONE] - The scale mode.

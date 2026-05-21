@@ -126,6 +126,11 @@ var WebGLTextureUnitsWrapper = new Class({
         var glTexture = texture ? texture.webGLTexture : null;
         var gl = this.renderer.gl;
         gl.bindTexture(gl.TEXTURE_2D, glTexture);
+
+        if (texture && texture.needsMipmapRegeneration)
+        {
+            texture.generateMipmap();
+        }
     },
 
     /**

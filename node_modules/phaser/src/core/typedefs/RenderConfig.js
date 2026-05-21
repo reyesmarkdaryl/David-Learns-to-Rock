@@ -21,6 +21,7 @@
  * @property {number} [maxLights=10] - The maximum number of lights allowed to be visible within range of a single Camera in the LightManager.
  * @property {number} [maxTextures=-1] - When in WebGL mode, this sets the maximum number of GPU Textures to use. The default, -1, will use all available units. The WebGL1 spec says all browsers should provide a minimum of 8.
  * @property {string} [mipmapFilter=''] - The mipmap magFilter to be used when creating WebGL textures. Don't set unless you wish to create mipmaps. Set to one of the following: 'NEAREST', 'LINEAR', 'NEAREST_MIPMAP_NEAREST', 'LINEAR_MIPMAP_NEAREST', 'NEAREST_MIPMAP_LINEAR' or 'LINEAR_MIPMAP_LINEAR'.
+ * @property {boolean} [mipmapRegeneration=false] - Whether to regenerate mipmaps for framebuffers. If this is false, framebuffers will not use mipmaps. If this is true, framebuffers will use the `mipmapFilter` setting, and regenerate mipmaps if redrawn. This affects filters and DynamicTextures. Mipmap generation is expensive (10 microseconds or more per texture), so be careful with this setting.
  * @property {boolean} [autoMobileTextures=true] - If iOS or Android detected, automatically restrict WebGL to use 1 texture per batch. This can help performance on some devices.
  * @property {Object<Phaser.Types.Core.RenderNodesConfig>} [renderNodes] - A map of custom Render Nodes to be added to the WebGL Renderer. The values will be added to the RenderNodeManager, using the keys as the names.
  */

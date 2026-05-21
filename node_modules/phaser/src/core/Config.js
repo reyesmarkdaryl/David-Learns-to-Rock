@@ -367,6 +367,11 @@ var Config = new Class({
         this.mipmapFilter = GetValue(renderConfig, 'mipmapFilter', '', config);
 
         /**
+         * @const {boolean} Phaser.Core.Config#mipmapRegeneration -  - Whether to regenerate mipmaps for framebuffers. If this is false, framebuffers will not use mipmaps. If this is true, framebuffers will use the `mipmapFilter` setting, and regenerate mipmaps if redrawn. This affects filters and DynamicTextures. Mipmap generation is expensive (10 microseconds or more per texture), so be careful with this setting.
+         */
+        this.mipmapRegeneration = GetValue(renderConfig, 'mipmapRegeneration', false, config);
+
+        /**
          * @const {boolean} Phaser.Core.Config#desynchronized - When set to `true` it will create a desynchronized context for both 2D and WebGL. See https://developers.google.com/web/updates/2019/05/desynchronized for details.
          */
         this.desynchronized = GetValue(renderConfig, 'desynchronized', false, config);

@@ -95,7 +95,7 @@ var FilterBlur = new Class({
 
         if (!padding)
         {
-            padding = controller.getPadding();
+            padding = controller.getPaddingCeil();
         }
 
         var currentContext = inputDrawingContext;

@@ -9947,7 +9947,7 @@ var BaseCamera = new Class({
      * @method Phaser.Cameras.Scene2D.BaseCamera#ignore
      * @since 3.0.0
      *
-     * @param {(Phaser.GameObjects.GameObject|Phaser.GameObjects.GameObject[]|Phaser.GameObjects.Group|Phaser.GameObjects.Layer|Phaser.GameObjects.Layer[])} entries - The Game Object, or array of Game Objects, to be ignored by this Camera.
+     * @param {(Phaser.GameObjects.GameObject|Phaser.GameObjects.GameObject[]|Phaser.GameObjects.Group)} entries - The Game Object, or array of Game Objects, to be ignored by this Camera.
      *
      * @return {this} This Camera instance.
      */
@@ -16466,7 +16466,7 @@ var CONST = {
      * @type {string}
      * @since 3.0.0
      */
-    VERSION: '4.0.0',
+    VERSION: '4.1.0',
 
     /**
      * Phaser Release Version as displayed in the console.log header URL.
@@ -16476,7 +16476,7 @@ var CONST = {
      * @type {string}
      * @since 3.87.0
      */
-    LOG_VERSION: 'v400',
+    LOG_VERSION: 'v401',
 
     BlendModes: __webpack_require__(10312),
 
@@ -16971,6 +16971,11 @@ var Config = new Class({
          * @const {string} Phaser.Core.Config#mipmapFilter - Sets the mipmap magFilter to be used when creating WebGL textures. Don't set unless you wish to create mipmaps. Set to one of the following: 'NEAREST', 'LINEAR', 'NEAREST_MIPMAP_NEAREST', 'LINEAR_MIPMAP_NEAREST', 'NEAREST_MIPMAP_LINEAR' or 'LINEAR_MIPMAP_LINEAR'.
          */
         this.mipmapFilter = GetValue(renderConfig, 'mipmapFilter', '', config);
+
+        /**
+         * @const {boolean} Phaser.Core.Config#mipmapRegeneration -  - Whether to regenerate mipmaps for framebuffers. If this is false, framebuffers will not use mipmaps. If this is true, framebuffers will use the `mipmapFilter` setting, and regenerate mipmaps if redrawn. This affects filters and DynamicTextures. Mipmap generation is expensive (10 microseconds or more per texture), so be careful with this setting.
+         */
+        this.mipmapRegeneration = GetValue(renderConfig, 'mipmapRegeneration', false, config);
 
         /**
          * @const {boolean} Phaser.Core.Config#desynchronized - When set to `true` it will create a desynchronized context for both 2D and WebGL. See https://developers.google.com/web/updates/2019/05/desynchronized for details.
@@ -33320,6 +33325,8 @@ var Blur = new Class({
 
         Controller.call(this, camera, 'FilterBlur');
 
+        // TODO: @GN suggests altering `boundedSampler` to better support full-screen effects where we don't want transparent borders.
+
         /**
          * The quality of the blur effect.
          *
@@ -34082,13 +34089,12 @@ var Controller = new Class({
     },
 
     /**
-     * Returns the padding required for this filter.
-     * Most filters don't need extra padding,
-     * but some may sample beyond the texture boundaries, such as a blur or glow effect.
+     * Returns the raw padding required for this filter.
+     * This is typically not what you want to call; use `getPaddingCeil` instead.
+     * Values from this method are not rounded, which can cause quality loss.
      *
-     * The bounds are encoded as a Rectangle.
-     * To enlarge the bounds, the top and left values should be negative,
-     * and the bottom and right values should be positive.
+     * Override this method when creating a Filter that requires extra room,
+     * e.g. a blur or glow effect.
      *
      * @method Phaser.Filters.Controller#getPadding
      * @since 4.0.0
@@ -34097,6 +34103,42 @@ var Controller = new Class({
     getPadding: function ()
     {
         return this.paddingOverride || this.currentPadding;
+    },
+
+    /**
+     * Returns the rounded padding required for this filter.
+     *
+     * Most filters don't need extra padding,
+     * but some may sample beyond the texture boundaries, such as a blur or glow effect.
+     *
+     * The bounds are encoded as a Rectangle.
+     * To enlarge the bounds, the top and left values should be negative,
+     * and the bottom and right values should be positive.
+     *
+     * This method calls `getPadding()` to get the raw padding values,
+     * and uses `Math.ceil()` to set the values of `paddingOverride`
+     * and `currentPadding`.
+     *
+     * @method Phaser.Filters.Controller#getPaddingCeil
+     * @since 4.1.0
+     * @returns {Phaser.Geom.Rectangle} The rounded padding required by this filter.
+     */
+    getPaddingCeil: function ()
+    {
+        var padding = this.getPadding();
+        var paddingCeil = new Rectangle(
+            Math.ceil(padding.x),
+            Math.ceil(padding.y),
+            Math.ceil(padding.width),
+            Math.ceil(padding.height)
+        );
+        this.currentPadding.setTo(
+            paddingCeil.x,
+            paddingCeil.y,
+            paddingCeil.width,
+            paddingCeil.height
+        );
+        return paddingCeil;
     },
 
     /**
@@ -52619,6 +52661,7 @@ var Rectangle = __webpack_require__(87841);
 var Render = __webpack_require__(29959);
 var Union = __webpack_require__(36899);
 var Vector2 = __webpack_require__(26099);
+var Layer = __webpack_require__(93595);
 
 var tempTransformMatrix = new Components.TransformMatrix();
 
@@ -53131,6 +53174,8 @@ var Container = new Class({
      *
      * Each Game Object must be unique within the Container.
      *
+     * If you try to add a Layer, it will throw an error.
+     *
      * @method Phaser.GameObjects.Container#add
      * @since 3.4.0
      *
@@ -53143,6 +53188,21 @@ var Container = new Class({
      */
     add: function (child)
     {
+        if (Array.isArray(child))
+        {
+            child.forEach(function (value)
+            {
+                if (value && value instanceof Layer)
+                {
+                    throw new Error('Tried to add a Layer to a Container: this is not allowed');
+                }
+            });
+        }
+        else if (child && child instanceof Layer)
+        {
+            throw new Error('Tried to add a Layer to a Container: this is not allowed');
+        }
+
         ArrayUtils.Add(this.list, child, this.maxSize, this.addHandler, this);
 
         return this;
@@ -54435,18 +54495,31 @@ var ContainerWebGLRenderer = function (renderer, container, drawingContext, pare
         }
 
         //  Set parent values
-        child.setScrollFactor(childScrollFactorX * scrollFactorX, childScrollFactorY * scrollFactorY);
 
-        child.setAlpha(childAlphaTopLeft * alpha, childAlphaTopRight * alpha, childAlphaBottomLeft * alpha, childAlphaBottomRight * alpha);
+        if (child.setScrollFactor)
+        {
+            child.setScrollFactor(childScrollFactorX * scrollFactorX, childScrollFactorY * scrollFactorY);
+        }
+
+        if (child.setAlpha)
+        {
+            child.setAlpha(childAlphaTopLeft * alpha, childAlphaTopRight * alpha, childAlphaBottomLeft * alpha, childAlphaBottomRight * alpha);
+        }
 
         //  Render
         child.renderWebGLStep(renderer, child, currentContext, transformMatrix, undefined, children, i);
 
         //  Restore original values
 
-        child.setAlpha(childAlphaTopLeft, childAlphaTopRight, childAlphaBottomLeft, childAlphaBottomRight);
+        if (child.setAlpha)
+        {
+            child.setAlpha(childAlphaTopLeft, childAlphaTopRight, childAlphaBottomLeft, childAlphaBottomRight);
+        }
 
-        child.setScrollFactor(childScrollFactorX, childScrollFactorY);
+        if (child.setScrollFactor)
+        {
+            child.setScrollFactor(childScrollFactorX, childScrollFactorY);
+        }
     }
 
     // Release any remaining context.
@@ -61915,9 +61988,8 @@ module.exports = GameObjects;
 var BlendModes = __webpack_require__(10312);
 var Class = __webpack_require__(83419);
 var Components = __webpack_require__(31401);
-var ComponentsToJSON = __webpack_require__(53774);
-var DataManager = __webpack_require__(45893);
 var EventEmitter = __webpack_require__(50792);
+var GameObject = __webpack_require__(95643);
 var GameObjectEvents = __webpack_require__(51708);
 var List = __webpack_require__(73162);
 var Render = __webpack_require__(33963);
@@ -61964,8 +62036,14 @@ var StableSort = __webpack_require__(19186);
  * However, you can set the Alpha, Blend Mode, Depth, Mask and Visible state of a Layer. These settings
  * will impact all children being rendered by the Layer.
  *
+ * Layers should always be the topmost elements of any scene hierarchy.
+ * They can be children of layers, but not of anything else.
+ *
+ * Until Phaser version 4.1.0, Layer was not a true GameObject.
+ * It is now a true GameObject.
+ *
  * @class Layer
- * @extends Phaser.Structs.List.<Phaser.GameObjects.GameObject>
+ * @extends Phaser.GameObjects.GameObject
  * @memberof Phaser.GameObjects
  * @constructor
  * @since 3.50.0
@@ -61973,9 +62051,7 @@ var StableSort = __webpack_require__(19186);
  * @extends Phaser.GameObjects.Components.AlphaSingle
  * @extends Phaser.GameObjects.Components.BlendMode
  * @extends Phaser.GameObjects.Components.Depth
- * @extends Phaser.GameObjects.Components.Filters
  * @extends Phaser.GameObjects.Components.Mask
- * @extends Phaser.GameObjects.Components.RenderSteps
  * @extends Phaser.GameObjects.Components.Visible
  *
  * @param {Phaser.Scene} scene - The Scene to which this Game Object belongs. A Game Object can only belong to one Scene at a time.
@@ -61986,14 +62062,13 @@ var Layer = new Class({
     Extends: List,
 
     Mixins: [
+        EventEmitter,
+        GameObject,
         Components.AlphaSingle,
         Components.BlendMode,
         Components.Depth,
-        Components.Filters,
         Components.Mask,
-        Components.RenderSteps, // This does not extend GameObject so it must mixin RenderSteps here.
         Components.Visible,
-        EventEmitter,
         Render
     ],
 
@@ -62003,6 +62078,7 @@ var Layer = new Class({
     {
         List.call(this, scene);
         EventEmitter.call(this);
+        GameObject.call(this, scene, 'Layer');
 
         /**
          * A reference to the Scene to which this Game Object belongs.
@@ -62017,166 +62093,6 @@ var Layer = new Class({
          * @since 3.50.0
          */
         this.scene = scene;
-
-        /**
-         * Holds a reference to the Display List that contains this Game Object.
-         *
-         * This is set automatically when this Game Object is added to a Scene or Layer.
-         *
-         * You should treat this property as being read-only.
-         *
-         * @name Phaser.GameObjects.Layer#displayList
-         * @type {(Phaser.GameObjects.DisplayList|Phaser.GameObjects.Layer)}
-         * @default null
-         * @since 3.50.0
-         */
-        this.displayList = null;
-
-        /**
-         * A textual representation of this Game Object, i.e. `sprite`.
-         * Used internally by Phaser but is available for your own custom classes to populate.
-         *
-         * @name Phaser.GameObjects.Layer#type
-         * @type {string}
-         * @since 3.50.0
-         */
-        this.type = 'Layer';
-
-        /**
-         * The current state of this Game Object.
-         *
-         * Phaser itself will never modify this value, although plugins may do so.
-         *
-         * Use this property to track the state of a Game Object during its lifetime. For example, it could change from
-         * a state of 'moving', to 'attacking', to 'dead'. The state value should be an integer (ideally mapped to a constant
-         * in your game code), or a string. These are recommended to keep it light and simple, with fast comparisons.
-         * If you need to store complex data about your Game Object, look at using the Data Component instead.
-         *
-         * @name Phaser.GameObjects.Layer#state
-         * @type {(number|string)}
-         * @since 3.50.0
-         */
-        this.state = 0;
-
-        /**
-         * A Layer cannot be placed inside a Container.
-         *
-         * This property is kept purely so a Layer has the same
-         * shape as a Game Object.
-         *
-         * @name Phaser.GameObjects.Layer#parentContainer
-         * @type {Phaser.GameObjects.Container}
-         * @since 3.51.0
-         */
-        this.parentContainer = null;
-
-        /**
-         * The name of this Game Object.
-         * Empty by default and never populated by Phaser, this is left for developers to use.
-         *
-         * @name Phaser.GameObjects.Layer#name
-         * @type {string}
-         * @default ''
-         * @since 3.50.0
-         */
-        this.name = '';
-
-        /**
-         * The active state of this Game Object.
-         * A Game Object with an active state of `true` is processed by the Scenes UpdateList, if added to it.
-         * An active object is one which is having its logic and internal systems updated.
-         *
-         * @name Phaser.GameObjects.Layer#active
-         * @type {boolean}
-         * @default true
-         * @since 3.50.0
-         */
-        this.active = true;
-
-        /**
-         * The Tab Index of the Game Object.
-         * Reserved for future use by plugins and the Input Manager.
-         *
-         * @name Phaser.GameObjects.Layer#tabIndex
-         * @type {number}
-         * @default -1
-         * @since 3.51.0
-         */
-        this.tabIndex = -1;
-
-        /**
-         * A Data Manager.
-         * It allows you to store, query and get key/value paired information specific to this Game Object.
-         * `null` by default. Automatically created if you use `getData` or `setData` or `setDataEnabled`.
-         *
-         * @name Phaser.GameObjects.Layer#data
-         * @type {Phaser.Data.DataManager}
-         * @default null
-         * @since 3.50.0
-         */
-        this.data = null;
-
-        /**
-         * The flags that are compared against `RENDER_MASK` to determine if this Game Object will render or not.
-         * The bits are 0001 | 0010 | 0100 | 1000 set by the components Visible, Alpha, Transform and Texture respectively.
-         * If those components are not used by your custom class then you can use this bitmask as you wish.
-         *
-         * @name Phaser.GameObjects.Layer#renderFlags
-         * @type {number}
-         * @default 15
-         * @since 3.50.0
-         */
-        this.renderFlags = 15;
-
-        /**
-         * A bitmask that controls if this Game Object is drawn by a Camera or not.
-         * Not usually set directly, instead call `Camera.ignore`, however you can
-         * set this property directly using the Camera.id property:
-         *
-         * @example
-         * this.cameraFilter |= camera.id
-         *
-         * @name Phaser.GameObjects.Layer#cameraFilter
-         * @type {number}
-         * @default 0
-         * @since 3.50.0
-         */
-        this.cameraFilter = 0;
-
-        /**
-         * This property is kept purely so a Layer has the same
-         * shape as a Game Object. You cannot input enable a Layer.
-         *
-         * @name Phaser.GameObjects.Layer#input
-         * @type {?Phaser.Types.Input.InteractiveObject}
-         * @default null
-         * @since 3.51.0
-         */
-        this.input = null;
-
-        /**
-         * This property is kept purely so a Layer has the same
-         * shape as a Game Object. You cannot give a Layer a physics body.
-         *
-         * @name Phaser.GameObjects.Layer#body
-         * @type {?(Phaser.Physics.Arcade.Body|Phaser.Physics.Arcade.StaticBody|MatterJS.BodyType)}
-         * @default null
-         * @since 3.51.0
-         */
-        this.body = null;
-
-        /**
-         * This Game Object will ignore all calls made to its destroy method if this flag is set to `true`.
-         * This includes calls that may come from a Group, Container or the Scene itself.
-         * While it allows you to persist a Game Object across Scenes, please understand you are entirely
-         * responsible for managing references to and from this Game Object.
-         *
-         * @name Phaser.GameObjects.Layer#ignoreDestroy
-         * @type {boolean}
-         * @default false
-         * @since 3.50.0
-         */
-        this.ignoreDestroy = false;
 
         /**
          * A reference to the Scene Systems.
@@ -62230,243 +62146,6 @@ var Layer = new Class({
     },
 
     /**
-     * Sets the `active` property of this Game Object and returns this Game Object for further chaining.
-     * A Game Object with its `active` property set to `true` will be updated by the Scenes UpdateList.
-     *
-     * @method Phaser.GameObjects.Layer#setActive
-     * @since 3.50.0
-     *
-     * @param {boolean} value - True if this Game Object should be set as active, false if not.
-     *
-     * @return {this} This GameObject.
-     */
-    setActive: function (value)
-    {
-        this.active = value;
-
-        return this;
-    },
-
-    /**
-     * Sets the `name` property of this Game Object and returns this Game Object for further chaining.
-     * The `name` property is not populated by Phaser and is presented for your own use.
-     *
-     * @method Phaser.GameObjects.Layer#setName
-     * @since 3.50.0
-     *
-     * @param {string} value - The name to be given to this Game Object.
-     *
-     * @return {this} This GameObject.
-     */
-    setName: function (value)
-    {
-        this.name = value;
-
-        return this;
-    },
-
-    /**
-     * Sets the current state of this Game Object.
-     *
-     * Phaser itself will never modify the State of a Game Object, although plugins may do so.
-     *
-     * For example, a Game Object could change from a state of 'moving', to 'attacking', to 'dead'.
-     * The state value should typically be an integer (ideally mapped to a constant
-     * in your game code), but could also be a string. It is recommended to keep it light and simple.
-     * If you need to store complex data about your Game Object, look at using the Data Component instead.
-     *
-     * @method Phaser.GameObjects.Layer#setState
-     * @since 3.50.0
-     *
-     * @param {(number|string)} value - The state of the Game Object.
-     *
-     * @return {this} This GameObject.
-     */
-    setState: function (value)
-    {
-        this.state = value;
-
-        return this;
-    },
-
-    /**
-     * Adds a Data Manager component to this Game Object.
-     *
-     * @method Phaser.GameObjects.Layer#setDataEnabled
-     * @since 3.50.0
-     * @see Phaser.Data.DataManager
-     *
-     * @return {this} This GameObject.
-     */
-    setDataEnabled: function ()
-    {
-        if (!this.data)
-        {
-            this.data = new DataManager(this);
-        }
-
-        return this;
-    },
-
-    /**
-     * Allows you to store a key value pair within this Game Objects Data Manager.
-     *
-     * If the Game Object has not been enabled for data (via `setDataEnabled`) then it will be enabled
-     * before setting the value.
-     *
-     * If the key doesn't already exist in the Data Manager then it is created.
-     *
-     * ```javascript
-     * sprite.setData('name', 'Red Gem Stone');
-     * ```
-     *
-     * You can also pass in an object of key value pairs as the first argument:
-     *
-     * ```javascript
-     * sprite.setData({ name: 'Red Gem Stone', level: 2, owner: 'Link', gold: 50 });
-     * ```
-     *
-     * To get a value back again you can call `getData`:
-     *
-     * ```javascript
-     * sprite.getData('gold');
-     * ```
-     *
-     * Or you can access the value directly via the `values` property, where it works like any other variable:
-     *
-     * ```javascript
-     * sprite.data.values.gold += 50;
-     * ```
-     *
-     * When the value is first set, a `setdata` event is emitted from this Game Object.
-     *
-     * If the key already exists, a `changedata` event is emitted instead, along an event named after the key.
-     * For example, if you updated an existing key called `PlayerLives` then it would emit the event `changedata-PlayerLives`.
-     * These events will be emitted regardless if you use this method to set the value, or the direct `values` setter.
-     *
-     * Please note that the data keys are case-sensitive and must be valid JavaScript Object property strings.
-     * This means the keys `gold` and `Gold` are treated as two unique values within the Data Manager.
-     *
-     * @method Phaser.GameObjects.Layer#setData
-     * @since 3.50.0
-     *
-     * @param {(string|object)} key - The key to set the value for. Or an object of key value pairs. If an object the `data` argument is ignored.
-     * @param {*} [data] - The value to set for the given key. If an object is provided as the key this argument is ignored.
-     *
-     * @return {this} This GameObject.
-     */
-    setData: function (key, value)
-    {
-        if (!this.data)
-        {
-            this.data = new DataManager(this);
-        }
-
-        this.data.set(key, value);
-
-        return this;
-    },
-
-    /**
-     * Increase a value for the given key within this Game Objects Data Manager. If the key doesn't already exist in the Data Manager then it is increased from 0.
-     *
-     * If the Game Object has not been enabled for data (via `setDataEnabled`) then it will be enabled
-     * before setting the value.
-     *
-     * If the key doesn't already exist in the Data Manager then it is created.
-     *
-     * When the value is first set, a `setdata` event is emitted from this Game Object.
-     *
-     * @method Phaser.GameObjects.Layer#incData
-     * @since 3.50.0
-     *
-     * @param {(string|object)} key - The key to increase the value for.
-     * @param {*} [data] - The value to increase for the given key.
-     *
-     * @return {this} This GameObject.
-     */
-    incData: function (key, value)
-    {
-        if (!this.data)
-        {
-            this.data = new DataManager(this);
-        }
-
-        this.data.inc(key, value);
-
-        return this;
-    },
-
-    /**
-     * Toggle a boolean value for the given key within this Game Objects Data Manager. If the key doesn't already exist in the Data Manager then it is toggled from false.
-     *
-     * If the Game Object has not been enabled for data (via `setDataEnabled`) then it will be enabled
-     * before setting the value.
-     *
-     * If the key doesn't already exist in the Data Manager then it is created.
-     *
-     * When the value is first set, a `setdata` event is emitted from this Game Object.
-     *
-     * @method Phaser.GameObjects.Layer#toggleData
-     * @since 3.50.0
-     *
-     * @param {(string|object)} key - The key to toggle the value for.
-     *
-     * @return {this} This GameObject.
-     */
-    toggleData: function (key)
-    {
-        if (!this.data)
-        {
-            this.data = new DataManager(this);
-        }
-
-        this.data.toggle(key);
-
-        return this;
-    },
-
-    /**
-     * Retrieves the value for the given key in this Game Objects Data Manager, or undefined if it doesn't exist.
-     *
-     * You can also access values via the `values` object. For example, if you had a key called `gold` you can do either:
-     *
-     * ```javascript
-     * sprite.getData('gold');
-     * ```
-     *
-     * Or access the value directly:
-     *
-     * ```javascript
-     * sprite.data.values.gold;
-     * ```
-     *
-     * You can also pass in an array of keys, in which case an array of values will be returned:
-     *
-     * ```javascript
-     * sprite.getData([ 'gold', 'armor', 'health' ]);
-     * ```
-     *
-     * This approach is useful for destructuring arrays in ES6.
-     *
-     * @method Phaser.GameObjects.Layer#getData
-     * @since 3.50.0
-     *
-     * @param {(string|string[])} key - The key of the value to retrieve, or an array of keys.
-     *
-     * @return {*} The value belonging to the given key, or an array of values, the order of which will match the input array.
-     */
-    getData: function (key)
-    {
-        if (!this.data)
-        {
-            this.data = new DataManager(this);
-        }
-
-        return this.data.get(key);
-    },
-
-    /**
      * A Layer cannot be enabled for input.
      *
      * This method does nothing and is kept to ensure
@@ -62515,61 +62194,6 @@ var Layer = new Class({
     },
 
     /**
-     * This callback is invoked when this Game Object is added to a Scene.
-     *
-     * Can be overridden by custom Game Objects, but be aware of some Game Objects that
-     * will use this, such as Sprites, to add themselves into the Update List.
-     *
-     * You can also listen for the `ADDED_TO_SCENE` event from this Game Object.
-     *
-     * @method Phaser.GameObjects.Layer#addedToScene
-     * @since 3.50.0
-     */
-    addedToScene: function ()
-    {
-    },
-
-    /**
-     * This callback is invoked when this Game Object is removed from a Scene.
-     *
-     * Can be overridden by custom Game Objects, but be aware of some Game Objects that
-     * will use this, such as Sprites, to remove themselves from the Update List.
-     *
-     * You can also listen for the `REMOVED_FROM_SCENE` event from this Game Object.
-     *
-     * @method Phaser.GameObjects.Layer#removedFromScene
-     * @since 3.50.0
-     */
-    removedFromScene: function ()
-    {
-    },
-
-    /**
-     * To be overridden by custom GameObjects. Allows base objects to be used in a Pool.
-     *
-     * @method Phaser.GameObjects.Layer#update
-     * @since 3.50.0
-     *
-     * @param {...*} [args] - args
-     */
-    update: function ()
-    {
-    },
-
-    /**
-     * Returns a JSON representation of the Game Object.
-     *
-     * @method Phaser.GameObjects.Layer#toJSON
-     * @since 3.50.0
-     *
-     * @return {Phaser.Types.GameObjects.JSONGameObject} A JSON representation of the Game Object.
-     */
-    toJSON: function ()
-    {
-        return ComponentsToJSON(this);
-    },
-
-    /**
      * Compares the renderMask with the renderFlags to see if this Game Object will render or not.
      * Also checks the Game Object against the given Cameras exclusion list.
      *
@@ -62583,48 +62207,6 @@ var Layer = new Class({
     willRender: function (camera)
     {
         return !(this.renderFlags !== 15 || this.list.length === 0 || (this.cameraFilter !== 0 && (this.cameraFilter & camera.id)));
-    },
-
-    /**
-     * Returns an array containing the display list index of either this Game Object, or if it has one,
-     * its parent Container. It then iterates up through all of the parent containers until it hits the
-     * root of the display list (which is index 0 in the returned array).
-     *
-     * Used internally by the InputPlugin but also useful if you wish to find out the display depth of
-     * this Game Object and all of its ancestors.
-     *
-     * @method Phaser.GameObjects.Layer#getIndexList
-     * @since 3.51.0
-     *
-     * @return {number[]} An array of display list position indexes.
-     */
-    getIndexList: function ()
-    {
-        // eslint-disable-next-line consistent-this
-        var child = this;
-        var parent = this.parentContainer;
-
-        var indexes = [];
-
-        while (parent)
-        {
-            indexes.unshift(parent.getIndex(child));
-
-            child = parent;
-
-            if (!parent.parentContainer)
-            {
-                break;
-            }
-            else
-            {
-                parent = parent.parentContainer;
-            }
-        }
-
-        indexes.unshift(this.displayList.getIndex(child));
-
-        return indexes;
     },
 
     /**
@@ -62738,197 +62320,6 @@ var Layer = new Class({
     {
         return this.list;
     },
-
-    /**
-     * Adds this Layer to the given Display List.
-     *
-     * If no Display List is specified, it will default to the Display List owned by the Scene to which
-     * this Layer belongs.
-     *
-     * A Layer can only exist on one Display List at any given time, but may move freely between them.
-     *
-     * If this Layer is already on another Display List when this method is called, it will first
-     * be removed from it, before being added to the new list.
-     *
-     * You can query which list it is on by looking at the `Phaser.GameObjects.Layer#displayList` property.
-     *
-     * If a Layer isn't on any display list, it will not be rendered. If you just wish to temporarily
-     * disable it from rendering, consider using the `setVisible` method, instead.
-     *
-     * @method Phaser.GameObjects.Layer#addToDisplayList
-     * @fires Phaser.Scenes.Events#ADDED_TO_SCENE
-     * @fires Phaser.GameObjects.Events#ADDED_TO_SCENE
-     * @since 3.60.0
-     *
-     * @param {(Phaser.GameObjects.DisplayList|Phaser.GameObjects.Layer)} [displayList] - The Display List to add to. Defaults to the Scene Display List.
-     *
-     * @return {this} This Layer instance.
-     */
-    addToDisplayList: function (displayList)
-    {
-        if (displayList === undefined) { displayList = this.scene.sys.displayList; }
-
-        if (this.displayList && this.displayList !== displayList)
-        {
-            this.removeFromDisplayList();
-        }
-
-        //  Don't repeat if it's already on this list
-        if (!displayList.exists(this))
-        {
-            this.displayList = displayList;
-
-            displayList.add(this, true);
-
-            displayList.queueDepthSort();
-
-            this.emit(GameObjectEvents.ADDED_TO_SCENE, this, this.scene);
-
-            displayList.events.emit(SceneEvents.ADDED_TO_SCENE, this, this.scene);
-        }
-
-        return this;
-    },
-
-    /**
-     * Removes this Layer from the Display List it is currently on.
-     *
-     * A Layer can only exist on one Display List at any given time, but may be freely removed
-     * and added back at a later stage.
-     *
-     * You can query which list it is on by looking at the `Phaser.GameObjects.GameObject#displayList` property.
-     *
-     * If a Layer isn't on any Display List, it will not be rendered. If you just wish to temporarily
-     * disable it from rendering, consider using the `setVisible` method, instead.
-     *
-     * @method Phaser.GameObjects.Layer#removeFromDisplayList
-     * @fires Phaser.Scenes.Events#REMOVED_FROM_SCENE
-     * @fires Phaser.GameObjects.Events#REMOVED_FROM_SCENE
-     * @since 3.60.0
-     *
-     * @return {this} This Layer instance.
-     */
-    removeFromDisplayList: function ()
-    {
-        var displayList = this.displayList || this.scene.sys.displayList;
-
-        if (displayList.exists(this))
-        {
-            displayList.remove(this, true);
-
-            displayList.queueDepthSort();
-
-            this.displayList = null;
-
-            this.emit(GameObjectEvents.REMOVED_FROM_SCENE, this, this.scene);
-
-            displayList.events.emit(SceneEvents.REMOVED_FROM_SCENE, this, this.scene);
-        }
-
-        return this;
-    },
-
-    /**
-     * Returns a reference to the underlying display list _array_ that contains this Game Object,
-     * which will be either the Scene's Display List or the internal list belonging
-     * to its parent Container, if it has one.
-     * 
-     * If this Game Object is not on a display list or in a container, it will return `null`.
-     * 
-     * You should be very careful with this method, and understand that it returns a direct reference to the
-     * internal array used by the Display List. Mutating this array directly can cause all kinds of subtle
-     * and difficult to debug issues in your game.
-     *
-     * @method Phaser.GameObjects.Layer#getDisplayList
-     * @since 3.88.0
-     *
-     * @return {?Phaser.GameObjects.GameObject[]} The internal Display List array of Game Objects, or `null`.
-     */
-    getDisplayList: function ()
-    {
-        var list = null;
-
-        if (this.parentContainer)
-        {
-            list = this.parentContainer.list;
-        }
-        else if (this.displayList)
-        {
-            list = this.displayList.list;
-        }
-
-        return list;
-    },
-
-    /**
-     * Destroys this Layer removing it from the Display List and Update List and
-     * severing all ties to parent resources.
-     *
-     * Also destroys all children of this Layer. If you do not wish for the
-     * children to be destroyed, you should move them from this Layer first.
-     *
-     * Use this to remove this Layer from your game if you don't ever plan to use it again.
-     * As long as no reference to it exists within your own code it should become free for
-     * garbage collection by the browser.
-     *
-     * If you just want to temporarily disable an object then look at using the
-     * Game Object Pool instead of destroying it, as destroyed objects cannot be resurrected.
-     *
-     * @method Phaser.GameObjects.Layer#destroy
-     * @fires Phaser.GameObjects.Events#DESTROY
-     * @since 3.50.0
-     *
-     * @param {boolean} [fromScene=false] - `True` if this Game Object is being destroyed by the Scene, `false` if not.
-     */
-    destroy: function (fromScene)
-    {
-        //  This Game Object has already been destroyed
-        if (!this.scene || this.ignoreDestroy)
-        {
-            return;
-        }
-
-        this.emit(GameObjectEvents.DESTROY, this);
-
-        var list = this.list;
-
-        while (list.length)
-        {
-            list[0].destroy(fromScene);
-        }
-
-        this.removeAllListeners();
-
-        if (this.displayList)
-        {
-            this.displayList.remove(this, true, false);
-
-            this.displayList.queueDepthSort();
-        }
-
-        if (this.data)
-        {
-            this.data.destroy();
-
-            this.data = undefined;
-        }
-
-        if (this.filterCamera)
-        {
-            this.filterCamera.destroy();
-
-            this.filterCamera = undefined;
-        }
-
-        this.active = false;
-        this.visible = false;
-
-        this.list = undefined;
-        this.scene = undefined;
-        this.displayList = undefined;
-        this.systems = undefined;
-        this.events = undefined;
-    }
 
     /**
      * Return an array listing the events for which the emitter has registered listeners.
@@ -63050,6 +62441,499 @@ var Layer = new Class({
      *
      * @return {this} This Layer instance.
      */
+
+    // --------------
+    // Append type declarations from List, which won't otherwise be picked up by the type build system.
+    // --------------
+
+    /**
+     * The parent of this list.
+     *
+     * @name Phaser.GameObjects.Layer#parent
+     * @type {*}
+     * @since 3.0.0
+     */
+
+    /**
+     * The objects that belong to this collection.
+     *
+     * @name Phaser.GameObjects.Layer#list
+     * @type {Array.<Phaser.GameObjects.GameObject>}
+     * @default []
+     * @since 3.0.0
+     */
+
+    /**
+     * The index of the current element.
+     *
+     * This is used internally when iterating through the list with the {@link #first}, {@link #last}, {@link #next}, and {@link #previous} properties.
+     *
+     * @name Phaser.GameObjects.Layer#position
+     * @type {number}
+     * @default 0
+     * @since 3.0.0
+     */
+
+    /**
+     * A callback that is invoked every time a child is added to this list.
+     *
+     * @name Phaser.GameObjects.Layer#addCallback
+     * @type {function}
+     * @since 3.4.0
+     */
+
+    /**
+     * A callback that is invoked every time a child is removed from this list.
+     *
+     * @name Phaser.GameObjects.Layer#removeCallback
+     * @type {function}
+     * @since 3.4.0
+     */
+
+    /**
+     * The property key to sort by.
+     *
+     * @name Phaser.GameObjects.Layer#_sortKey
+     * @type {string}
+     * @since 3.4.0
+     */
+
+    /**
+     * Adds the given item to the end of the list. Each item must be unique.
+     *
+     * @method Phaser.GameObjects.Layer#add
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject|Array.<Phaser.GameObjects.GameObject>} child - The item, or array of items, to add to the list.
+     * @param {boolean} [skipCallback=false] - Skip calling the List.addCallback if this child is added successfully.
+     *
+     * @return {*} The list's underlying array.
+     */
+
+    /**
+     * Adds an item to list, starting at a specified index. Each item must be unique within the list.
+     *
+     * @method Phaser.GameObjects.Layer#addAt
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject|Array.<Phaser.GameObjects.GameObject>} child - The item, or array of items, to add to the list.
+     * @param {number} [index=0] - The index in the list at which the element(s) will be inserted.
+     * @param {boolean} [skipCallback=false] - Skip calling the List.addCallback if this child is added successfully.
+     *
+     * @return {Array.<Phaser.GameObjects.GameObject>} The List's underlying array.
+     */
+
+    /**
+     * Retrieves the item at a given position inside the List.
+     *
+     * @method Phaser.GameObjects.Layer#getAt
+     * @since 3.0.0
+     *
+     * @param {number} index - The index of the item.
+     *
+     * @return {Phaser.GameObjects.GameObject|undefined} The retrieved item, or `undefined` if it's outside the List's bounds.
+     */
+
+    /**
+     * Locates an item within the List and returns its index.
+     *
+     * @method Phaser.GameObjects.Layer#getIndex
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject} child - The item to locate.
+     *
+     * @return {number} The index of the item within the List, or -1 if it's not in the List.
+     */
+
+    /**
+     * Sort the contents of this List so the items are in order based on the given property.
+     * For example, `sort('alpha')` would sort the List contents based on the value of their `alpha` property.
+     *
+     * @method Phaser.GameObjects.Layer#sort
+     * @since 3.0.0
+     *
+     * @param {string} property - The property to lexically sort by.
+     * @param {function} [handler] - Provide your own custom handler function. Will receive 2 children which it should compare and return a number (negative if the first should come before the second, positive if after, zero if equal).
+     *
+     * @return {Phaser.GameObjects.Layer} This List object.
+     */
+
+    /**
+     * Searches for the first instance of a child with its `name`
+     * property matching the given argument. Should more than one child have
+     * the same name only the first is returned.
+     *
+     * @method Phaser.GameObjects.Layer#getByName
+     * @since 3.0.0
+     *
+     * @param {string} name - The name to search for.
+     *
+     * @return {?Phaser.GameObjects.GameObject} The first child with a matching name, or null if none were found.
+     */
+
+    /**
+     * Returns a random child from the list.
+     *
+     * @method Phaser.GameObjects.Layer#getRandom
+     * @since 3.0.0
+     *
+     * @param {number} [startIndex=0] - Offset from the front of the list (lowest child).
+     * @param {number} [length=(to top)] - Restriction on the number of values you want to randomly select from.
+     *
+     * @return {?Phaser.GameObjects.GameObject} A random child of this List.
+     */
+
+    /**
+     * Returns the first element in a given part of the List which matches a specific criterion.
+     *
+     * @method Phaser.GameObjects.Layer#getFirst
+     * @since 3.0.0
+     *
+     * @param {string} property - The name of the property to test or a falsey value to have no criterion.
+     * @param {Phaser.GameObjects.GameObject|undefined} value - The value to test the `property` against, or `undefined` to allow any value and only check for existence.
+     * @param {number} [startIndex=0] - The position in the List to start the search at.
+     * @param {number} [endIndex] - The position in the List to optionally stop the search at. It won't be checked.
+     *
+     * @return {?Phaser.GameObjects.GameObject} The first item which matches the given criterion, or `null` if no such item exists.
+     */
+
+    /**
+     * Returns all children in this List.
+     *
+     * You can optionally specify a matching criteria using the `property` and `value` arguments.
+     *
+     * For example: `getAll('parent')` would return only children that have a property called `parent`.
+     *
+     * You can also specify a value to compare the property to:
+     *
+     * `getAll('visible', true)` would return only children that have their visible property set to `true`.
+     *
+     * Optionally you can specify a start and end index. For example if this List had 100 children,
+     * and you set `startIndex` to 0 and `endIndex` to 50, it would return matches from only
+     * the first 50 children in the List.
+     *
+     * @method Phaser.GameObjects.Layer#getAll
+     * @since 3.0.0
+     *
+     * @param {string} [property] - An optional property to test against the value argument.
+     * @param {any} [value] - If property is set then Child.property must strictly equal this value to be included in the results.
+     * @param {number} [startIndex] - The first child index to start the search from.
+     * @param {number} [endIndex] - The last child index to search up until.
+     *
+     * @return {Array.<Phaser.GameObjects.GameObject>} All items of the List which match the given criterion, if any.
+     */
+
+    /**
+     * Returns the total number of items in the List which have a property matching the given value.
+     *
+     * @method Phaser.GameObjects.Layer#count
+     * @since 3.0.0
+     *
+     * @param {string} property - The property to test on each item.
+     * @param {Phaser.GameObjects.GameObject} value - The value to test the property against.
+     *
+     * @return {number} The total number of matching elements.
+     */
+
+    /**
+     * Swaps the positions of two items in the list.
+     *
+     * @method Phaser.GameObjects.Layer#swap
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject} child1 - The first item to swap.
+     * @param {Phaser.GameObjects.GameObject} child2 - The second item to swap.
+     */
+
+    /**
+     * Moves an item in the List to a new position.
+     *
+     * @method Phaser.GameObjects.Layer#moveTo
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject} child - The item to move.
+     * @param {number} index - The new position to move the item to.
+     *
+     * @return {Phaser.GameObjects.GameObject} The item that was moved.
+     */
+
+    /**
+     * Moves an item above another one in the List.
+     * If the given item is already above the other, it isn't moved.
+     * Above means toward the end of the List.
+     *
+     * @method Phaser.GameObjects.Layer#moveAbove
+     * @since 3.55.0
+     *
+     * @param {Phaser.GameObjects.GameObject} child1 - The element to move above base element.
+     * @param {Phaser.GameObjects.GameObject} child2 - The base element.
+     */
+
+    /**
+     * Moves an item below another one in the List.
+     * If the given item is already below the other, it isn't moved.
+     * Below means toward the start of the List.
+     *
+     * @method Phaser.GameObjects.Layer#moveBelow
+     * @since 3.55.0
+     *
+     * @param {Phaser.GameObjects.GameObject} child1 - The element to move below base element.
+     * @param {Phaser.GameObjects.GameObject} child2 - The base element.
+     */
+
+    /**
+     * Removes one or many items from the List.
+     *
+     * @method Phaser.GameObjects.Layer#remove
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject|Array.<Phaser.GameObjects.GameObject>} child - The item, or array of items, to remove.
+     * @param {boolean} [skipCallback=false] - Skip calling the List.removeCallback.
+     *
+     * @return {Phaser.GameObjects.GameObject|Array.<Phaser.GameObjects.GameObject>} The item, or array of items, which were successfully removed from the List.
+     */
+
+    /**
+     * Removes the item at the given position in the List.
+     *
+     * @method Phaser.GameObjects.Layer#removeAt
+     * @since 3.0.0
+     *
+     * @param {number} index - The position to remove the item from.
+     * @param {boolean} [skipCallback=false] - Skip calling the List.removeCallback.
+     *
+     * @return {Phaser.GameObjects.GameObject} The item that was removed.
+     */
+
+    /**
+     * Removes the items within the given range in the List.
+     *
+     * @method Phaser.GameObjects.Layer#removeBetween
+     * @since 3.0.0
+     *
+     * @param {number} [startIndex=0] - The index to start removing from.
+     * @param {number} [endIndex] - The position to stop removing at. The item at this position won't be removed.
+     * @param {boolean} [skipCallback=false] - Skip calling the List.removeCallback.
+     *
+     * @return {Array.<Phaser.GameObjects.GameObject>} An array of the items which were removed.
+     */
+
+    /**
+     * Removes all the items.
+     *
+     * @method Phaser.GameObjects.Layer#removeAll
+     * @since 3.0.0
+     *
+     * @param {boolean} [skipCallback=false] - Skip calling the List.removeCallback.
+     *
+     * @return {this} This List object.
+     */
+
+    /**
+     * Brings the given child to the top of this List.
+     *
+     * @method Phaser.GameObjects.Layer#bringToTop
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject} child - The item to bring to the top of the List.
+     *
+     * @return {Phaser.GameObjects.GameObject} The item which was moved.
+     */
+
+    /**
+     * Sends the given child to the bottom of this List.
+     *
+     * @method Phaser.GameObjects.Layer#sendToBack
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject} child - The item to send to the back of the list.
+     *
+     * @return {Phaser.GameObjects.GameObject} The item which was moved.
+     */
+
+    /**
+     * Moves the given child up one place in this List unless it's already at the top.
+     *
+     * @method Phaser.GameObjects.Layer#moveUp
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject} child - The item to move up.
+     *
+     * @return {Phaser.GameObjects.GameObject} The item which was moved.
+     */
+
+    /**
+     * Moves the given child down one place in this List unless it's already at the bottom.
+     *
+     * @method Phaser.GameObjects.Layer#moveDown
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject} child - The item to move down.
+     *
+     * @return {Phaser.GameObjects.GameObject} The item which was moved.
+     */
+
+    /**
+     * Reverses the order of all children in this List.
+     *
+     * @method Phaser.GameObjects.Layer#reverse
+     * @since 3.0.0
+     *
+     * @return {Phaser.GameObjects.Layer} This List object.
+     */
+
+    /**
+     * Shuffles the items in the list.
+     *
+     * @method Phaser.GameObjects.Layer#shuffle
+     * @since 3.0.0
+     *
+     * @return {Phaser.GameObjects.Layer} This List object.
+     */
+
+    /**
+     * Replaces a child of this List with the given newChild. The newChild cannot be a member of this List.
+     *
+     * @method Phaser.GameObjects.Layer#replace
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject} oldChild - The child in this List that will be replaced.
+     * @param {Phaser.GameObjects.GameObject} newChild - The child to be inserted into this List.
+     *
+     * @return {Phaser.GameObjects.GameObject} Returns the oldChild that was replaced within this List.
+     */
+
+    /**
+     * Checks if an item exists within the List.
+     *
+     * @method Phaser.GameObjects.Layer#exists
+     * @since 3.0.0
+     *
+     * @param {Phaser.GameObjects.GameObject} child - The item to check for the existence of.
+     *
+     * @return {boolean} `true` if the item is found in the list, otherwise `false`.
+     */
+
+    /**
+     * Sets the property `key` to the given value on all members of this List.
+     *
+     * @method Phaser.GameObjects.Layer#setAll
+     * @since 3.0.0
+     *
+     * @param {string} property - The name of the property to set.
+     * @param {any} value - The value to set the property to.
+     * @param {number} [startIndex] - The first child index to start the search from.
+     * @param {number} [endIndex] - The last child index to search up until.
+     */
+
+    /**
+     * Passes all children to the given callback.
+     *
+     * @method Phaser.GameObjects.Layer#each
+     * @since 3.0.0
+     *
+     * @param {EachListCallback.<Phaser.GameObjects.GameObject>} callback - The function to call.
+     * @param {any} [context] - Value to use as `this` when executing callback.
+     * @param {...any} [args] - Additional arguments that will be passed to the callback, after the child.
+     */
+
+    /**
+     * Clears the List and recreates its internal array.
+     *
+     * @method Phaser.GameObjects.Layer#shutdown
+     * @since 3.0.0
+     */
+
+    /**
+     * The number of items inside the List.
+     *
+     * @name Phaser.GameObjects.Layer#length
+     * @type {number}
+     * @readonly
+     * @since 3.0.0
+     */
+
+    /**
+     * The first item in the List or `null` for an empty List.
+     *
+     * @name Phaser.GameObjects.Layer#first
+     * @type {?Phaser.GameObjects.GameObject}
+     * @readonly
+     * @since 3.0.0
+     */
+
+    /**
+     * The last item in the List, or `null` for an empty List.
+     *
+     * @name Phaser.GameObjects.Layer#last
+     * @type {?Phaser.GameObjects.GameObject}
+     * @readonly
+     * @since 3.0.0
+     */
+
+    /**
+     * The next item in the List, or `null` if the entire List has been traversed.
+     *
+     * This property can be read successively after reading {@link #first} or manually setting the {@link #position} to iterate the List.
+     *
+     * @name Phaser.GameObjects.Layer#next
+     * @type {?Phaser.GameObjects.GameObject}
+     * @readonly
+     * @since 3.0.0
+     */
+
+    /**
+     * The previous item in the List, or `null` if the entire List has been traversed.
+     *
+     * This property can be read successively after reading {@link #last} or manually setting the {@link #position} to iterate the List backwards.
+     *
+     * @name Phaser.GameObjects.Layer#previous
+     * @type {?Phaser.GameObjects.GameObject}
+     * @readonly
+     * @since 3.0.0
+     */
+
+    /**
+     * Destroys this Layer removing it from the Display List and Update List and
+     * severing all ties to parent resources.
+     *
+     * Also destroys all children of this Layer. If you do not wish for the
+     * children to be destroyed, you should move them from this Layer first.
+     *
+     * Use this to remove this Layer from your game if you don't ever plan to use it again.
+     * As long as no reference to it exists within your own code it should become free for
+     * garbage collection by the browser.
+     *
+     * If you just want to temporarily disable an object then look at using the
+     * Game Object Pool instead of destroying it, as destroyed objects cannot be resurrected.
+     *
+     * @method Phaser.GameObjects.Layer#destroy
+     * @fires Phaser.GameObjects.Events#DESTROY
+     * @since 3.50.0
+     *
+     * @param {boolean} [fromScene=false] - `True` if this Game Object is being destroyed by the Scene, `false` if not.
+     */
+    destroy: function (fromScene)
+    {
+        //  This Game Object has already been destroyed
+        if (!this.scene || this.ignoreDestroy)
+        {
+            return;
+        }
+
+        GameObject.prototype.destroy.call(this, fromScene);
+
+        var list = this.list;
+
+        while (list.length)
+        {
+            list[0].destroy(fromScene);
+        }
+
+        this.list = undefined;
+        this.systems = undefined;
+        this.events = undefined;
+    }
 
 });
 
@@ -77970,6 +77854,18 @@ var RenderTextureRenderModes = __webpack_require__(58855);
  * to be drawn with no aliasing around the edges. This is a technical limitation of WebGL1. To get around it,
  * create your shape as a texture in an art package, then draw that to this texture.
  *
+ * If you activate mipmap support in your game, it will not automatically
+ * be applied to DynamicTextures.
+ * This is because regenerating the mipmap for a texture
+ * costs over 10 microseconds, a big performance loss for a single frame.
+ * If you want to render your DynamicTextures with mipmaps,
+ * you must also activate the render config option `mipmapRegeneration`.
+ *
+ * In the event that the WebGL context is lost, this DynamicTexture will
+ * lose its contents. Once context is restored (signalled by the `restorewebgl`
+ * event), you can choose to redraw the contents of the DynamicTexture.
+ * You are responsible for the redrawing logic.
+ *
  * @class RenderTexture
  * @extends Phaser.GameObjects.Image
  * @memberof Phaser.GameObjects
@@ -78108,7 +78004,7 @@ var RenderTexture = new Class({
      * In Canvas it will resize the underlying canvas element.
      *
      * Both approaches will erase everything currently drawn to the Render Texture.
-     * 
+     *
      * Calling this will then invoke the `setSize` method, setting the internal size of this Game Object
      * to the values given to this method.
      *
@@ -78163,6 +78059,11 @@ var RenderTexture = new Class({
      * stop rendering. Ensure you remove the texture from the Texture Manager and any Game Objects
      * using it first, before destroying this Render Texture.
      *
+     * Note that the texture is assigned a random key on creation.
+     * This key will be replaced with the new key.
+     * If the texture was previously removed from the texture manager,
+     * it will be added back so it can be reused.
+     *
      * @method Phaser.GameObjects.RenderTexture#saveTexture
      * @since 3.12.0
      *
@@ -78173,12 +78074,22 @@ var RenderTexture = new Class({
     saveTexture: function (key)
     {
         var texture = this.texture;
-
-        texture.key = key;
-
-        if (texture.manager.addDynamicTexture(texture))
+        var oldKey = texture.key;
+        var textureManager = texture.manager;
+        if (textureManager.exists(oldKey) && textureManager.get(oldKey) === texture)
         {
+            textureManager.renameTexture(oldKey, key);
+
             this._saved = true;
+        }
+        else
+        {
+            texture.key = key;
+
+            if (texture.manager.addDynamicTexture(texture))
+            {
+                this._saved = true;
+            }
         }
 
         return texture;
@@ -86371,47 +86282,13 @@ var FillStyleCanvas = __webpack_require__(65960);
 var LineStyleCanvas = __webpack_require__(75177);
 var SetTransform = __webpack_require__(20926);
 
-var DrawRoundedRect = function (ctx, x, y, width, height, radius)
-{
-    // Limit radius to half of the smaller dimension
-    var maxRadius = Math.min(width / 2, height / 2);
-    var r = Math.min(radius, maxRadius);
-    
-    if (r === 0)
-    {
-        // Fall back to normal rectangle if radius is 0
-        ctx.rect(x, y, width, height);
-        return;
-    }
-    
-    // Start at top-left, after the corner
-    ctx.moveTo(x + r, y);
-    
-    // Top edge and top-right corner
-    ctx.lineTo(x + width - r, y);
-    ctx.arcTo(x + width, y, x + width, y + r, r);
-    
-    // Right edge and bottom-right corner
-    ctx.lineTo(x + width, y + height - r);
-    ctx.arcTo(x + width, y + height, x + width - r, y + height, r);
-    
-    // Bottom edge and bottom-left corner
-    ctx.lineTo(x + r, y + height);
-    ctx.arcTo(x, y + height, x, y + height - r, r);
-    
-    // Left edge and top-left corner
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    
-    ctx.closePath();
-};
-
 /**
  * Constructs a rounded rectangle path on the given Canvas 2D context using `arcTo` for each corner.
  * The corner radius is automatically clamped to half the smaller of the width or height to prevent
  * rendering artifacts. If the clamped radius is zero, a standard rectangle is drawn via `ctx.rect` instead.
  * This function only defines the path; the caller is responsible for calling `ctx.fill` or `ctx.stroke`.
  *
+ * @ignore
  * @param {CanvasRenderingContext2D} ctx - The Canvas 2D rendering context on which to draw the path.
  * @param {number} x - The x coordinate of the top-left corner of the rectangle, in pixels.
  * @param {number} y - The y coordinate of the top-left corner of the rectangle, in pixels.
@@ -86657,11 +86534,7 @@ var RectangleWebGLRenderer = function (renderer, src, drawingContext, parentMatr
     var defaultRenderNodes = src.defaultRenderNodes;
     var submitter = customRenderNodes.Submitter || defaultRenderNodes.Submitter;
 
-    if (src.isRounded && src.isFilled)
-    {
-        FillPathWebGL(pipeline, result.calc, src, alpha, dx, dy);
-    }
-    else if (src.isFilled)
+    if (src.isFilled)
     {
         if (src.isRounded)
         {
@@ -184042,6 +183915,7 @@ module.exports = {
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
+var IsSizePowerOfTwo = __webpack_require__(50030);
 var Class = __webpack_require__(83419);
 
 /**
@@ -184191,6 +184065,17 @@ var DrawingContext = new Class({
         this.texture = null;
 
         /**
+         * Whether to enable mipmaps on the framebuffer texture, if it exists.
+         * The game must still be set to use mipmaps for this to work.
+         *
+         * @name Phaser.Renderer.WebGL.DrawingContext#enableMipmap
+         * @type {boolean}
+         * @since 4.1.0
+         * @default false
+         */
+        this.enableMipmap = !!options.enableMipmap;
+
+        /**
          * The pool to return to when this context is no longer needed.
          * Used only for temporary contexts.
          *
@@ -184286,7 +184171,34 @@ var DrawingContext = new Class({
             if (!this.framebuffer)
             {
                 var renderer = this.renderer;
-                this.texture = renderer.createTextureFromSource(null, width, height, 0);
+                var gl = renderer.gl;
+                var pow = IsSizePowerOfTwo(width, height);
+                var magFilter = gl.NEAREST;
+                if (renderer.config.antialias)
+                {
+                    magFilter = gl.LINEAR;
+                }
+                var minFilter = magFilter;
+                if (pow && this.enableMipmap && renderer.config.mipmapRegeneration && renderer.mipmapFilter)
+                {
+                    minFilter = renderer.mipmapFilter;
+                }
+                var wrap = gl.CLAMP_TO_EDGE;
+                if (pow)
+                {
+                    wrap = gl.REPEAT;
+                }
+                this.texture = renderer.createTexture2D(
+                    0,
+                    minFilter,
+                    magFilter,
+                    wrap,
+                    wrap,
+                    gl.RGBA,
+                    null,
+                    width,
+                    height
+                );
                 this.framebuffer = renderer.createFramebuffer(this.texture, true, false);
             }
             else
@@ -185969,12 +185881,6 @@ if (false)
 { var SPECTOR; }
 
 /**
- * @callback WebGLContextCallback
- *
- * @param {Phaser.Renderer.WebGL.WebGLRenderer} renderer - The WebGL Renderer which owns the context.
- */
-
-/**
  * @classdesc
  * WebGLRenderer is a class that contains the needed functionality to keep the
  * WebGLRenderingContext state clean. The main idea of the WebGLRenderer is to keep track of
@@ -186048,7 +185954,8 @@ var WebGLRenderer = new Class({
             maxTextureSize: gameConfig.maxTextureSize,
             batchSize: gameConfig.batchSize,
             maxLights: gameConfig.maxLights,
-            mipmapFilter: gameConfig.mipmapFilter
+            mipmapFilter: gameConfig.mipmapFilter,
+            mipmapRegeneration: gameConfig.mipmapRegeneration
         };
 
         /**
@@ -191989,6 +191896,9 @@ var Camera = new Class({
         {
             var index, filter, padding, renderNode, tint;
 
+            // // Mipmap.
+            // currentContext.texture.needsMipmapRegeneration = true;
+
             // Set up render options.
             var renderOptions = {
                 smoothPixelArt: manager.renderer.game.config.smoothPixelArt
@@ -192005,13 +191915,16 @@ var Camera = new Class({
                 currentContext = renderNode.run(filter, currentContext);
 
                 // Record padding.
-                padding = filter.getPadding();
+                padding = filter.getPaddingCeil();
                 coverageInternal.setTo(
                     coverageInternal.x + padding.x,
                     coverageInternal.y + padding.y,
                     coverageInternal.width + padding.width,
                     coverageInternal.height + padding.height
                 );
+
+                // // Mipmap.
+                // currentContext.texture.needsMipmapRegeneration = true;
             }
             var outputContext = currentContext;
 
@@ -192028,7 +191941,7 @@ var Camera = new Class({
 
                     if (!filter.active) { continue; }
 
-                    padding = filter.getPadding();
+                    padding = filter.getPaddingCeil();
 
                     // Increase coverage.
                     coverageExternal.setTo(
@@ -192090,6 +192003,9 @@ var Camera = new Class({
                     quad[6] = Math.round(quad[6]);
                     quad[7] = Math.round(quad[7]);
                 }
+
+                // // Mipmap.
+                // outputContext.texture.needsMipmapRegeneration = true;
 
                 this.batchHandlerQuadSingleNode.batch(
                     currentContext,
@@ -192170,6 +192086,9 @@ var Camera = new Class({
                     padding.y = -padding.y;
                     padding.width = -padding.width;
                     padding.height = -padding.height;
+
+                    // // Mipmap.
+                    // currentContext.texture.needsMipmapRegeneration = true;
                 }
 
                 if (!skipDrawOut)
@@ -192690,6 +192609,9 @@ var DynamicTextureHandler = new Class({
 
         // Finish rendering.
         currentContext.release();
+
+        // Regenerate any mipmap before using the texture.
+        glTexture.needsMipmapRegeneration = true;
 
         camera.emit(CameraEvents.POST_RENDER, camera);
 
@@ -195458,7 +195380,7 @@ var BaseFilterShader = new Class({
         // Get a new DrawingContext to render to.
         if (!padding)
         {
-            padding = controller.getPadding();
+            padding = controller.getPaddingCeil();
         }
         if (!outputDrawingContext)
         {
@@ -196039,7 +195961,7 @@ var FilterBlur = new Class({
 
         if (!padding)
         {
-            padding = controller.getPadding();
+            padding = controller.getPaddingCeil();
         }
 
         var currentContext = inputDrawingContext;
@@ -197448,7 +197370,7 @@ var FilterParallelFilters = new Class({
 
         var bottomFilters = controller.bottom.getActive();
         var topFilters = controller.top.getActive();
-        var initialPadding = padding || controller.getPadding();
+        var initialPadding = padding || controller.getPaddingCeil();
 
         if (bottomFilters.length + topFilters.length > 0)
         {
@@ -208288,6 +208210,11 @@ var WebGLTextureUnitsWrapper = new Class({
         var glTexture = texture ? texture.webGLTexture : null;
         var gl = this.renderer.gl;
         gl.bindTexture(gl.TEXTURE_2D, glTexture);
+
+        if (texture && texture.needsMipmapRegeneration)
+        {
+            texture.generateMipmap();
+        }
     },
 
     /**
@@ -208578,6 +208505,21 @@ var WebGLTextureWrapper = new Class({
          */
         this.batchUnit = -1;
 
+        /**
+         * Whether the mipmaps should be regenerated.
+         * This is only relevant to dynamic textures and framebuffers with
+         * rapidly changing content.
+         * The process which changes the content should set this flag.
+         * When the texture is next bound, the WebGLTextureUnitsWrapper
+         * should trigger the `generateMipmap` method.
+         *
+         * @name Phaser.Renderer.WebGL.Wrappers.WebGLTextureWrapper#needsMipmapRegeneration
+         * @type {boolean}
+         * @since 4.1.0
+         * @default false
+         */
+        this.needsMipmapRegeneration = false;
+
         this.createResource();
     },
 
@@ -208627,6 +208569,13 @@ var WebGLTextureWrapper = new Class({
      * Wrap mode will be updated: REPEAT if the new size is power-of-two,
      * CLAMP_TO_EDGE if not.
      *
+     * Texture minification filter will be updated:
+     * - Uses mipmap settings from game config if:
+     *   - Size is power-of-two
+     *   - There is a mipmap setting
+     *   - This is not a render texture, OR mipmap regeneration is enabled
+     * - Uses regular texture filter otherwise.
+     *
      * @method Phaser.Renderer.WebGL.Wrappers.WebGLTextureWrapper#resize
      * @since 4.0.0
      * @param {number} width - The new width of the WebGLTexture.
@@ -208642,8 +208591,12 @@ var WebGLTextureWrapper = new Class({
         this.width = width;
         this.height = height;
 
-        var gl = this.renderer.gl;
-        if (IsSizePowerOfTwo(width, height))
+        var renderer = this.renderer;
+        var gl = renderer.gl;
+        var isPOT = IsSizePowerOfTwo(width, height);
+
+        // Repeat modes
+        if (isPOT)
         {
             this.wrapS = gl.REPEAT;
             this.wrapT = gl.REPEAT;
@@ -208652,6 +208605,20 @@ var WebGLTextureWrapper = new Class({
         {
             this.wrapS = gl.CLAMP_TO_EDGE;
             this.wrapT = gl.CLAMP_TO_EDGE;
+        }
+
+        // Mipmap modes
+        if (isPOT && renderer.mipmapFilter && (!this.isRenderTexture || renderer.config.mipmapRegeneration))
+        {
+            this.minFilter = renderer.mipmapFilter;
+        }
+        else if (renderer.config.antialias)
+        {
+            this.minFilter = gl.LINEAR;
+        }
+        else
+        {
+            this.minFilter = gl.NEAREST;
         }
 
         this._processTexture();
@@ -208731,19 +208698,16 @@ var WebGLTextureWrapper = new Class({
         var height = this.height;
         var format = this.format;
 
-        var generateMipmap = false;
-
         if (pixels === null || pixels === undefined)
         {
             gl.texImage2D(gl.TEXTURE_2D, mipLevel, format, width, height, 0, format, gl.UNSIGNED_BYTE, null);
 
-            generateMipmap = IsSizePowerOfTwo(width, height);
+            this.generateMipmap();
         }
         else if (pixels.compressed)
         {
             width = pixels.width;
             height = pixels.height;
-            generateMipmap = pixels.generateMipmap;
 
             for (var i = 0; i < pixels.mipmaps.length; i++)
             {
@@ -208754,7 +208718,7 @@ var WebGLTextureWrapper = new Class({
         {
             gl.texImage2D(gl.TEXTURE_2D, mipLevel, format, width, height, 0, format, gl.UNSIGNED_BYTE, pixels);
 
-            generateMipmap = IsSizePowerOfTwo(width, height);
+            this.generateMipmap();
         }
         else
         {
@@ -208766,13 +208730,49 @@ var WebGLTextureWrapper = new Class({
 
             gl.texImage2D(gl.TEXTURE_2D, mipLevel, format, format, gl.UNSIGNED_BYTE, pixels);
 
-            generateMipmap = IsSizePowerOfTwo(width, height);
+            this.generateMipmap();
+        }
+    },
+
+    /**
+     * Return whether the texture is set to use a mipmap minification filter.
+     *
+     * @name Phaser.Renderer.WebGL.Wrappers.WebGLTextureWrapper#isMipmap
+     * @since 4.1.0
+     * @returns {boolean} Whether the texture is set to use a mipmap minification filter.
+     */
+    isMipmap: function ()
+    {
+        var minFilter = this.minFilter;
+        var gl = this.renderer.gl;
+        return minFilter === gl.NEAREST_MIPMAP_NEAREST ||
+            minFilter === gl.LINEAR_MIPMAP_NEAREST ||
+            minFilter === gl.LINEAR_MIPMAP_LINEAR ||
+            minFilter === gl.NEAREST_MIPMAP_LINEAR;
+    },
+
+    /**
+     * Generate mipmap levels for the texture.
+     * This method is called internally.
+     *
+     * Mipmaps are only generated if this texture is mipmap-enabled
+     * and has a size which is a power of two.
+     * Otherwise this function returns without side effects.
+     *
+     * @name Phaser.Renderer.WebGL.Wrappers.WebGLTextureWrapper#generateMipmap
+     * @since 4.1.0
+     */
+    generateMipmap: function ()
+    {
+        this.needsMipmapRegeneration = false;
+
+        var gl = this.renderer.gl;
+        if (!(this.isMipmap() && IsSizePowerOfTwo(this.width, this.height)))
+        {
+            return;
         }
 
-        if (generateMipmap)
-        {
-            gl.generateMipmap(gl.TEXTURE_2D);
-        }
+        gl.generateMipmap(gl.TEXTURE_2D);
     },
 
     /**
@@ -227449,6 +227449,13 @@ var TransformMatrix = __webpack_require__(61340);
  * to be drawn with no aliasing around the edges. This is a technical limitation of WebGL1. To get around it,
  * create your shape as a texture in an art package, then draw that to this texture.
  *
+ * If you activate mipmap support in your game, it will not automatically
+ * be applied to DynamicTextures.
+ * This is because regenerating the mipmap for a texture
+ * costs over 10 microseconds, a big performance loss for a single frame.
+ * If you want to render your DynamicTextures with mipmaps,
+ * you must also activate the render config option `mipmapRegeneration`.
+ *
  * In the event that the WebGL context is lost, this DynamicTexture will
  * lose its contents. Once context is restored (signalled by the `restorewebgl`
  * event), you can choose to redraw the contents of the DynamicTexture.
@@ -227585,7 +227592,8 @@ var DynamicTexture = new Class({
             width: width,
             height: height,
             camera: this.camera,
-            autoClear: false
+            autoClear: false,
+            enableMipmap: true
         });
 
         if (!isCanvas)
@@ -250981,10 +250989,11 @@ var Events = __webpack_require__(89809);
  * ```
  *
  * The Timeline can also be looped with the repeat method:
+ *
  * ```js
  * timeline.repeat().play();
  * ```
- * 
+ *
  * There are lots of options available to you via the configuration object. See the
  * {@link Phaser.Types.Time.TimelineEventConfig} typedef for more details.
  *
@@ -251175,7 +251184,7 @@ var Timeline = new Class({
      * If the `TimelineEvent.event` property is set then the Timeline emits that event.
      *
      * If the `TimelineEvent.run` property is set then the Timeline invokes that method.
-     * 
+     *
      * If the `TimelineEvent.loop` property is set then the Timeline invokes that method when repeated.
      *
      * If the `TimelineEvent.target` property is set then the Timeline invokes the `run` method on that target.
@@ -251395,15 +251404,15 @@ var Timeline = new Class({
      *
      * If the value for `amount` is positive, the Timeline will repeat that many additional times.
      * For example a value of 1 will actually run this Timeline twice.
-     * 
+     *
      * Passing `false` is equivalent to 0 (no additional repeats). Passing `true`, `undefined`, or a negative number will repeat indefinitely.
-     * 
+     *
      * If this Timeline had any events set to `once` that have already been removed,
      * they will **not** be repeated each loop.
      *
      * @method Phaser.Time.Timeline#repeat
      * @since 3.80.0
-     * 
+     *
      * @param {number|boolean} [amount=-1] - Amount of times to repeat, if `true` or negative it will be infinite.
      *
      * @return {this} This Timeline instance.
@@ -251479,14 +251488,14 @@ var Timeline = new Class({
      *
      * If the Timeline isn't currently running (i.e. it's paused or complete) then
      * calling this method resets those states, the same as calling `Timeline.play(true)`.
-     * 
+     *
      * Any Tweens that were currently running as a result of this Timeline will be stopped.
      *
      * @method Phaser.Time.Timeline#reset
      * @since 3.60.0
-     * 
+     *
      * @param {boolean} [loop=false] - Set to `true` to preserve the loop iteration counters. Used internally when the Timeline auto-repeats. Leave as `false` to perform a full reset.
-     * 
+     *
      * @return {this} This Timeline instance.
      */
     reset: function (loop)
@@ -251507,7 +251516,7 @@ var Timeline = new Class({
             var event = events[i];
 
             event.complete = false;
-            
+
             if (!loop)
             {
                 event.repeat = 0;
@@ -251608,7 +251617,7 @@ var Timeline = new Class({
     /**
      * Removes all events from this Timeline, resets the elapsed time to zero
      * and pauses the Timeline.
-     * 
+     *
      * Any Tweens that were currently running as a result of this Timeline will be stopped.
      *
      * @method Phaser.Time.Timeline#clear
@@ -251682,7 +251691,7 @@ var Timeline = new Class({
      * Destroys this Timeline.
      *
      * This will remove all events from the Timeline and stop it from processing.
-     * 
+     *
      * Any Tweens that were currently running as a result of this Timeline will be stopped.
      *
      * This method is called automatically when the Scene shuts down, but you may
@@ -251776,7 +251785,7 @@ var Timeline = new Class({
  * ```js
  * timeline.repeat().play();
  * ```
- * 
+ *
  * There are lots of options available to you via the configuration object. See the
  * {@link Phaser.Types.Time.TimelineEventConfig} typedef for more details.
  *
@@ -260609,7 +260618,7 @@ var GetRandom = function (array, startIndex, length)
     if (startIndex === undefined) { startIndex = 0; }
     if (length === undefined) { length = array.length; }
 
-    var randomIndex = startIndex + Math.floor(Math.random() * length);
+    var randomIndex = startIndex + Math.floor(Math.random() * (length - startIndex));
 
     return (array[randomIndex] === undefined) ? null : array[randomIndex];
 };

@@ -173,7 +173,7 @@ var BaseFilterShader = new Class({
         // Get a new DrawingContext to render to.
         if (!padding)
         {
-            padding = controller.getPadding();
+            padding = controller.getPaddingCeil();
         }
         if (!outputDrawingContext)
         {

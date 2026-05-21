@@ -20,7 +20,6 @@ import { GridSystem } from '../editor/GridSystem';
 import { EventBus } from '../editor/EventBus';
 import FlowFieldManager from '../systems/FlowFieldManager';
 import RoomAssetManager from '../systems/RoomAssetManager';
-import { LightingSystem } from '../systems/LightingSystem';
 import { MinionPersistenceManager, MinionData } from '../systems/MinionPersistenceManager';
 import MusicManager from '../systems/MusicManager';
 
@@ -41,7 +40,6 @@ export class GymScene extends Phaser.Scene {
   private flowField!: FlowFieldManager;
   private arrowKeys: any;
   private assetManager!: RoomAssetManager;
-  private lightingSystem!: LightingSystem;
   private waveSystem!: WaveSystem;
   private spawnManager!: SpawnManager;
   private isRoomReady: boolean = false;
@@ -49,6 +47,7 @@ export class GymScene extends Phaser.Scene {
   private isTransitioning: boolean = false;
   private currentRoomKey: string = '';
   private musicUpdateTimer: number = 0;
+  private heroLight!: any;
 
   constructor() {
     super('GymScene');
@@ -181,6 +180,7 @@ export class GymScene extends Phaser.Scene {
   }
 
   create() {
+    
     this.isGameOver = false;
     this.assetIndex = this.cache.json.get('asset-index');
 
@@ -211,7 +211,6 @@ export class GymScene extends Phaser.Scene {
     this.setupAnimations();
 
     this.assetManager = new RoomAssetManager(this);
-    this.lightingSystem = new LightingSystem(this);
     this.summonSystem = new SummonSystem();
     RhythmSystem.getInstance().start();
     MusicManager.setScene(this);
@@ -390,6 +389,9 @@ export class GymScene extends Phaser.Scene {
   }
 
   private cleanupRoom() {
+    if (this.heroLight) {
+      this.heroLight.destroy();
+    }
     this.hero?.destroy();
 
     this.enemies.getChildren().forEach(enemy => {
@@ -444,6 +446,7 @@ export class GymScene extends Phaser.Scene {
 
   async startRoomFlow(roomKey: string) {
     try {
+      //this.lights.setAmbientColor(0xff0000);
       this.currentRoomKey = roomKey;
       if (!this.loadingOverlay) {
         this.showLoading();
@@ -462,6 +465,19 @@ export class GymScene extends Phaser.Scene {
       // Build room
       const roomBuild = RoomBuilder.build(this, roomData);
       this.walls = roomBuild.walls;
+      // Pipeline ALL scene children for Phaser 4 lighting:
+      this.children.each((child: any) => {
+        if (child.setLighting) {
+          child.setLighting(true);
+        }
+      });
+
+
+      this.children.each((child: any) => {
+        if (child.setLighting) {
+          child.setLighting(true);
+        }
+      });
 
       // Convert raw JSON to RoomData for systems
       const convertedRoomData = RoomDataConverter.convertFromJson(roomData);
@@ -473,6 +489,14 @@ export class GymScene extends Phaser.Scene {
       const spawnPos = this.getHeroSpawn(roomData);
 
       this.hero = new Hero(this, spawnPos.x, spawnPos.y);
+      this.heroLight = this.lights.addLight(
+        this.hero.x, this.hero.y,
+        400,       // radius — large enough to cover surrounding tiles
+        0xffffff,  // pure white restores original texture colors
+        2.5        // intensity above 1.0 to fight the dark ambient
+      );
+      this.heroLight.z = 100;
+      this.hero.setLighting(true);
       this.hero.setCollideWorldBounds(true);
 
       this.cameras.main.startFollow(this.hero, true, 0.08, 0.08);
@@ -515,6 +539,9 @@ export class GymScene extends Phaser.Scene {
       this.waveSystem = new WaveSystem(this.spawnManager, convertedRoomData);
       this.waveSystem.start(GYM_WAVES, this.spawnManager, convertedRoomData);
 
+      this.lights.enable();
+      this.lights.setAmbientColor(0x111111); // near-black, tweak to taste
+
       this.hideLoading();
       this.isRoomReady = true;
       this.isTransitioning = false;
@@ -556,18 +583,21 @@ export class GymScene extends Phaser.Scene {
     const x = this.hero.x + Phaser.Math.Between(-50, 50);
     const y = this.hero.y + Phaser.Math.Between(-50, 50);
 
+    let minion: any;
     if (type === 'warrior') {
-      const minion = new WarriorMinion(this, x, y, 'hero_idle');
-      this.enemies.add(minion);
-      this.spawnDustEffect(x, y);
+      minion = new WarriorMinion(this, x, y, 'hero_idle');
     } else if (type === 'lancer') {
-      const minion = new LancerMinion(this, x, y, 'lancer_idle_blue');
-      this.enemies.add(minion);
-      this.spawnDustEffect(x, y);
+      minion = new LancerMinion(this, x, y, 'lancer_idle_blue');
     } else if (type === 'archer') {
-      const minion = new ArcherMinion(this, x, y, 'archer_idle_blue');
+      minion = new ArcherMinion(this, x, y, 'archer_idle_blue');
+    }
+
+    if (minion) {
       this.enemies.add(minion);
       this.spawnDustEffect(x, y);
+
+      // Add light to minion
+      minion.light = this.lights.addPointLight(minion.x, minion.y, 0xffffff, 200, 0.05);
     } else {
       console.log(`Summon sequence for ${type} completed, but entity not yet implemented.`);
     }
@@ -589,6 +619,9 @@ export class GymScene extends Phaser.Scene {
     if (minion) {
       this.enemies.add(minion);
       this.spawnDustEffect(x, y);
+
+      // Add light to minion
+      minion.light = this.lights.addPointLight(minion.x, minion.y, 0xffffff, 200, 0.05);
     }
   }
 
@@ -628,6 +661,18 @@ export class GymScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (!this.isRoomReady || !this.hero || this.isGameOver || this.isTransitioning) return;
 
+    if (this.heroLight) {
+      this.heroLight.setPosition(this.hero.x, this.hero.y);
+    }
+
+    // Update minion lights
+    this.enemies.getChildren().forEach((entity: any) => {
+      if (entity.team === 'hero' && entity.light) {
+        entity.light.setPosition(entity.x, entity.y);
+      }
+    });
+
+
     RhythmSystem.getInstance().update(this.time.now / 1000);
 
     if (this.isHitStopped) return; // Skip update during hit-stop
@@ -644,17 +689,6 @@ export class GymScene extends Phaser.Scene {
     };
 
     this.hero.update(customCursors, time);
-
-    // Update lighting
-    const lightSources = [
-      { id: 'hero', x: this.hero.x, y: this.hero.y },
-      ...this.enemies.getChildren().filter((e: any) => e.team === 'hero').map((m: any, index: number) => ({
-        id: `minion-${index}`,
-        x: m.x,
-        y: m.y
-      }))
-    ];
-    this.lightingSystem.update(lightSources);
 
 
     // Handle Input: Arrow Keys trigger attacks AND track summoning sequences

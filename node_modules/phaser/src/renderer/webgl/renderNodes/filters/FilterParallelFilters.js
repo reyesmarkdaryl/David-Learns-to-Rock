@@ -75,7 +75,7 @@ var FilterParallelFilters = new Class({
 
         var bottomFilters = controller.bottom.getActive();
         var topFilters = controller.top.getActive();
-        var initialPadding = padding || controller.getPadding();
+        var initialPadding = padding || controller.getPaddingCeil();
 
         if (bottomFilters.length + topFilters.length > 0)
         {

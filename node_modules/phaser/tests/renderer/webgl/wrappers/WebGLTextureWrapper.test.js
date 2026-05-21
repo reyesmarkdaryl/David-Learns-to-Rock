@@ -36,6 +36,9 @@ function makeMockRenderer (glOverrides)
     var gl = makeMockGl(glOverrides);
 
     return {
+        config: {
+            antialias: true
+        },
         gl: gl,
         glTextureUnits: {
             bind: vi.fn()

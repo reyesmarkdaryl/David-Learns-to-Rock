@@ -18,6 +18,9 @@ function createMockRenderer (width, height)
     return {
         width: width !== undefined ? width : 800,
         height: height !== undefined ? height : 600,
+        config: {
+            antialias: true
+        },
         gl: {
             COLOR_BUFFER_BIT: 16384,
             DEPTH_BUFFER_BIT: 256,
@@ -29,7 +32,7 @@ function createMockRenderer (width, height)
             { enable: true, equation: 'ADD', func: [ 1, 1 ] },
             { enable: true, equation: 'MUL', func: [ 0, 1 ] }
         ],
-        createTextureFromSource: vi.fn(function () { return texture; }),
+        createTexture2D: vi.fn(function () { return texture; }),
         createFramebuffer: vi.fn(function () { return framebuffer; }),
         renderNodes: {
             finishBatch: vi.fn()
@@ -277,7 +280,7 @@ describe('DrawingContext', function ()
         {
             var ctx = new DrawingContext(renderer, { width: 50, height: 50 });
 
-            expect(renderer.createTextureFromSource).toHaveBeenCalled();
+            expect(renderer.createTexture2D).toHaveBeenCalled();
             expect(renderer.createFramebuffer).toHaveBeenCalled();
         });
     });

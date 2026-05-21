@@ -118,18 +118,31 @@ var ContainerWebGLRenderer = function (renderer, container, drawingContext, pare
         }
 
         //  Set parent values
-        child.setScrollFactor(childScrollFactorX * scrollFactorX, childScrollFactorY * scrollFactorY);
 
-        child.setAlpha(childAlphaTopLeft * alpha, childAlphaTopRight * alpha, childAlphaBottomLeft * alpha, childAlphaBottomRight * alpha);
+        if (child.setScrollFactor)
+        {
+            child.setScrollFactor(childScrollFactorX * scrollFactorX, childScrollFactorY * scrollFactorY);
+        }
+
+        if (child.setAlpha)
+        {
+            child.setAlpha(childAlphaTopLeft * alpha, childAlphaTopRight * alpha, childAlphaBottomLeft * alpha, childAlphaBottomRight * alpha);
+        }
 
         //  Render
         child.renderWebGLStep(renderer, child, currentContext, transformMatrix, undefined, children, i);
 
         //  Restore original values
 
-        child.setAlpha(childAlphaTopLeft, childAlphaTopRight, childAlphaBottomLeft, childAlphaBottomRight);
+        if (child.setAlpha)
+        {
+            child.setAlpha(childAlphaTopLeft, childAlphaTopRight, childAlphaBottomLeft, childAlphaBottomRight);
+        }
 
-        child.setScrollFactor(childScrollFactorX, childScrollFactorY);
+        if (child.setScrollFactor)
+        {
+            child.setScrollFactor(childScrollFactorX, childScrollFactorY);
+        }
     }
 
     // Release any remaining context.

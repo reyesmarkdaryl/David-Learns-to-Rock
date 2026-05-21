@@ -38,11 +38,7 @@ var RectangleWebGLRenderer = function (renderer, src, drawingContext, parentMatr
     var defaultRenderNodes = src.defaultRenderNodes;
     var submitter = customRenderNodes.Submitter || defaultRenderNodes.Submitter;
 
-    if (src.isRounded && src.isFilled)
-    {
-        FillPathWebGL(pipeline, result.calc, src, alpha, dx, dy);
-    }
-    else if (src.isFilled)
+    if (src.isFilled)
     {
         if (src.isRounded)
         {

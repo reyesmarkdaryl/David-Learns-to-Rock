@@ -15,6 +15,7 @@ var Rectangle = require('../../geom/rectangle/Rectangle');
 var Render = require('./ContainerRender');
 var Union = require('../../geom/rectangle/Union');
 var Vector2 = require('../../math/Vector2');
+var Layer = require('../layer/Layer');
 
 var tempTransformMatrix = new Components.TransformMatrix();
 
@@ -527,6 +528,8 @@ var Container = new Class({
      *
      * Each Game Object must be unique within the Container.
      *
+     * If you try to add a Layer, it will throw an error.
+     *
      * @method Phaser.GameObjects.Container#add
      * @since 3.4.0
      *
@@ -539,6 +542,21 @@ var Container = new Class({
      */
     add: function (child)
     {
+        if (Array.isArray(child))
+        {
+            child.forEach(function (value)
+            {
+                if (value && value instanceof Layer)
+                {
+                    throw new Error('Tried to add a Layer to a Container: this is not allowed');
+                }
+            });
+        }
+        else if (child && child instanceof Layer)
+        {
+            throw new Error('Tried to add a Layer to a Container: this is not allowed');
+        }
+
         ArrayUtils.Add(this.list, child, this.maxSize, this.addHandler, this);
 
         return this;

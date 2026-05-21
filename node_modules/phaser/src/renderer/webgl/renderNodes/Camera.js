@@ -238,7 +238,7 @@ var Camera = new Class({
                 currentContext = renderNode.run(filter, currentContext);
 
                 // Record padding.
-                padding = filter.getPadding();
+                padding = filter.getPaddingCeil();
                 coverageInternal.setTo(
                     coverageInternal.x + padding.x,
                     coverageInternal.y + padding.y,
@@ -261,7 +261,7 @@ var Camera = new Class({
 
                     if (!filter.active) { continue; }
 
-                    padding = filter.getPadding();
+                    padding = filter.getPaddingCeil();
 
                     // Increase coverage.
                     coverageExternal.setTo(

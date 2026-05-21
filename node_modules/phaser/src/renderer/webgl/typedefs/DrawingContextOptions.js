@@ -6,7 +6,7 @@
 
 /**
  * Configuration settings for a DrawingContext.
- * 
+ *
  * @typedef {object} Phaser.Types.Renderer.WebGL.RenderNodes.DrawingContextOptions
  * @since 4.0.0
  *
@@ -16,6 +16,7 @@
  * @property {number[]} [clearColor=[0, 0, 0, 0]] - The color to clear the framebuffer with. This is an array of 4 values: red, green, blue, alpha.
  * @property {boolean} [useCanvas=false] - Whether to use the canvas as the framebuffer.
  * @property {Phaser.Renderer.WebGL.DrawingContext} [copyFrom] - The DrawingContext to copy from.
+ * @property {boolean} [enableMipmap=false] - Whether to enable mipmaps on the framebuffer texture, if it exists.
  * @property {number} [width] - The width of the framebuffer, used if `copyFrom` and `useCanvas` are not set. Default is the renderer width.
  * @property {number} [height] - The height of the framebuffer, used if `copyFrom` and `useCanvas` are not set. Default is the renderer height.
  * @property {Phaser.Renderer.WebGL.DrawingContextPool} [pool] - The pool to return to when this context is no longer needed. Used only for temporary contexts.
