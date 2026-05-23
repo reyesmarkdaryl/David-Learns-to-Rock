@@ -53,8 +53,6 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     this.createHealthBar(scene);
-    // Start with idle instead of forcing run immediately
-    this.play('enemy_idle_anim');
   }
 
   getHitbox(): Phaser.Geom.Rectangle {
@@ -312,21 +310,42 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     return { x: pushX * this.speed * 0.2, y: pushY * this.speed * 0.2 };
   }
 
+  protected safePlay(key: string, ignoreIfPlaying: boolean = true) {
+    if (!this.anims || !this.anims.exists(key)) {
+      console.warn(`[Enemy] Attempted to play missing animation: ${key}. Current texture: ${this.texture?.key}`);
+      return;
+    }
+
+    // SMART TEXTURE SWAP:
+    // Animations in this project follow the pattern: [textureKey]_anim
+    // We must ensure the sprite is using the texture the animation was created from.
+    const textureKey = key.replace('_anim', '');
+    if (this.texture?.key !== textureKey) {
+      if (this.textures.get(textureKey)) {
+        this.setTexture(textureKey);
+      } else {
+        console.warn(`[Enemy] Animation ${key} requires texture ${textureKey}, but it is missing from cache.`);
+      }
+    }
+
+    this.play(key, ignoreIfPlaying);
+  }
+
   protected handleAnimation(state: 'idle' | 'run') {
     const animKey = state === 'idle' ? 'enemy_idle_anim' : 'enemy_run_anim';
     if (this.anims.currentAnim?.key !== animKey) {
-      this.play(animKey, true);
+      this.safePlay(animKey);
     }
   }
 
   protected performAttack(hero: Hero, time: number) {
     if (time < this.attackCooldown) {
-      this.play('enemy_idle_anim', true);
+      this.safePlay('enemy_idle_anim');
       return;
     }
 
     this.isAttacking = true;
-    this.play('enemy_attack_anim', true);
+    this.safePlay('enemy_attack_anim');
 
     // Damage the hero
     if (hero && hero.takeDamage) {

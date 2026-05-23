@@ -9,6 +9,8 @@ const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'playing-field-screen',
   backgroundColor: '#111',
+  pixelArt: true,
+  roundPixels: true,
   scale: {
     mode: Phaser.Scale.RESIZE,
     autoCenter: false,
@@ -36,7 +38,7 @@ export interface WaveDefinition {
 export const GYM_WAVES: WaveDefinition[] = [
   {
     waveNumber: 1,
-    enemies: [{ type: 'warrior', count: 8 }],
+    enemies: [{ type: 'harvester', count: 1 }],
     interval: 1000,
     cooldown: 3000
   },

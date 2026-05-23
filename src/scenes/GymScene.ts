@@ -1,4 +1,4 @@
-import * as Phaser from 'phaser';
+﻿import * as Phaser from 'phaser';
 import { Hero, HeroState } from '../entities/player/Hero';
 import { Enemy } from '../entities/enemies/Enemy';
 import { Lancer } from '../entities/enemies/Lancer';
@@ -177,6 +177,40 @@ export class GymScene extends Phaser.Scene {
 
     // Global assets used across all rooms
     this.load.image('glow', '/assets/sprites/glow.png');
+    
+    // Explicit load for new enemies to ensure stability
+    const enemySprites = [
+      { key: 'enemy_chain_idle', path: '/assets/sprites/Enemies/Chain/Idle.png', width: 192, height: 192 },
+      { key: 'enemy_chain_run', path: '/assets/sprites/Enemies/Chain/Run.png', width: 192, height: 192 },
+      { key: 'enemy_chain_attack', path: '/assets/sprites/Enemies/Chain/Attack.png', width: 192, height: 192 },
+      { key: 'enemy_chain_death', path: '/assets/sprites/Enemies/Chain/Death.png', width: 192, height: 192 },
+      { key: 'enemy_giant_idle', path: '/assets/sprites/Enemies/Giant/Idle.png', width: 76, height: 50 },
+      { key: 'enemy_giant_run', path: '/assets/sprites/Enemies/Giant/Run.png', width: 76, height: 50 },
+      { key: 'enemy_giant_attack', path: '/assets/sprites/Enemies/Giant/Attack.png', width: 76, height: 50 },
+      { key: 'enemy_giant_death', path: '/assets/sprites/Enemies/Giant/Death.png', width: 76, height: 50 },
+      { key: 'enemy_harvester_idle', path: '/assets/sprites/Enemies/Harvester/Idle.png', width: 105, height: 86 },
+      { key: 'enemy_harvester_run', path: '/assets/sprites/Enemies/Harvester/Run.png', width: 105, height: 86 },
+      { key: 'enemy_harvester_attack', path: '/assets/sprites/Enemies/Harvester/Attack.png', width: 105, height: 86 },
+      { key: 'enemy_harvester_death', path: '/assets/sprites/Enemies/Harvester/Death.png', width: 105, height: 86 },
+      { key: 'enemy_sword_idle', path: '/assets/sprites/Enemies/Sword/Idle.png', width: 128, height: 64 },
+      { key: 'enemy_sword_run', path: '/assets/sprites/Enemies/Sword/Run.png', width: 128, height: 64 },
+      { key: 'enemy_sword_attack', path: '/assets/sprites/Enemies/Sword/Attack.png', width: 128, height: 64 },
+      { key: 'enemy_sword_death', path: '/assets/sprites/Enemies/Sword/Death.png', width: 128, height: 64 },
+      { key: 'enemy_shadow_boss_idle', path: '/assets/sprites/Enemies/Shadow Boss/Idle.png', width: 87, height: 87 },
+      { key: 'enemy_shadow_boss_run', path: '/assets/sprites/Enemies/Shadow Boss/Run.png', width: 87, height: 87 },
+      { key: 'enemy_shadow_boss_attack1', path: '/assets/sprites/Enemies/Shadow Boss/Attack 1.png', width: 87, height: 87 },
+      { key: 'enemy_shadow_boss_attack2', path: '/assets/sprites/Enemies/Shadow Boss/Attack 2.png', width: 87, height: 87 },
+      { key: 'enemy_shadow_boss_death', path: '/assets/sprites/Enemies/Shadow Boss/new/death.png', width: 87, height: 87 },
+      { key: 'enemy_shadow_boss_hit', path: '/assets/sprites/Enemies/Shadow Boss/new/hit.png', width: 87, height: 87 },
+      { key: 'enemy_shadow_boss_attack3_pre', path: '/assets/sprites/Enemies/Shadow Boss/new/Pre-Attack 3.png', width: 87, height: 87 },
+      { key: 'enemy_shadow_boss_attack3_mid', path: '/assets/sprites/Enemies/Shadow Boss/new/mid-Attack 3.png', width: 87, height: 87 },
+      { key: 'enemy_shadow_boss_attack3_end', path: '/assets/sprites/Enemies/Shadow Boss/new/end-Attack 3.png', width: 87, height: 87 },
+    ];
+
+    enemySprites.forEach(s => {
+      console.log(`Preloading enemy sprite: ${s.key} from ${s.path}`);
+      this.load.spritesheet(s.key, s.path, { frameWidth: s.width, frameHeight: s.height});
+    });
   }
 
   create() {
@@ -207,8 +241,6 @@ export class GymScene extends Phaser.Scene {
       left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
       right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)
     };
-
-    this.setupAnimations();
 
     this.assetManager = new RoomAssetManager(this);
     this.summonSystem = new SummonSystem();
@@ -247,38 +279,34 @@ export class GymScene extends Phaser.Scene {
 
   private setupAnimations() {
     const createAnim = (key: string, framesKey: string, frameRate: number, repeat: number, startFrame = 0, endFrame = 0) => {
-      if (!this.anims.exists(key)) {
-        const texture = this.textures.get(framesKey);
-        if (!texture) {
-          console.warn(`[Animation] Texture ${framesKey} not found. Skipping ${key}.`);
-          return;
-        }
+      if (this.anims.exists(key)) return;
 
-        const frames = texture.frames;
-        const frameCount = frames ? Object.keys(frames).length : 0;
+      const texture = this.textures.get(framesKey);
+      if (!texture) {
+        console.error(`[Animation] Texture ${framesKey} NOT FOUND. Cannot create ${key}.`);
+        return;
+      }
 
-        if (frameCount === 0) {
-          console.warn(`[Animation] Texture ${framesKey} has no frames. Skipping ${key}.`);
-          return;
-        }
+      try {
+        const maxFrame = texture.frameCount > 0 ? texture.frameCount - 1 : 0;
+        const finalStart = Math.min(startFrame, maxFrame);
+        const finalEnd = endFrame > 0 ? Math.min(endFrame, maxFrame) : maxFrame;
 
-        const actualEndFrame = Math.min(endFrame, frameCount - 1);
-        const finalStartFrame = Math.min(startFrame, actualEndFrame);
-
-        console.log(`[Animation] ${key} -> Texture: ${framesKey}, Frames: ${finalStartFrame} to ${actualEndFrame} (Count: ${frameCount})`);
-
-        try {
-          this.anims.create({
-            key,
-            frames: this.anims.generateFrameNumbers(framesKey, finalStartFrame, actualEndFrame),
-            frameRate,
-            repeat
-          });
-        } catch (e) {
-          console.error(`[Animation] Failed to create animation ${key}:`, e);
-        }
+        this.anims.create({
+          key,
+          frames: this.anims.generateFrameNumbers(framesKey, finalStart, finalEnd),
+          frameRate,
+          repeat
+        });
+        console.log(`[Animation] Registered ${key} using ${framesKey} [${finalStart}-${finalEnd}] (Texture frames: ${texture.frameCount})`);
+      } catch (e) {
+        console.error(`[Animation] Failed to create ${key}:`, e);
       }
     };
+
+
+
+
 
     // Hero animations from asset index
     const shadowAnims = this.assetIndex?.sprites?.mappings?.hero?.animations;
@@ -296,6 +324,33 @@ export class GymScene extends Phaser.Scene {
     } else {
       console.error('Hero animations mapping not found in asset-index!', this.assetIndex);
     }
+
+    // 2. Enemy animations - FULLY Data Driven from index.json
+    const enemyTypes = this.assetIndex?.enemies?.types;
+    if (enemyTypes) {
+      Object.entries(enemyTypes).forEach(([typeKey, typeData]: [string, any]) => {
+        const animations = typeData.animations;
+        if (!animations) return;
+
+        Object.entries(animations).forEach(([animName, config]: [string, any]) => {
+          const textureKey = `enemy_${typeKey}_${animName.toLowerCase()}`;
+          const animationKey = `${textureKey}_anim`;
+
+          createAnim(
+            animationKey,
+            textureKey,
+            config.frameRate,
+            config.repeat,
+            config.startFrame ?? 0,
+            config.endFrame ?? 0
+          );
+        });
+      });
+    } else {
+      console.error('Enemy types not found in asset-index!');
+    }
+
+
 
     createAnim('dust_anim', 'dust_particle', 12, 0);
     createAnim('enemy_run_anim', 'enemy_run', 10, -1);
@@ -462,6 +517,8 @@ export class GymScene extends Phaser.Scene {
 
       await this.assetManager.prepareRoom(roomData);
 
+      this.setupAnimations();
+
       // Build room
       const roomBuild = RoomBuilder.build(this, roomData);
       this.walls = roomBuild.walls;
@@ -491,7 +548,7 @@ export class GymScene extends Phaser.Scene {
       this.hero = new Hero(this, spawnPos.x, spawnPos.y);
       this.heroLight = this.lights.addLight(
         this.hero.x, this.hero.y,
-        400,       // radius — large enough to cover surrounding tiles
+        200,       // radius â€” large enough to cover surrounding tiles
         0xffffff,  // pure white restores original texture colors
         2.5        // intensity above 1.0 to fight the dark ambient
       );
@@ -500,6 +557,7 @@ export class GymScene extends Phaser.Scene {
       this.hero.setCollideWorldBounds(true);
 
       this.cameras.main.startFollow(this.hero, true, 0.08, 0.08);
+      this.cameras.main.setZoom(1.5);
 
       // Restore persisting minions
       const persisted = MinionPersistenceManager.getInstance().getPersistedMinions();

@@ -3,6 +3,11 @@ import { RoomData, SpawnData } from '../room/RoomData';
 import { Enemy } from '../entities/enemies/Enemy';
 import { Lancer } from '../entities/enemies/Lancer';
 import { Archer } from '../entities/enemies/Archer';
+import { ChainEnemy } from '../entities/enemies/ChainEnemy';
+import { GiantEnemy } from '../entities/enemies/GiantEnemy';
+import { HarvesterEnemy } from '../entities/enemies/HarvesterEnemy';
+import { SwordEnemy } from '../entities/enemies/SwordEnemy';
+import { ShadowBossEnemy } from '../entities/enemies/ShadowBossEnemy';
 
 export class SpawnManager {
   constructor(
@@ -13,7 +18,7 @@ export class SpawnManager {
   /**
    * Spawns enemies based on the RoomData spawn points.
    */
-  public spawnRoomEnemies(roomData: RoomData, enemyType: 'warrior' | 'lancer' | 'archer', count: number = 1) {
+  public spawnRoomEnemies(roomData: RoomData, enemyType: 'warrior' | 'lancer' | 'archer' | 'chain' | 'giant' | 'harvester' | 'sword' | 'shadow_boss', count: number = 1) {
     if (roomData.enemySpawns.length === 0) return;
 
     for (let i = 0; i < count; i++) {
@@ -31,6 +36,21 @@ export class SpawnManager {
           break;
         case 'archer':
           enemy = new Archer(this.scene, x, y);
+          break;
+        case 'chain':
+          enemy = new ChainEnemy(this.scene, x, y);
+          break;
+        case 'giant':
+          enemy = new GiantEnemy(this.scene, x, y);
+          break;
+        case 'harvester':
+          enemy = new HarvesterEnemy(this.scene, x, y);
+          break;
+        case 'sword':
+          enemy = new SwordEnemy(this.scene, x, y);
+          break;
+        case 'shadow_boss':
+          enemy = new ShadowBossEnemy(this.scene, x, y);
           break;
         default:
           enemy = new Enemy(this.scene, x, y);

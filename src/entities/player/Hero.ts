@@ -42,12 +42,12 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     this.setCollideWorldBounds(true);
 
     // Physics body
-    this.body.setCircle(16, 104, 48);
+    this.body.setCircle(32, 90, 32);
 
     this.setDepth(10);
 
     // scale
-    this.setDisplaySize(480, 256);
+    this.setDisplaySize(192, 128);
 
     if (this.anims && this.anims.exists('hero_idle_anim')) {
       this.play('hero_idle_anim');

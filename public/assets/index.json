@@ -121,52 +121,52 @@
     }
   },
   "enemies": {
-    "basePath": "public/assets/sprites/Enemies/",
+    "basePath": "/assets/sprites/Enemies/",
     "types": {
       "chain": {
         "path": "Chain/",
         "animations": {
-          "idle": { "file": "Idle.png", "frameRate": 8, "repeat": -1, "startFrame": 0, "endFrame": 0 },
-          "run": { "file": "Run.png", "frameRate": 10, "repeat": -1, "startFrame": 0, "endFrame": 0 },
-          "attack": { "file": "Attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 },
-          "death": { "file": "Death.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 }
+          "idle": { "file": "Idle.png", "frameRate": 8, "repeat": -1, "startFrame": 0, "endFrame": 4 },
+          "run": { "file": "Run.png", "frameRate": 10, "repeat": -1, "startFrame": 0, "endFrame": 7 },
+          "attack": { "file": "Attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
+          "death": { "file": "Death.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 4 }
         }
       },
       "giant": {
         "path": "Giant/",
         "animations": {
-          "idle": { "file": "Idle.png", "frameRate": 8, "repeat": -1, "startFrame": 0, "endFrame": 0 },
-          "run": { "file": "Run.png", "frameRate": 10, "repeat": -1, "startFrame": 0, "endFrame": 0 },
-          "attack": { "file": "Attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 },
-          "death": { "file": "Death.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 }
+          "idle": { "file": "Idle.png", "frameRate": 8, "repeat": -1, "startFrame": 0, "endFrame": 3 },
+          "run": { "file": "Run.png", "frameRate": 10, "repeat": -1, "startFrame": 0, "endFrame": 7 },
+          "attack": { "file": "Attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 15 },
+          "death": { "file": "Death.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 4 }
         }
       },
       "harvester": {
         "path": "Harvester/",
         "animations": {
-          "idle": { "file": "Idle.png", "frameRate": 8, "repeat": -1, "startFrame": 0, "endFrame": 0 },
-          "run": { "file": "Run.png", "frameRate": 10, "repeat": -1, "startFrame": 0, "endFrame": 0 },
-          "attack": { "file": "Attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 },
-          "death": { "file": "Death.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 }
+          "idle": { "file": "Idle.png", "frameRate": 8, "repeat": -1, "startFrame": 0, "endFrame": 13 },
+          "run": { "file": "Run.png", "frameRate": 8, "repeat": -1, "startFrame": 0, "endFrame": 12 },
+          "attack": { "file": "Attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 6 },
+          "death": { "file": "Death.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 18 }
         }
       },
       "sword": {
         "path": "Sword/",
         "animations": {
-          "idle": { "file": "Idle.png", "frameRate": 8, "repeat": -1, "startFrame": 0, "endFrame": 0 },
-          "run": { "file": "Run.png", "frameRate": 10, "repeat": -1, "startFrame": 0, "endFrame": 0 },
-          "attack": { "file": "Attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 },
-          "death": { "file": "Death.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 }
+          "idle": { "file": "Idle.png", "frameRate": 6, "repeat": -1, "startFrame": 0, "endFrame": 6 },
+          "run": { "file": "Run.png", "frameRate": 6, "repeat": -1, "startFrame": 0, "endFrame": 3 },
+          "attack": { "file": "Attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 7 },
+          "death": { "file": "Death.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 10 }
         }
       },
       "shadow_boss": {
         "path": "Shadow Boss/",
         "animations": {
-          "idle": { "file": "Idle.png", "frameRate": 8, "repeat": -1, "startFrame": 0, "endFrame": 0 },
-          "run": { "file": "Run.png", "frameRate": 10, "repeat": -1, "startFrame": 0, "endFrame": 0 },
-          "attack1": { "file": "Attack 1.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 },
-          "attack2": { "file": "Attack 2.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 },
-          "death": { "file": "new/death.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 },
+          "idle": { "file": "Idle.png", "frameRate": 8, "repeat": -1, "startFrame": 0, "endFrame": 13 },
+          "run": { "file": "Run.png", "frameRate": 10, "repeat": -1, "startFrame": 0, "endFrame": 13 },
+          "attack1": { "file": "Attack 1.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 5 },
+          "attack2": { "file": "Attack 1.png", "frameRate": 12, "repeat": 0, "startFrame": 5, "endFrame": 9 },
+          "death": { "file": "new/death.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 12 },
           "hit": { "file": "new/hit.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 },
           "attack3": {
             "frames": ["new/Pre-Attack 3.png", "new/mid-Attack 3.png", "new/end-Attack 3.png"],
