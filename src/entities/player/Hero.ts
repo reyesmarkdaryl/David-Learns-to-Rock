@@ -47,7 +47,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(10);
 
     // scale
-    this.setDisplaySize(192, 128);
+    this.setDisplaySize(240, 128);
 
     if (this.anims && this.anims.exists('hero_idle_anim')) {
       this.play('hero_idle_anim');
@@ -159,9 +159,6 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
         this.attackComboIndex === 0
           ? 'hero_attack1_anim'
           : 'hero_attack2_anim';
-
-      if (direction === 'LEFT') this.setFlipX(true);
-      if (direction === 'RIGHT') this.setFlipX(false);
     }
 
     this.play(attackAnim);

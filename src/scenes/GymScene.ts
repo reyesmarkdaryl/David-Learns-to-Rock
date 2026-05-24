@@ -177,7 +177,11 @@ export class GymScene extends Phaser.Scene {
 
     // Global assets used across all rooms
     this.load.image('glow', '/assets/sprites/glow.png');
-    
+    this.load.spritesheet('special_attack_holy', '/assets/sfx/attacks/HolySlash_C_spritesheet.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+    });
+
     // Explicit load for new enemies to ensure stability
     const enemySprites = [
       { key: 'enemy_chain_idle', path: '/assets/sprites/Enemies/Chain/Idle.png', width: 192, height: 192 },
@@ -377,7 +381,10 @@ export class GymScene extends Phaser.Scene {
     lancerAttackDirs.forEach(dir => {
       createAnim(`lancer_attack_${dir}_anim`, `lancer_attack_${dir}_blue`, 12, 0);
     });
+
+    createAnim('special_attack_anim', 'special_attack_holy', 6, 0);
   }
+
 
   
 
@@ -557,7 +564,7 @@ export class GymScene extends Phaser.Scene {
       this.hero.setCollideWorldBounds(true);
 
       this.cameras.main.startFollow(this.hero, true, 0.08, 0.08);
-      this.cameras.main.setZoom(1.5);
+      this.cameras.main.setZoom(2);
 
       // Restore persisting minions
       const persisted = MinionPersistenceManager.getInstance().getPersistedMinions();
@@ -615,10 +622,44 @@ export class GymScene extends Phaser.Scene {
     const completed = this.summonSystem.checkInput(key);
     for (const type of completed) {
       this.spawnFriendlyMinion(type);
+      this.performSpecialAttack();
 
       gameEvents.emit('summon-complete', { name: type });
     }
     gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
+  }
+
+  private performSpecialAttack() {
+    const facing = (this.hero as any).facingDirection;
+    const offset = facing === 0 ? 80 : -80;
+    const effect = this.add.sprite(this.hero.x + offset, this.hero.y -20, 'special_attack_holy');
+    effect.setOrigin(0.5, 0.5);
+    effect.setScale(2); // Scale up since the asset is only 64px
+    effect.setDepth(100);
+    effect.setFlipX(facing === 1);
+    effect.play('special_attack_anim');
+
+    // Damage logic: Massive AoE damage around the hero
+    const attackRadius = 200;
+    const damage = 100; // Massive damage
+
+    this.enemies.getChildren().forEach((enemy: any) => {
+      if (enemy.team === 'enemy') {
+        const dist = Phaser.Math.Distance.Between(this.hero.x, this.hero.y, enemy.x, enemy.y);
+        if (dist <= attackRadius) {
+          enemy.takeDamage(damage);
+        }
+      }
+    });
+
+    // Juice
+    this.applyHitStop(100);
+    this.cameras.main.shake(200, 0.01);
+
+    // Cleanup
+    this.time.delayedCall(2000, () => {
+      effect.destroy();
+    });
   }
 
   private findNearestEnemy(minion: Enemy): any {

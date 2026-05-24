@@ -51,6 +51,8 @@ Implementing a dynamic Enemy Wave System to replace static room spawning, allowi
 - [x] Bug Fix: Fix animation frame range crashes in `GymScene` by using explicit frames from `index.json`
 - [x] Bug Fix: Correct asset naming typo for "special dash" spritesheet
 - [x] Experimentation: Tested special dash animation with physics offsets (reverted to simple dash for stability)
+- [x] Gameplay: Added new enemy types to expand combat variety
+- [x] Visuals: Implemented a dynamic lighting system using Phaser 4
 
 ### 🚧 In Progress
 - [x] **Enemy Wave System:** implementing `WaveSystem.ts` and integrating into `GymScene` to replace static spawning.

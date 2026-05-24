@@ -176,6 +176,14 @@
         }
       }
     }
+  },
+  "special_attacks": {
+    "basePath": "public/assets/sfx/attacks/",
+    "files": [
+      "Holy Cross.png",
+      "HolySlash_A_spritesheet.png",
+      "HolySlash_B_spritesheet.png",
+      "HolySlash_C_spritesheet.png"
+    ]
   }
-
 }
