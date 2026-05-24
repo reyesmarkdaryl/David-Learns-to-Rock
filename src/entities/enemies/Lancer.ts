@@ -4,7 +4,7 @@ import { Enemy } from './Enemy';
 export class Lancer extends Enemy {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, {
-      hp: 70,
+      hp: 140,
       speed: 45,
       damage: 15,
       attackRange: 70,

@@ -29,7 +29,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   private aggroRange: number = 300;
   private loseAggroRange: number = 650; // optional (if you want them to calm down)
 
-  constructor(scene: Phaser.Scene, x: number, y: number, stats: any = { hp: 50, speed: 100, damage: 10, attackRange: 60, behavior: 'persistent' }, team: 'hero' | 'enemy' = 'enemy') {
+  constructor(scene: Phaser.Scene, x: number, y: number, stats: any = { hp: 100, speed: 100, damage: 10, attackRange: 60, behavior: 'persistent' }, team: 'hero' | 'enemy' = 'enemy') {
     super(scene, x, y, 'enemy_idle');
     this.hp = stats.hp;
     this.maxHp = stats.hp;

@@ -5,7 +5,7 @@ import { Hero } from '../player/Hero';
 export class ChainEnemy extends Enemy {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, {
-      hp: 30,
+      hp: 60,
       speed: 140,
       damage: 5,
       attackRange: 50,

@@ -5,7 +5,7 @@ import { Hero } from '../player/Hero';
 export class HarvesterEnemy extends Enemy {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, {
-      hp: 70,
+      hp: 140,
       speed: 100,
       damage: 12,
       attackRange: 60,

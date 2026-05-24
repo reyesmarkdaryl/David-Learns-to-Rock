@@ -5,7 +5,7 @@ import { Hero } from '../player/Hero';
 export class GiantEnemy extends Enemy {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, {
-      hp: 150,
+      hp: 300,
       speed: 60,
       damage: 20,
       attackRange: 80,

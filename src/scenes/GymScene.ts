@@ -12,6 +12,7 @@ import { RoomDataConverter } from '../editor/RoomDataConverter';
 import { DEBUG_MODE, GYM_WAVES } from '../config';
 import { SummonSystem } from '../systems/SummonSystem';
 import { RhythmSystem } from '../systems/RhythmSystem';
+import SpecialAttackSystem from '../systems/SpecialAttackSystem';
 import { gameEvents } from '../systems/GameEvents';
 import RhythmAudioSystem from '../systems/RhythmAudioSystem';
 import { RoomRegistry } from '../room/RoomRegistry';
@@ -181,6 +182,18 @@ export class GymScene extends Phaser.Scene {
       frameWidth: 64,
       frameHeight: 64,
     });
+    this.load.spritesheet('special_attack_slash', '/assets/sfx/attacks/HolySlash_A_spritesheet.png', {
+      frameWidth: 64,
+      frameHeight: 64,
+    });
+    this.load.spritesheet('special_attack_nova', '/assets/sfx/attacks/Holy Nova.png', {
+      frameWidth: 128,
+      frameHeight: 64,
+    });
+    this.load.spritesheet('special_attack_bolt', '/assets/sfx/attacks/Holy Bolt.png', {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
 
     // Explicit load for new enemies to ensure stability
     const enemySprites = [
@@ -248,16 +261,8 @@ export class GymScene extends Phaser.Scene {
 
     this.assetManager = new RoomAssetManager(this);
     this.summonSystem = new SummonSystem();
-    RhythmSystem.getInstance().start();
     MusicManager.setScene(this);
     gameEvents.emit('summon-state-update', this.summonSystem.getTracksState());
-
-    // Initialize the auditory beat cue
-    RhythmAudioSystem.init().catch(err => console.error('RhythmAudioSystem failed:', err));
-
-    gameEvents.on('rhythm-hit', ({ quality }) => {
-      this.spawnRhythmFeedback(quality);
-    });
 
 
     if (DEBUG_MODE) {
@@ -383,6 +388,9 @@ export class GymScene extends Phaser.Scene {
     });
 
     createAnim('special_attack_anim', 'special_attack_holy', 6, 0);
+    createAnim('special_attack_slash_anim', 'special_attack_slash', 6, 0);
+    createAnim('special_attack_nova_anim', 'special_attack_nova', 6, 0);
+    createAnim('special_attack_bolt_anim', 'special_attack_bolt', 6, 0);
   }
 
 
@@ -621,8 +629,8 @@ export class GymScene extends Phaser.Scene {
   private async handleSummon(key: string) {
     const completed = this.summonSystem.checkInput(key);
     for (const type of completed) {
-      this.spawnFriendlyMinion(type);
-      this.performSpecialAttack();
+      //this.spawnFriendlyMinion(type);
+      SpecialAttackSystem.executeAttack(this, this.hero, this.enemies, type);
 
       gameEvents.emit('summon-complete', { name: type });
     }
@@ -654,10 +662,10 @@ export class GymScene extends Phaser.Scene {
 
     // Juice
     this.applyHitStop(100);
-    this.cameras.main.shake(200, 0.01);
+    this.cameras.main.shake(100, 0.01);
 
     // Cleanup
-    this.time.delayedCall(2000, () => {
+    this.time.delayedCall(1000, () => {
       effect.destroy();
     });
   }
@@ -724,32 +732,6 @@ export class GymScene extends Phaser.Scene {
     }
   }
 
-  private spawnRhythmFeedback(quality: string) {
-    const colors = {
-      perfect: 0x7de84a,
-      good: 0xe8c46a,
-      okay: 0xe8734a,
-      miss: 0xe84a4a,
-    };
-
-    const text = this.add.text(this.hero.x, this.hero.y - 60, quality.toUpperCase(), {
-      fontSize: '20px',
-      fontFamily: 'Press Start 2P',
-      color: colors[quality] || 0xffffff,
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(0.5).setDepth(1000);
-
-    this.tweens.add({
-      targets: text,
-      y: text.y - 40,
-      alpha: 0,
-      duration: 800,
-      ease: 'Power2',
-      onComplete: () => text.destroy(),
-    });
-  }
-
   private applyHitStop(duration: number) {
     this.isHitStopped = true;
     this.time.delayedCall(duration, () => {
@@ -772,8 +754,6 @@ export class GymScene extends Phaser.Scene {
     });
 
 
-    RhythmSystem.getInstance().update(this.time.now / 1000);
-
     if (this.isHitStopped) return; // Skip update during hit-stop
 
     this.waveSystem.update(time, delta, this.enemies.getChildren().filter((e: any) => e.team === 'enemy').length);
@@ -794,15 +774,10 @@ export class GymScene extends Phaser.Scene {
     const keys = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
     keys.forEach(key => {
       if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[key]))) {
-        const quality = RhythmSystem.getInstance().evaluateHit();
-
         // Hero attack happens regardless of rhythm (or you could gate this too)
         this.hero.performAttack(time, key);
 
-        // Rhythm Gate: Only register summon progress if not a miss
-        if (quality !== 'miss') {
-          this.handleSummon(key);
-        }
+        this.handleSummon(key);
       }
     });
 

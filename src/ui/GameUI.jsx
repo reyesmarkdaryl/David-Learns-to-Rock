@@ -563,7 +563,6 @@ function PlayingField({ summonLog }) {
           ARROWS SUMMON
         </span>
       </div>
-      <RhythmBar />
     </div>
   );
 }

@@ -7,7 +7,7 @@ export class ShadowBossEnemy extends Enemy {
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, {
-      hp: 1000,
+      hp: 2000,
       speed: 80,
       damage: 30,
       attackRange: 120,

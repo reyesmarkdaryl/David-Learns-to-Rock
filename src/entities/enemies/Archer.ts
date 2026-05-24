@@ -7,7 +7,7 @@ export class Archer extends Enemy {
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, {
-      hp: 40,
+      hp: 80,
       speed: 50,
       damage: 12,
       attackRange: 300, // Ranged attack

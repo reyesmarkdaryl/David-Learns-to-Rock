@@ -53,6 +53,7 @@ Implementing a dynamic Enemy Wave System to replace static room spawning, allowi
 - [x] Experimentation: Tested special dash animation with physics offsets (reverted to simple dash for stability)
 - [x] Gameplay: Added new enemy types to expand combat variety
 - [x] Visuals: Implemented a dynamic lighting system using Phaser 4
+- [x] Gameplay: Integrated special attack animations for the Hero
 
 ### 🚧 In Progress
 - [x] **Enemy Wave System:** implementing `WaveSystem.ts` and integrating into `GymScene` to replace static spawning.
@@ -60,6 +61,9 @@ Implementing a dynamic Enemy Wave System to replace static room spawning, allowi
 
 ### 📅 Next Steps
 - [x] **Wave System Integration:** Finalize `GymScene` refactor to use `WaveSystem` for spawning and room completion.
+- [x] **Combat Expansion:** Implement `SpecialAttackSystem` with Slash, Nova, and Bolt attacks triggered by minion summons.
+- [x] **Rhythm System Removal:** Disable rhythm requirements and metronome for action-focused gameplay.
+- [x] **Balance:** Increase all enemy health by 2x for increased challenge.
 - [ ] **UI Feedback:** Hook `wave-changed` event to the HUD.
 - [ ] **Gameplay Loop:** Continue integrating "Doors" and "Enemy Spawns" into the active gameplay wave system.
 - [ ] **Music System: Final Polish & Dynamic Score:**
@@ -82,3 +86,5 @@ Combine the best of all three:
 - **World-Space Feedback:** Labels pop up over the Hero.
 - **Rhythm Aura:** A central visual pulse for timing reference.
 - **Minimalist Bar:** Keep the `RhythmBar` for high-level stats (Combo, Multiplier, Accuracy) but remove the primary timing focus.
+
+in the future, i will be adding several kinds of special attacks that will be triggered based on the combination that    was finished. Finishing the Warrior arrow combination  triggers a slash special attack, Finishing the Lancer           combination triggers an AOE around the Hero, Finishing the Archer arrow combination triggers a ranged special attack.    It will be boring to only have 3 special attacks so I will also have to prepare upgraded versions of those special     attacks that are earned as an option when the Round ends. The inspiration for the panel that appears after every        round is already prepared, its at gdd/dark_fantasy_powerup_panel.html but first i want to make sure that each special    attack is working. can we create a system for this? HolySlash_A_spritesheet.png for the slash, Holy Nova.png for the    AOE, Holy Bolt.png for range attack. 
