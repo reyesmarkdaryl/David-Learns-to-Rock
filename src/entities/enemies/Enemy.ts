@@ -1,5 +1,7 @@
 import * as Phaser from 'phaser';
 import { Hero } from '../player/Hero';
+import { EnemyAtlas } from '../../systems/EnemyAtlas';
+import { EnemyConfig } from '../../systems/EnemyAtlas';
 
 export type EnemyAIBehavior = 'persistent' | 'limited';
 
@@ -16,6 +18,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   protected attackCooldown: number = 0;
   protected readonly ATTACK_COOLDOWN_MS = 1000;
   protected isAttacking: boolean = false;
+  protected attackWindupMs: number = 400; // Default windup time before damage is dealt
+  protected attackTimer?: Phaser.Time.TimerEvent;
 
   private __wanderTimer: number = 0;
   private __wanderAngle: number = 0;
@@ -29,36 +33,83 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   private aggroRange: number = 300;
   private loseAggroRange: number = 650; // optional (if you want them to calm down)
 
-  constructor(scene: Phaser.Scene, x: number, y: number, stats: any = { hp: 100, speed: 100, damage: 10, attackRange: 60, behavior: 'persistent' }, team: 'hero' | 'enemy' = 'enemy') {
-    super(scene, x, y, 'enemy_idle');
-    this.hp = stats.hp;
-    this.maxHp = stats.hp;
-    this.speed = stats.speed;
-    this.damage = stats.damage;
-    this.attackRange = stats.attackRange;
-    this.behavior = stats.behavior || 'limited';
+  private lastKnownConfigKey: string = '';
+  public bodyOffset: Phaser.Math.Vector2 = new Phaser.Math.Vector2(0, 0);
+  public bodyRadius: number = 0;
+  protected baseTextureKey: string = '';
+
+
+  constructor(scene: Phaser.Scene, x: number, y: number, configKey: string, team: 'hero' | 'enemy' = 'enemy') {
+    const atlas = EnemyAtlas.getInstance(scene);
+    const config = atlas.getConfig(configKey);
+
+    if (!config) {
+      throw new Error(`[Enemy] Configuration not found for key: ${configKey}`);
+    }
+
+    super(scene, x, y, `${config.visuals.textureKey}_idle`);
+
+    this.lastKnownConfigKey = configKey;
+
     this.team = team;
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
+    this.applyConfig(config);
+
     this.setCollideWorldBounds(true);
     this.setLighting(true);
-    this.body.setCircle(32, 64, 64);
+
+    this.createHealthBar(scene);
+
+    // Listen for atlas updates to provide real-time feedback in editor
+    scene.events.on('enemy-atlas-updated', () => {
+      const updatedConfig = atlas.getConfig(this.lastKnownConfigKey);
+      if (updatedConfig) {
+        this.applyConfig(updatedConfig);
+      }
+    });
+  }
+
+  public updateFromConfig(config: EnemyConfig) {
+    this.applyConfig(config);
+  }
+
+  private applyConfig(config: EnemyConfig) {
+    const { stats, physics, visuals } = config;
+
+    this.baseTextureKey = visuals.textureKey;
+    this.hp = stats.hp;
+    this.maxHp = stats.hp;
+    this.speed = stats.speed;
+    this.damage = stats.damage;
+    this.attackRange = stats.attackRange;
+    this.behavior = stats.behavior;
+    this.attackWindupMs = stats.attackWindupMs;
+    this.aggroRange = stats.aggroRange;
+    this.loseAggroRange = stats.loseAggroRange;
+
+    this.body.setCircle(physics.bodyCircle.radius, physics.bodyCircle.x, physics.bodyCircle.y);
+    this.bodyRadius = physics.bodyCircle.radius;
+    this.bodyOffset.set(physics.bodyCircle.x, physics.bodyCircle.y);
 
     if (stats.displaySize) {
       this.setDisplaySize(stats.displaySize.width, stats.displaySize.height);
-    } else {
-      this.setDisplaySize(192, 192);
     }
-
-    this.createHealthBar(scene);
   }
 
   getHitbox(): Phaser.Geom.Rectangle {
-    const width = this.width * 0.25;
-    const height = this.height * 0.25;
-    return new Phaser.Geom.Rectangle(this.x - width / 2, this.y - height / 2, width, height);
+    const atlas = EnemyAtlas.getInstance(this.scene as Phaser.Scene);
+    const config = atlas.getConfig(this.lastKnownConfigKey);
+    const hitbox = config?.physics.hitbox || { x: 0, y: 0, w: 10, h: 10 };
+
+    return new Phaser.Geom.Rectangle(
+      this.x + hitbox.x,
+      this.y + hitbox.y,
+      hitbox.w,
+      hitbox.h
+    );
   }
 
   private createHealthBar(scene: Phaser.Scene) {
@@ -113,12 +164,6 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     if (this.isAttacking) {
       this.setVelocity(0);
-
-      if (!this.anims.isPlaying) {
-        this.isAttacking = false;
-        this.attackCooldown = time + 500;
-      }
-
       this.updateHealthBar();
       return;
     }
@@ -165,7 +210,6 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       // === LKL & Extrapolation Logic ===
       if (this.isTrackingLKL) {
         // Predict a point slightly ahead of the last known position based on velocity
-        // Prediction factor (0.5s) - adjust for "smarter" enemies
         targetX = this.lastKnownPosition.x + this.lastKnownVelocity.x * 0.5;
         targetY = this.lastKnownPosition.y + this.lastKnownVelocity.y * 0.5;
 
@@ -310,49 +354,72 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     return { x: pushX * this.speed * 0.2, y: pushY * this.speed * 0.2 };
   }
 
-  protected safePlay(key: string, ignoreIfPlaying: boolean = true) {
-    if (!this.anims || !this.anims.exists(key)) {
-      console.warn(`[Enemy] Attempted to play missing animation: ${key}. Current texture: ${this.texture?.key}`);
-      return;
+  public safePlay(key: string, ignoreIfPlaying: boolean = true) {
+    // Use the key directly as the texture key if it ends with _anim
+    const targetTextureKey = key.replace('_anim', '');
+
+    if (this.texture?.key !== targetTextureKey) {
+      if (this.scene.textures.get(targetTextureKey)) {
+        this.setTexture(targetTextureKey);
+      } else {
+        console.warn(`[Enemy] Animation ${key} requires texture ${targetTextureKey}, but it is missing from cache.`);
+      }
     }
 
-    // SMART TEXTURE SWAP:
-    // Animations in this project follow the pattern: [textureKey]_anim
-    // We must ensure the sprite is using the texture the animation was created from.
-    const textureKey = key.replace('_anim', '');
-    if (this.texture?.key !== textureKey) {
-      if (this.textures.get(textureKey)) {
-        this.setTexture(textureKey);
+    if (!this.anims || !this.anims.exists(key)) {
+      // Fallback: try generic enemy animation if type-specific one is missing
+      const fallbackKey = key.includes('_') ? 'enemy_idle_anim' : key;
+      if (this.anims && this.anims.exists(fallbackKey)) {
+        this.play(fallbackKey, ignoreIfPlaying);
       } else {
-        console.warn(`[Enemy] Animation ${key} requires texture ${textureKey}, but it is missing from cache.`);
+        // If everything fails, we still call play() because the user reported
+        // that .play() works even when exists(key) says it doesn't.
+        this.play(key, ignoreIfPlaying);
       }
+      return;
     }
 
     this.play(key, ignoreIfPlaying);
   }
 
   protected handleAnimation(state: 'idle' | 'run') {
-    const animKey = state === 'idle' ? 'enemy_idle_anim' : 'enemy_run_anim';
+    const animKey = `${this.baseTextureKey}_${state}_anim`;
     if (this.anims.currentAnim?.key !== animKey) {
       this.safePlay(animKey);
     }
   }
 
+  protected getAttackAnimation(): string {
+    return `${this.baseTextureKey}_attack_anim`;
+  }
+
   protected performAttack(hero: Hero, time: number) {
     if (time < this.attackCooldown) {
-      this.safePlay('enemy_idle_anim');
+      this.handleAnimation('idle');
       return;
     }
 
+    console.log(`[Combat Debug] performAttack called. Target: ${hero.constructor.name}. Setting isAttacking = true.`);
     this.isAttacking = true;
-    this.safePlay('enemy_attack_anim');
 
-    // Damage the hero
-    if (hero && hero.takeDamage) {
-      hero.takeDamage(this.damage);
-    }
+    const animKey = this.getAttackAnimation();
+    this.play(animKey, true);
 
-    this.attackCooldown = time + this.ATTACK_COOLDOWN_MS;
+    this.attackTimer = this.scene.time.delayedCall(this.attackWindupMs, () => {
+      const dist = Phaser.Math.Distance.Between(this.x, this.y, hero.x, hero.y);
+
+      if (dist <= this.attackRange * 1.2) {
+        if (hero.takeDamage) {
+          hero.takeDamage(this.damage);
+          console.log(`[Combat Debug] Timer Attack Hit! Damage: ${this.damage}`);
+        }
+      } else {
+        console.log(`[Combat Debug] Timer Attack Missed: ${Math.round(dist)}px`);
+      }
+
+      this.isAttacking = false;
+      this.attackCooldown = time + this.ATTACK_COOLDOWN_MS;
+    });
   }
 
   private updateHealthBar() {

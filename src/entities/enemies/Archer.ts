@@ -6,18 +6,8 @@ export class Archer extends Enemy {
   private projectileGroup!: Phaser.Physics.Arcade.Group;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, {
-      hp: 80,
-      speed: 50,
-      damage: 12,
-      attackRange: 300, // Ranged attack
-      displaySize: { width: 192, height: 192 }
-    });
-    this.setTexture('archer_idle');
-    this.body.setCircle(32, 64, 64);
+    super(scene, x, y, 'archer');
 
-    // We need to access the projectile group from the scene
-    // In GymScene, we should define this group. For now, we'll assume it's available on the scene
     const gameScene = scene as any;
     if (gameScene.projectiles) {
         this.projectileGroup = gameScene.projectiles;
@@ -27,14 +17,11 @@ export class Archer extends Enemy {
   override update(target: any, time: number, flowField?: any): void {
     const dist = Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y);
 
-    // Archer behavior: Keep distance from target
     if (dist < this.attackRange * 0.5) {
-      // Move away from target if too close
       const angle = Phaser.Math.Angle.Between(target.x, target.y, this.x, this.y);
       this.setVelocity(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
       this.handleAnimation('run');
     } else {
-      // Use standard Enemy pathfinding (including FlowField, Wall Avoidance, and Attack logic)
       super.update(target, time, flowField);
     }
 
@@ -59,7 +46,7 @@ export class Archer extends Enemy {
 
   override performAttack(target: any, time: number) {
       if (!this.hasLineOfSight(target)) {                                                                                       return;
-      }                                                                                                                 
+      }
       if (time < this.attackCooldown) {
         return;
       }
@@ -67,8 +54,6 @@ export class Archer extends Enemy {
       this.isAttacking = true;
       this.play('enemy_archer_attack_anim', true);
 
-      // Adjust delay to match the "full draw" of the bow
-      // At 8fps, 8 frames take 1s. Release at ~0.7s (frame 5-6)
       this.scene.time.delayedCall(700, () => {
         if (this.scene) {
           this.fireProjectile(target);

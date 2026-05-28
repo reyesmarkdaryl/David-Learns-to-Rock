@@ -1,6 +1,29 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { gameEvents } from "../systems/GameEvents";
-import RhythmBar from "./RhythmBar";
+import UpgradePanel from "./UpgradePanel";
+
+// ─── DARK FANTASY THEME ────────────────────────────────────────────────────────
+const THEME = { // FIXED THEME
+  void: '#03020a',
+  abyss: '#07050f',
+  deep: '#0e0b1a',
+  stone: '#16121f',
+  ashen: '#201b2e',
+  mist: '#2c2440',
+  border: '#3a2f50',
+  borderhi: '#5a4a70',
+  bone: '#c8bfa0',
+  parchment: '#a89880',
+  dim: '#5c5070',
+  blood: '#8b1a1a',
+  bloodhi: '#c0282c',
+  cursed: '#5a1f6e',
+  cursedhi: '#9b3fc0',
+  soul: '#1a4a6e',
+  soulhi: '#2e80c8',
+  gold: '#c8963c',
+  goldhi: '#f0c060',
+};
 
 // ─── Pixel-art SVG Arrow Keys ────────────────────────────────────────────────
 
@@ -234,15 +257,15 @@ function TrackRow({ track, config, pressedKey, justCompleted }) {
   return (
     <div style={{
       background: justCompleted
-        ? `linear-gradient(135deg, #1e1408 0%, ${config.color}18 100%)`
-        : 'linear-gradient(135deg, #1a1208 0%, #221608 100%)',
-      border: `1px solid ${justCompleted ? config.color : '#2e1e0a'}`,
-      borderRadius: 3,
+        ? `linear-gradient(135deg, ${THEME.deep} 0%, ${config.color}18 100%)`
+        : `linear-gradient(135deg, ${THEME.abyss} 0%, ${THEME.stone} 100%)`,
+      border: `1px solid ${justCompleted ? config.color : THEME.border}`,
+      borderRadius: 0,
       padding: '8px 10px',
       display: 'flex',
       flexDirection: 'column',
       gap: 6,
-      boxShadow: justCompleted ? `0 0 16px ${config.glow}, inset 0 0 8px ${config.glow}` : '0 2px 6px rgba(0,0,0,0.5)',
+      boxShadow: justCompleted ? `0 0 16px ${config.glow}, inset 0 0 8px ${config.glow}` : 'none',
       transition: 'all 0.2s ease',
       position: 'relative',
       overflow: 'hidden',
@@ -261,7 +284,7 @@ function TrackRow({ track, config, pressedKey, justCompleted }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ fontSize: 11 }}>{config.icon}</span>
           <span style={{
-            fontFamily: "'Press Start 2P', monospace",
+            fontFamily: '"Cinzel", serif',
             fontSize: 7,
             color: config.color,
             textShadow: justCompleted ? `0 0 10px ${config.color}` : `0 0 4px ${config.glow}`,
@@ -271,9 +294,9 @@ function TrackRow({ track, config, pressedKey, justCompleted }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{
             width: 60, height: 3,
-            background: '#1a1208',
-            border: '1px solid #2e1e0a',
-            borderRadius: 2,
+            background: THEME.void,
+            border: `1px solid ${THEME.border}`,
+            borderRadius: 0,
             overflow: 'hidden',
           }}>
             <div style={{
@@ -285,9 +308,9 @@ function TrackRow({ track, config, pressedKey, justCompleted }) {
             }} />
           </div>
           <span style={{
-            fontFamily: "'Press Start 2P', monospace",
-            fontSize: 5,
-            color: '#4a3018',
+            fontFamily: '"Cinzel", serif',
+            fontSize: 6,
+            color: THEME.dim,
           }}>{currentIndex}/{track.requiredLength}</span>
         </div>
       </div>
@@ -308,7 +331,7 @@ function TrackRow({ track, config, pressedKey, justCompleted }) {
                   <div style={{
                     width: 16, height: 16,
                     background: `${config.color}dd`,
-                    borderRadius: 2,
+                    borderRadius: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 9, lineHeight: 1,
                     boxShadow: `0 0 6px ${config.color}`,
@@ -318,7 +341,7 @@ function TrackRow({ track, config, pressedKey, justCompleted }) {
               <div style={{
                 outline: isCurrent ? `2px solid ${config.color}` : 'none',
                 outlineOffset: 2,
-                borderRadius: 3,
+                borderRadius: 0,
                 animation: isCurrent ? 'pulseKey 1.2s ease-in-out infinite' : 'none',
               }}>
                 <ArrowKey
@@ -574,6 +597,7 @@ export default function GameUI() {
   const [pressedKey, setPressedKey]     = useState(null);
   const [justCompleted, setJustCompleted] = useState({});
   const [summonLog, setSummonLog]       = useState([]);
+  const [isUpgradePanelOpen, setUpgradePanelOpen] = useState(false);
   const pressTimer = useRef(null);
 
   const handleInput = useCallback((dir) => {
@@ -598,13 +622,18 @@ export default function GameUI() {
       setTimeout(() => setJustCompleted(jc => ({ ...jc, [name]: false })), 700);
       setSummonLog(log => [{ name, id: Date.now() }, ...log.slice(0, 5)]);
     };
+    const onRoomCompleted = () => {
+      setUpgradePanelOpen(true);
+    };
 
     gameEvents.on('summon-state-update', onStateUpdate);
     gameEvents.on('summon-complete', onSummonComplete);
+    gameEvents.on('room-completed', onRoomCompleted);
 
     return () => {
       gameEvents.off('summon-state-update', onStateUpdate);
       gameEvents.off('summon-complete', onSummonComplete);
+      gameEvents.off('room-completed', onRoomCompleted);
     };
   }, []);
 
@@ -755,6 +784,7 @@ export default function GameUI() {
 
       {/* ── RIGHT: Playing Field ── */}
       <PlayingField summonLog={summonLog} />
+      {isUpgradePanelOpen && <UpgradePanel onClose={() => setUpgradePanelOpen(false)} />}
     </div>
   );
 }

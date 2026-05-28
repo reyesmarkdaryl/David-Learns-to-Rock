@@ -6,16 +6,8 @@ export class ShadowBossEnemy extends Enemy {
   private attackPhase: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, {
-      hp: 2000,
-      speed: 80,
-      damage: 30,
-      attackRange: 120,
-      behavior: 'persistent',
-      displaySize: { width: 768, height: 768 }
-    });
+    super(scene, x, y, 'shadow_boss');
     this.setTexture('enemy_shadow_boss_idle');
-    this.body.setCircle(128, 64, 64);
   }
 
   override handleAnimation(state: 'idle' | 'run') {
@@ -25,35 +17,14 @@ export class ShadowBossEnemy extends Enemy {
     }
   }
 
-  override performAttack(target: Hero, time: number) {
-    if (time < this.attackCooldown) {
-      this.play('enemy_shadow_boss_idle_anim', true);
-      return;
-    }
-
-    this.isAttacking = true;
-
-    // Rotate through 3 different attack animations
-    this.attackPhase = (this.attackPhase + 1) % 3;
-    const currentAttackAnim = `enemy_shadow_boss_attack${this.attackPhase + 1}_anim`;
-    this.play(currentAttackAnim, true);
-
-    // Shadow Boss is a heavy hitter; delay damage to match the animation "strike"
-    this.scene.time.delayedCall(600, () => {
-      if (target && target.takeDamage) {
-        target.takeDamage(this.damage);
-      }
-      this.isAttacking = false;
-    });
-
-    this.attackCooldown = time + (this.ATTACK_COOLDOWN_MS * 2);
+  override getAttackAnimation(): string {
+    return 'enemy_shadow_boss_attack1_anim';
   }
 
   override takeDamage(amount: number): void {
     super.takeDamage(amount);
 
-    // Play hit animation
-    this.isAttacking = true; // Interrupt other actions
+    this.isAttacking = true;
     this.play('enemy_shadow_boss_hit_anim', true);
 
     this.scene.time.delayedCall(300, () => {
@@ -61,11 +32,7 @@ export class ShadowBossEnemy extends Enemy {
     });
   }
 
-  // Override death logic if necessary, otherwise base Enemy death is fine
-  // But since we have a death animation in index.json:
   override destroy() {
-    // In a real scenario, we'd trigger a death animation before actually calling destroy
-    // For now, we'll just rely on the base destroy.
     super.destroy();
   }
 }

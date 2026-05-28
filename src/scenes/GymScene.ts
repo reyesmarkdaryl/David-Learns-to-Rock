@@ -23,6 +23,7 @@ import FlowFieldManager from '../systems/FlowFieldManager';
 import RoomAssetManager from '../systems/RoomAssetManager';
 import { MinionPersistenceManager, MinionData } from '../systems/MinionPersistenceManager';
 import MusicManager from '../systems/MusicManager';
+import UpgradeSystem from '../systems/UpgradeSystem';
 
 export class GymScene extends Phaser.Scene {
   private hero!: Hero;
@@ -272,6 +273,7 @@ export class GymScene extends Phaser.Scene {
         color: '#00ff00'
       });
       this.debugGraphics = this.add.graphics();
+      this.debugGraphics.setDepth(10000);
     }
 
     this.events.on('minion:attack', ({ target }) => {
@@ -280,6 +282,14 @@ export class GymScene extends Phaser.Scene {
       if (target.isDead()) {
         this.cameras.main.shake(100, 0.005);
       }
+    });
+
+    gameEvents.on('upgrade-selected', (upgrade) => {
+      UpgradeSystem.applyUpgrade(this.hero, upgrade);
+      this.transitionToNextRoom();
+    });
+    gameEvents.on('upgrade-skipped', () => {
+      this.transitionToNextRoom();
     });
 
     this.startRoomFlow('gym_room');
@@ -460,9 +470,13 @@ export class GymScene extends Phaser.Scene {
 
   private cleanupRoom() {
     if (this.heroLight) {
-      this.heroLight.destroy();
+      this.lights.removeLight(this.heroLight);
     }
     this.hero?.destroy();
+
+    if (this.debugGraphics) {
+      this.debugGraphics.clear();
+    }
 
     this.enemies.getChildren().forEach(enemy => {
       if (enemy.destroy) {
@@ -479,8 +493,10 @@ export class GymScene extends Phaser.Scene {
   }
 
   private async transitionToNextRoom() {
+    if (this.isTransitioning) return;
     this.isTransitioning = true;
     this.showLoading();
+
 
     // Save persisting minions
     const minionsToSave: MinionData[] = [];
@@ -532,7 +548,7 @@ export class GymScene extends Phaser.Scene {
 
       await this.assetManager.prepareRoom(roomData);
 
-      this.setupAnimations();
+      this.setupHeroAndGlobalAnimations();
 
       // Build room
       const roomBuild = RoomBuilder.build(this, roomData);
@@ -561,13 +577,13 @@ export class GymScene extends Phaser.Scene {
       const spawnPos = this.getHeroSpawn(roomData);
 
       this.hero = new Hero(this, spawnPos.x, spawnPos.y);
+      UpgradeSystem.applyAllUpgrades(this.hero);
       this.heroLight = this.lights.addLight(
         this.hero.x, this.hero.y,
-        200,       // radius â€” large enough to cover surrounding tiles
+        200,       // radius — large enough to cover surrounding tiles
         0xffffff,  // pure white restores original texture colors
         2.5        // intensity above 1.0 to fight the dark ambient
       );
-      this.heroLight.z = 100;
       this.hero.setLighting(true);
       this.hero.setCollideWorldBounds(true);
 
@@ -704,7 +720,7 @@ export class GymScene extends Phaser.Scene {
       this.spawnDustEffect(x, y);
 
       // Add light to minion
-      minion.light = this.lights.addPointLight(minion.x, minion.y, 0xffffff, 200, 0.05);
+      minion.light = this.lights.addPointLight(minion.x, minion.y, 0xffffff, 250, 0.05);
     } else {
       console.log(`Summon sequence for ${type} completed, but entity not yet implemented.`);
     }
@@ -869,8 +885,8 @@ export class GymScene extends Phaser.Scene {
 
     // Check for room clear
     if (this.waveSystem.isRoomComplete() && !this.isTransitioning) {
-      console.log('[GymScene] Room cleared! Transitioning...');
-      this.transitionToNextRoom();
+      console.log('[GymScene] Room cleared! Triggering upgrade panel...');
+      gameEvents.emit('room-completed');
     } else if (DEBUG_MODE) {
       const remainingEnemies = this.enemies.getChildren().filter((e: any) => e.team === 'enemy');
       console.log(`[GymScene] Enemies remaining: ${remainingEnemies.length}. Wave System Status:
@@ -987,6 +1003,40 @@ export class GymScene extends Phaser.Scene {
     await this.startRoomFlow('gym_room');
   }
 
+  private setupHeroAndGlobalAnimations() {
+    const createAnim = (key: string, framesKey: string, frameRate: number, repeat: number, startFrame = 0, endFrame = 0) => {
+      if (this.anims.exists(key)) return;
+      const texture = this.textures.get(framesKey);
+      if (!texture) return;
+      try {
+        const maxFrame = texture.frameCount > 0 ? texture.frameCount - 1 : 0;
+        const finalStart = Math.min(startFrame, maxFrame);
+        const finalEnd = endFrame > 0 ? Math.min(endFrame, maxFrame) : maxFrame;
+        this.anims.create({
+          key,
+          frames: this.anims.generateFrameNumbers(framesKey, finalStart, finalEnd),
+          frameRate,
+          repeat
+        });
+      } catch (e) {
+        console.error(`[Animation] Failed to create ${key}:`, e);
+      }
+    };
+
+    const shadowAnims = this.assetIndex?.sprites?.mappings?.hero?.animations;
+    if (shadowAnims) {
+      Object.entries(shadowAnims).forEach(([name, config]: [string, any], index) => {
+        createAnim(`hero_${name}_anim`, `hero_tex_${index}`, config.frameRate, config.repeat, config.startFrame ?? 0, config.endFrame ?? 0);
+      });
+    }
+
+    createAnim('dust_anim', 'dust_particle', 12, 0);
+    createAnim('special_attack_anim', 'special_attack_holy', 6, 0);
+    createAnim('special_attack_slash_anim', 'special_attack_slash', 6, 0);
+    createAnim('special_attack_nova_anim', 'special_attack_nova', 6, 0);
+    createAnim('special_attack_bolt_anim', 'special_attack_bolt', 6, 0);
+  }
+
   private spawnDustEffect(x: number, y: number) {
     const dust = this.add.sprite(x, y, 'dust_particle');
     dust.setScale(1.5);
@@ -1017,16 +1067,26 @@ export class GymScene extends Phaser.Scene {
     );
 
 
-    this.hero.drawDebug(this.debugGraphics);
+    this.debugGraphics.clear(); // Clear everything once at the start of debug update
+    //this.hero.drawDebug(this.debugGraphics);
 
-    // Draw enemy hitboxes
+    // Draw enemy debugs
     this.enemies.getChildren().forEach((enemy: any) => {
+      const anchorX = enemy.x + (enemy.bodyOffset?.x || 0);
+      const anchorY = enemy.y + (enemy.bodyOffset?.y || 0);
+
+      // 1. Hitbox (Reddish) - Use world coordinates directly from getHitbox()
       const bounds = enemy.getHitbox();
-      this.debugGraphics.lineStyle(1, 0x00ff00, 1);
+      this.debugGraphics.lineStyle(1, 0xff4444, 1);
       this.debugGraphics.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
-      // Draw attack range
-      this.debugGraphics.lineStyle(1, 0x0000ff, 0.5);
+      // 2. Physics Body Circle (Purple) - Centered on physics anchor
+      this.debugGraphics.lineStyle(2, 0xB03060, 1);
+      this.debugGraphics.strokeCircle(anchorX, anchorY, enemy.bodyRadius || 0);
+
+      // 3. Attack range (Yellow/Red) - Centered on sprite center
+      const isAttacking = enemy.isAttacking;
+      this.debugGraphics.lineStyle(4, isAttacking ? 0xff0000 : 0xffff44, isAttacking ? 1.0 : 0.6);
       this.debugGraphics.strokeCircle(
         enemy.x,
         enemy.y,

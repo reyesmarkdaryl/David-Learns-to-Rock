@@ -1,4 +1,30 @@
-# Room Maker Progress Log
+We also made an Enemy Editor
+
+## Progress Update (2026-05-24)
+
+### ✅ Completed Today
+- **Core Gameplay Shift**: Disabled rhythm requirements and metronome to prioritize action-focused combat.
+- **Enemy Balance**: Doubled health for all enemies to increase challenge.
+- **Special Attack System**: 
+  - Implemented `SpecialAttackSystem` singleton.
+  - Added Holy Slash (Warrior), Holy Nova (Lancer), and Holy Bolt (Archer).
+  - Fixed Holy Bolt to respect wall collisions and target nearest enemy.
+  - Integrated special attacks into the summoning flow.
+- **Upgrade System**:
+  - Implemented `UpgradeSystem` for random stat boosts (HP, Damage, Dash Speed).
+  - Created `UpgradePanel` React component with a "Dark Fantasy" aesthetic.
+  - Wired the room-completion flow: Room Clear $\rightarrow$ Upgrade Panel $\rightarrow$ Selection/Skip $\rightarrow$ Next Room.
+- **UI/UX Overhaul**:
+  - Transitioned `GameUI` to a consistent "Dark Fantasy" theme (Void/Gold/Bone palette).
+  - Polished `TrackRow`, `HeroHPBar`, and `SummonLog` visuals.
+
+### 🚧 Remaining / Improvement Plan
+- **Upgrade Expansion**: Add new special attack abilities and tiered rarities as upgrade options.
+- **Attack Polish**: Implement levels/variants for special attacks and enhance visual effects.
+- **Wave Progression**: Implement more advanced enemy scaling and milestone boss fights.
+- **Thematic Polish**: Improve room transition overlays and the general atmosphere.
+
+---
 
 ## Current Status (2026-05-17)
 Implementing a dynamic Enemy Wave System to replace static room spawning, allowing for structured combat progression and timed spawns.

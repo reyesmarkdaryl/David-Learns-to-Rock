@@ -3,15 +3,7 @@ import { Enemy } from './Enemy';
 
 export class Lancer extends Enemy {
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, {
-      hp: 140,
-      speed: 45,
-      damage: 15,
-      attackRange: 70,
-      displaySize: { width: 192, height: 192 }
-    });
-    this.setTexture('lancer_idle');
-    this.body.setCircle(32, 128, 128);
+    super(scene, x, y, 'lancer');
   }
 
   override update(target: any, time: number, flowField?: any): void {
@@ -26,7 +18,6 @@ export class Lancer extends Enemy {
     const isMoving = Math.abs(this.body.velocity.x) > 0.1 || Math.abs(this.body.velocity.y) > 0.1;
     this.handleAnimation(isMoving ? 'run' : 'idle');
 
-    // Only update flip if moving, to avoid flashing during attack/idle transitions
     if (isMoving) {
       this.setFlipX(this.body.velocity.x < 0);
     }
@@ -51,7 +42,6 @@ export class Lancer extends Enemy {
     let finalAnim = 'enemy_lancer_attack_right_anim';
     let finalFlip = false;
 
-    // Mapping angles to animations
     if (angleDeg >= -22.5 && angleDeg < 22.5) {
       finalAnim = 'enemy_lancer_attack_right_anim';
       finalFlip = false;
@@ -80,9 +70,9 @@ export class Lancer extends Enemy {
 
     this.isAttacking = true;
     this.setFlipX(finalFlip);
-    this.play(finalAnim, true);
+    this.safePlay(finalAnim);
 
-    target.takeDamage(this.damage);
+    this.pendingDamageTarget = target;
     this.attackCooldown = time + 1000;
   }
 }

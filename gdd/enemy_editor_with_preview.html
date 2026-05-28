@@ -1,0 +1,478 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.app{padding:1rem 0;font-family:var(--font-mono,'Courier New',monospace);color:var(--color-text-primary)}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap}
+.topbar h1{font-size:12px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.08em;flex:none}
+select,input[type=text],input[type=number]{background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);color:var(--color-text-primary);padding:5px 8px;font-size:12px;font-family:var(--font-mono,'Courier New',monospace)}
+select:focus,input:focus{outline:none;border-color:var(--color-border-primary)}
+.btn{background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);color:var(--color-text-primary);padding:5px 12px;font-size:11px;font-family:var(--font-mono,'Courier New',monospace);cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--color-background-secondary)}
+.btn:active{transform:scale(.98)}
+.btn-accent{border-color:#1D9E75;color:#1D9E75}.btn-accent:hover{background:rgba(29,158,117,.1)}
+.btn-danger{border-color:#E24B4A;color:#E24B4A}.btn-danger:hover{background:rgba(226,75,74,.1)}
+.sep{flex:1}
+.main-layout{display:grid;grid-template-columns:300px 1fr;gap:12px}
+.left-col{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:.85rem 1rem}
+.ct{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--color-text-secondary);margin-bottom:.6rem;display:flex;align-items:center;gap:5px}
+.field{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.field label{font-size:11px;color:var(--color-text-secondary);min-width:100px;flex:none}
+.field input{width:100%}
+.field input[type=number]{width:72px}
+.irow{display:flex;gap:6px;margin-bottom:6px}
+.irow .field{flex:1;margin-bottom:0}
+.irow .field label{min-width:unset;font-size:10px}
+hr.sd{border:none;border-top:0.5px solid var(--color-border-tertiary);margin:.4rem 0}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-secondary);font-weight:500;text-align:left;padding:3px 4px;border-bottom:0.5px solid var(--color-border-tertiary)}
+td{padding:4px;border-bottom:0.5px solid var(--color-border-tertiary);vertical-align:middle}
+td input{width:100%;border:none;background:transparent;font-family:var(--font-mono,'Courier New',monospace);font-size:11px;color:var(--color-text-primary);padding:1px 0}
+td input:focus{outline:none;border-bottom:1px solid var(--color-border-primary)}
+tr:hover td{background:var(--color-background-secondary)}
+.del-btn{background:none;border:none;color:var(--color-text-tertiary);cursor:pointer;font-size:14px;padding:0 3px;line-height:1}
+.del-btn:hover{color:#E24B4A}
+.add-row-btn{font-size:10px;color:#1D9E75;background:none;border:none;cursor:pointer;margin-top:5px;font-family:var(--font-mono,'Courier New',monospace);letter-spacing:.04em;padding:3px 0}
+.add-row-btn:hover{text-decoration:underline}
+/* preview */
+.preview-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);display:flex;flex-direction:column;overflow:hidden}
+.preview-header{padding:.5rem .85rem;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.preview-header .ct{margin-bottom:0;flex:none}
+.preview-canvas-wrap{background:#0d1117;flex:1;display:flex;align-items:center;justify-content:center;min-height:260px;position:relative}
+canvas#preview{image-rendering:pixelated;image-rendering:crisp-edges}
+.overlay-toggles{display:flex;gap:8px;align-items:center;margin-left:auto}
+.tog{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--color-text-secondary);cursor:pointer;user-select:none}
+.tog input{width:12px;height:12px;cursor:pointer;accent-color:#1D9E75}
+.preview-footer{padding:.4rem .85rem;border-top:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.anim-btns{display:flex;gap:4px;flex-wrap:wrap}
+.anim-pill{font-size:10px;padding:2px 8px;border-radius:3px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer;font-family:var(--font-mono,'Courier New',monospace)}
+.anim-pill:hover{background:var(--color-background-secondary)}
+.anim-pill.active{border-color:#1D9E75;color:#1D9E75;background:rgba(29,158,117,.08)}
+.frame-counter{font-size:10px;color:var(--color-text-tertiary);margin-left:auto}
+.upload-hint{font-size:10px;color:var(--color-text-tertiary);text-align:center;padding:1rem;display:flex;flex-direction:column;align-items:center;gap:6px}
+.zoom-btns{display:flex;gap:3px}
+.zoom-btns button{font-size:10px;padding:2px 7px;border:0.5px solid var(--color-border-secondary);background:transparent;border-radius:3px;color:var(--color-text-secondary);cursor:pointer;font-family:var(--font-mono,'Courier New',monospace)}
+.zoom-btns button:hover{background:var(--color-background-secondary)}
+.status-bar{font-size:10px;color:var(--color-text-tertiary);margin-top:.75rem;padding-top:.6rem;border-top:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:6px}
+.sdot{width:5px;height:5px;border-radius:50%;background:var(--color-text-tertiary);flex-none}
+.sdot.ok{background:#1D9E75}
+.sdot.warn{background:#EF9F27}
+@media(max-width:620px){.main-layout{grid-template-columns:1fr}}
+</style>
+
+<div class="app">
+<h2 class="sr-only">Enemy entity editor with live sprite preview</h2>
+<div class="topbar">
+  <h1><i class="ti ti-bug" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:3px"></i>enemy editor</h1>
+  <select id="enemySelect" style="min-width:150px"></select>
+  <div class="sep"></div>
+  <button class="btn" id="addEnemyBtn"><i class="ti ti-plus" aria-hidden="true"></i> new</button>
+  <button class="btn btn-danger" id="deleteEnemyBtn"><i class="ti ti-trash" aria-hidden="true"></i> delete</button>
+  <button class="btn btn-accent" id="saveBtn"><i class="ti ti-download" aria-hidden="true"></i> export JSON</button>
+</div>
+
+<div class="main-layout">
+  <!-- LEFT: stats + physics + anims -->
+  <div class="left-col">
+    <div class="card">
+      <div class="ct"><i class="ti ti-chart-bar" aria-hidden="true"></i> base stats</div>
+      <div class="field"><label>key</label><input type="text" id="f_key" placeholder="goblin_warrior"></div>
+      <div class="field"><label>display name</label><input type="text" id="f_name" placeholder="Goblin Warrior"></div>
+      <hr class="sd">
+      <div class="irow">
+        <div class="field"><label>hp</label><input type="number" id="f_hp" min="1"></div>
+        <div class="field"><label>speed</label><input type="number" id="f_speed" min="0"></div>
+        <div class="field"><label>damage</label><input type="number" id="f_damage" min="0"></div>
+      </div>
+      <div class="irow">
+        <div class="field"><label>defense</label><input type="number" id="f_defense" min="0"></div>
+        <div class="field"><label>xp</label><input type="number" id="f_xp" min="0"></div>
+        <div class="field"><label>score</label><input type="number" id="f_score" min="0"></div>
+      </div>
+      <div class="irow">
+        <div class="field"><label>aggro range</label><input type="number" id="f_aggroRange" min="0"></div>
+        <div class="field"><label>knock resist</label><input type="number" id="f_knockback" min="0" max="1" step="0.05"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ct"><i class="ti ti-square-rounded-minus" aria-hidden="true"></i> physics bodies</div>
+      <div style="font-size:9px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem">hitbox rect</div>
+      <div class="irow">
+        <div class="field"><label>x off</label><input type="number" id="f_hbx" step="1"></div>
+        <div class="field"><label>y off</label><input type="number" id="f_hby" step="1"></div>
+        <div class="field"><label>w</label><input type="number" id="f_hbw" min="1"></div>
+        <div class="field"><label>h</label><input type="number" id="f_hbh" min="1"></div>
+      </div>
+      <hr class="sd">
+      <div style="font-size:9px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem">body circle</div>
+      <div class="irow">
+        <div class="field"><label>radius</label><input type="number" id="f_bcRadius" min="1"></div>
+        <div class="field"><label>x off</label><input type="number" id="f_bcx" step="1"></div>
+        <div class="field"><label>y off</label><input type="number" id="f_bcy" step="1"></div>
+      </div>
+      <hr class="sd">
+      <div style="font-size:9px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem">attack range</div>
+      <div class="irow">
+        <div class="field"><label>radius</label><input type="number" id="f_atkRadius" min="1"></div>
+        <div class="field"><label>cooldown ms</label><input type="number" id="f_atkCooldown" min="0" step="50"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ct"><i class="ti ti-player-play" aria-hidden="true"></i> animations
+        <button class="add-row-btn" id="addAnimBtn" style="margin-left:auto;margin-top:0">+ add</button>
+      </div>
+      <table id="animTable">
+        <thead><tr>
+          <th>action</th><th>tex key</th><th>s</th><th>e</th><th>fps</th><th>rep</th><th>yo</th><th></th>
+        </tr></thead>
+        <tbody id="animBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RIGHT: preview -->
+  <div class="preview-card">
+    <div class="preview-header">
+      <div class="ct"><i class="ti ti-eye" aria-hidden="true"></i> live preview</div>
+      <label class="btn" style="cursor:pointer;font-size:10px">
+        <i class="ti ti-upload" aria-hidden="true"></i> load spritesheet
+        <input type="file" id="sheetUpload" accept="image/*" style="display:none">
+      </label>
+      <div class="zoom-btns">
+        <button id="zmOut">−</button>
+        <span id="zmLabel" style="font-size:10px;color:var(--color-text-secondary);padding:2px 4px">2×</span>
+        <button id="zmIn">+</button>
+      </div>
+      <div class="overlay-toggles">
+        <label class="tog"><input type="checkbox" id="tog_hb" checked> <span style="color:#F09595">hitbox</span></label>
+        <label class="tog"><input type="checkbox" id="tog_bc" checked> <span style="color:#85B7EB">body</span></label>
+        <label class="tog"><input type="checkbox" id="tog_atk" checked> <span style="color:#FAC775">attack</span></label>
+      </div>
+    </div>
+    <div class="preview-canvas-wrap" id="canvasWrap">
+      <div class="upload-hint" id="uploadHint">
+        <i class="ti ti-photo" aria-hidden="true" style="font-size:28px;color:var(--color-text-tertiary)"></i>
+        <span>load a spritesheet to preview</span>
+        <span style="font-size:9px">single row — all frames left to right</span>
+      </div>
+      <canvas id="preview" style="display:none"></canvas>
+    </div>
+    <div class="preview-footer">
+      <div class="anim-btns" id="animPills"></div>
+      <span class="frame-counter" id="frameCounter">frame 0 / 0</span>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="sdot" id="statusDot"></div>
+  <span id="statusMsg">load an enemy or create a new one</span>
+</div>
+</div>
+
+<script>
+const DEFAULT_ENEMIES=[
+  {key:"goblin_scout",name:"Goblin Scout",hp:40,speed:160,damage:8,defense:2,xp:15,score:100,aggroRange:220,knockbackResist:0.1,hitbox:{x:-14,y:-10,w:28,h:32},bodyCircle:{radius:14,x:0,y:4},attackRange:{radius:40,cooldownMs:1200},spriteSheet:{frameWidth:48,frameHeight:48},animations:[{action:"idle",textureKey:"goblin",start:0,end:3,frameRate:8,repeat:-1,yoyo:false},{action:"run",textureKey:"goblin",start:4,end:11,frameRate:12,repeat:-1,yoyo:false},{action:"attack",textureKey:"goblin",start:12,end:17,frameRate:14,repeat:0,yoyo:false},{action:"hurt",textureKey:"goblin",start:18,end:20,frameRate:12,repeat:0,yoyo:false},{action:"death",textureKey:"goblin",start:21,end:27,frameRate:10,repeat:0,yoyo:false}]},
+  {key:"orc_brute",name:"Orc Brute",hp:180,speed:80,damage:32,defense:10,xp:60,score:400,aggroRange:180,knockbackResist:0.7,hitbox:{x:-22,y:-14,w:44,h:48},bodyCircle:{radius:22,x:0,y:6},attackRange:{radius:70,cooldownMs:2200},spriteSheet:{frameWidth:64,frameHeight:64},animations:[{action:"idle",textureKey:"orc",start:0,end:5,frameRate:6,repeat:-1,yoyo:false},{action:"run",textureKey:"orc",start:6,end:13,frameRate:9,repeat:-1,yoyo:false},{action:"attack",textureKey:"orc",start:14,end:21,frameRate:11,repeat:0,yoyo:false},{action:"hurt",textureKey:"orc",start:22,end:24,frameRate:10,repeat:0,yoyo:false},{action:"death",textureKey:"orc",start:25,end:33,frameRate:8,repeat:0,yoyo:false}]},
+  {key:"skeleton_archer",name:"Skeleton Archer",hp:60,speed:110,damage:18,defense:4,xp:30,score:220,aggroRange:350,knockbackResist:0.2,hitbox:{x:-12,y:-16,w:24,h:36},bodyCircle:{radius:12,x:0,y:2},attackRange:{radius:320,cooldownMs:1800},spriteSheet:{frameWidth:48,frameHeight:48},animations:[{action:"idle",textureKey:"skeleton",start:0,end:4,frameRate:7,repeat:-1,yoyo:false},{action:"run",textureKey:"skeleton",start:5,end:12,frameRate:11,repeat:-1,yoyo:false},{action:"shoot",textureKey:"skeleton",start:13,end:19,frameRate:13,repeat:0,yoyo:false},{action:"hurt",textureKey:"skeleton",start:20,end:22,frameRate:12,repeat:0,yoyo:false},{action:"death",textureKey:"skeleton",start:23,end:30,frameRate:9,repeat:0,yoyo:false}]}
+];
+
+let enemies=JSON.parse(JSON.stringify(DEFAULT_ENEMIES));
+let current=0;
+let spriteImg=null;
+let zoom=2;
+let activeAnim=0;
+let animFrame=0;
+let animDir=1;
+let lastFrameTime=0;
+let rafId=null;
+
+const sel=document.getElementById('enemySelect');
+const canvas=document.getElementById('preview');
+const ctx=canvas.getContext('2d');
+const hint=document.getElementById('uploadHint');
+const animPills=document.getElementById('animPills');
+const frameCounter=document.getElementById('frameCounter');
+const statusDot=document.getElementById('statusDot');
+const statusMsg=document.getElementById('statusMsg');
+
+function nv(id){return document.getElementById(id)}
+function fi(id){return parseFloat(nv(id).value)||0}
+function fis(id){return nv(id).value.trim()}
+function setStatus(msg,ok=true){statusMsg.textContent=msg;statusDot.className='sdot'+(ok?' ok':' warn')}
+
+// --- spritesheet fields (per enemy) ---
+function ensureSpriteSheet(e){if(!e.spriteSheet)e.spriteSheet={frameWidth:48,frameHeight:48}}
+
+function addSheetFields(){
+  // injected under stats card
+  let wrap=document.getElementById('sheetFieldsWrap');
+  if(!wrap){
+    wrap=document.createElement('div');
+    wrap.id='sheetFieldsWrap';
+    wrap.className='card';
+    wrap.innerHTML=`<div class="ct"><i class="ti ti-layout-columns" aria-hidden="true"></i> spritesheet</div>
+    <div class="irow">
+      <div class="field"><label>frame w</label><input type="number" id="f_fw" min="1" value="48"></div>
+      <div class="field"><label>frame h</label><input type="number" id="f_fh" min="1" value="48"></div>
+    </div>`;
+    document.querySelector('.left-col').insertBefore(wrap,document.querySelector('.left-col').children[1]);
+  }
+}
+
+addSheetFields();
+
+// --- select / load ---
+function rebuildSelect(){
+  const prev=sel.value;
+  sel.innerHTML='';
+  enemies.forEach((e,i)=>{const o=document.createElement('option');o.value=i;o.textContent=e.name||e.key;sel.appendChild(o);});
+  if(prev!==''&&prev<enemies.length)sel.value=prev;
+}
+
+function loadEnemy(idx){
+  current=idx;
+  const e=enemies[idx];
+  ensureSpriteSheet(e);
+  nv('f_key').value=e.key;
+  nv('f_name').value=e.name;
+  nv('f_hp').value=e.hp;
+  nv('f_speed').value=e.speed;
+  nv('f_damage').value=e.damage;
+  nv('f_defense').value=e.defense;
+  nv('f_xp').value=e.xp;
+  nv('f_score').value=e.score;
+  nv('f_aggroRange').value=e.aggroRange;
+  nv('f_knockback').value=e.knockbackResist;
+  nv('f_hbx').value=e.hitbox.x;
+  nv('f_hby').value=e.hitbox.y;
+  nv('f_hbw').value=e.hitbox.w;
+  nv('f_hbh').value=e.hitbox.h;
+  nv('f_bcRadius').value=e.bodyCircle.radius;
+  nv('f_bcx').value=e.bodyCircle.x;
+  nv('f_bcy').value=e.bodyCircle.y;
+  nv('f_atkRadius').value=e.attackRange.radius;
+  nv('f_atkCooldown').value=e.attackRange.cooldownMs;
+  nv('f_fw').value=e.spriteSheet.frameWidth;
+  nv('f_fh').value=e.spriteSheet.frameHeight;
+  renderAnimTable(e.animations);
+  rebuildPills(e.animations);
+  activeAnim=0;animFrame=0;
+  setStatus('loaded — '+e.name);
+}
+
+// --- anim table ---
+function renderAnimTable(anims){
+  const tb=document.getElementById('animBody');
+  tb.innerHTML='';
+  anims.forEach((a,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><input value="${a.action}" data-i="${i}" data-f="action" style="min-width:70px"></td>
+      <td><input value="${a.textureKey}" data-i="${i}" data-f="textureKey" style="min-width:60px"></td>
+      <td><input type="number" min="0" value="${a.start}" data-i="${i}" data-f="start" style="width:38px"></td>
+      <td><input type="number" min="0" value="${a.end}" data-i="${i}" data-f="end" style="width:38px"></td>
+      <td><input type="number" min="1" max="60" value="${a.frameRate}" data-i="${i}" data-f="frameRate" style="width:38px"></td>
+      <td><input type="number" min="-1" value="${a.repeat}" data-i="${i}" data-f="repeat" style="width:38px"></td>
+      <td style="text-align:center"><input type="checkbox" ${a.yoyo?'checked':''} data-i="${i}" data-f="yoyo"></td>
+      <td><button class="del-btn" data-i="${i}">×</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function rebuildPills(anims){
+  animPills.innerHTML='';
+  anims.forEach((a,i)=>{
+    const b=document.createElement('button');
+    b.className='anim-pill'+(i===activeAnim?' active':'');
+    b.textContent=a.action;
+    b.addEventListener('click',()=>{activeAnim=i;animFrame=anims[i].start;animDir=1;rebuildPills(enemies[current].animations)});
+    animPills.appendChild(b);
+  });
+}
+
+// --- preview loop ---
+function getAnimData(){
+  const e=enemies[current];
+  const a=e.animations[activeAnim]||e.animations[0];
+  return{a,fw:e.spriteSheet.frameWidth,fh:e.spriteSheet.frameHeight,hb:e.hitbox,bc:e.bodyCircle,atk:e.attackRange};
+}
+
+function drawFrame(ts){
+  if(!spriteImg){rafId=requestAnimationFrame(drawFrame);return;}
+  const e=enemies[current];
+  const{a,fw,fh,hb,bc,atk}=getAnimData();
+  const totalFrames=Math.floor(spriteImg.width/fw)||1;
+
+  // advance frame
+  const interval=1000/(a.frameRate||12);
+  if(ts-lastFrameTime>interval){
+    lastFrameTime=ts;
+    if(a.yoyo){
+      animFrame+=animDir;
+      const s=Math.max(0,a.start),en=Math.min(a.end,totalFrames-1);
+      if(animFrame>=en){animFrame=en;animDir=-1;}
+      if(animFrame<=s){animFrame=s;animDir=1;}
+    } else {
+      animFrame++;
+      const en=Math.min(a.end,totalFrames-1);
+      if(animFrame>en){
+        if(a.repeat===-1||a.repeat>0){animFrame=Math.max(0,a.start);}
+        else{animFrame=en;}
+      }
+    }
+    frameCounter.textContent=`frame ${animFrame-a.start+1} / ${Math.min(a.end,totalFrames-1)-a.start+1}  [${animFrame}]`;
+  }
+
+  // canvas size
+  const cw=Math.max(fw*zoom*3,200), ch=Math.max(fh*zoom*2.5,180);
+  canvas.width=cw; canvas.height=ch;
+  ctx.clearRect(0,0,cw,ch);
+
+  // center origin
+  const ox=Math.floor(cw/2), oy=Math.floor(ch/2);
+
+  // draw grid lines (crosshair)
+  ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(ox,0);ctx.lineTo(ox,ch);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(cw,oy);ctx.stroke();
+
+  // sprite
+  const sx=Math.min(animFrame,totalFrames-1)*fw;
+  const dw=fw*zoom, dh=fh*zoom;
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(spriteImg,sx,0,fw,fh,ox-Math.floor(dw/2),oy-Math.floor(dh/2),dw,dh);
+
+  // overlays
+  const z=zoom;
+  if(nv('tog_hb').checked){
+    ctx.strokeStyle='rgba(240,149,121,0.85)';ctx.lineWidth=1.5;ctx.setLineDash([]);
+    ctx.strokeRect(ox+hb.x*z,oy+hb.y*z,hb.w*z,hb.h*z);
+    ctx.fillStyle='rgba(240,149,121,0.08)';
+    ctx.fillRect(ox+hb.x*z,oy+hb.y*z,hb.w*z,hb.h*z);
+    label(ctx,'hitbox',ox+hb.x*z+2,oy+hb.y*z-3,'rgba(240,149,121,0.9)');
+  }
+  if(nv('tog_bc').checked){
+    ctx.strokeStyle='rgba(133,183,235,0.9)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.arc(ox+bc.x*z,oy+bc.y*z,bc.radius*z,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(133,183,235,0.06)';
+    ctx.beginPath();ctx.arc(ox+bc.x*z,oy+bc.y*z,bc.radius*z,0,Math.PI*2);ctx.fill();
+    label(ctx,'body',ox+bc.x*z+bc.radius*z*0.7,oy+bc.y*z-bc.radius*z*0.7,'rgba(133,183,235,0.9)');
+  }
+  if(nv('tog_atk').checked){
+    ctx.strokeStyle='rgba(250,199,117,0.6)';ctx.lineWidth=1;ctx.setLineDash([3,5]);
+    ctx.beginPath();ctx.arc(ox,oy,atk.radius*z,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+    label(ctx,'atk range',ox+atk.radius*z*0.68,oy-atk.radius*z*0.68,'rgba(250,199,117,0.8)');
+  }
+
+  rafId=requestAnimationFrame(drawFrame);
+}
+
+function label(ctx,text,x,y,color){
+  ctx.font='9px monospace';ctx.fillStyle=color;ctx.fillText(text,x,y);
+}
+
+function startLoop(){
+  if(rafId)cancelAnimationFrame(rafId);
+  rafId=requestAnimationFrame(drawFrame);
+}
+
+// --- collect ---
+function collectEnemy(){
+  const e=enemies[current];
+  ensureSpriteSheet(e);
+  e.key=fis('f_key');e.name=fis('f_name');
+  e.hp=fi('f_hp');e.speed=fi('f_speed');e.damage=fi('f_damage');
+  e.defense=fi('f_defense');e.xp=fi('f_xp');e.score=fi('f_score');
+  e.aggroRange=fi('f_aggroRange');e.knockbackResist=parseFloat(nv('f_knockback').value)||0;
+  e.hitbox={x:fi('f_hbx'),y:fi('f_hby'),w:fi('f_hbw'),h:fi('f_hbh')};
+  e.bodyCircle={radius:fi('f_bcRadius'),x:fi('f_bcx'),y:fi('f_bcy')};
+  e.attackRange={radius:fi('f_atkRadius'),cooldownMs:fi('f_atkCooldown')};
+  e.spriteSheet={frameWidth:fi('f_fw')||48,frameHeight:fi('f_fh')||48};
+  const rows=document.querySelectorAll('#animBody tr');
+  e.animations=Array.from(rows).map(tr=>{
+    const ins=tr.querySelectorAll('input');
+    return{action:ins[0].value,textureKey:ins[1].value,start:parseInt(ins[2].value)||0,end:parseInt(ins[3].value)||0,frameRate:parseInt(ins[4].value)||12,repeat:parseInt(ins[5].value)||0,yoyo:ins[6].checked};
+  });
+  return e;
+}
+
+// --- events ---
+document.getElementById('sheetUpload').addEventListener('change',ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  const url=URL.createObjectURL(f);
+  const img=new Image();
+  img.onload=()=>{
+    spriteImg=img;
+    hint.style.display='none';
+    canvas.style.display='block';
+    animFrame=enemies[current].animations[activeAnim]?.start||0;
+    startLoop();
+    setStatus('spritesheet loaded — '+f.name);
+  };
+  img.src=url;
+});
+
+document.getElementById('animBody').addEventListener('click',ev=>{
+  if(ev.target.classList.contains('del-btn')){
+    const i=parseInt(ev.target.dataset.i);
+    enemies[current].animations.splice(i,1);
+    renderAnimTable(enemies[current].animations);
+    rebuildPills(enemies[current].animations);
+    setStatus('animation row removed',false);
+  }
+});
+
+document.getElementById('addAnimBtn').addEventListener('click',()=>{
+  collectEnemy();
+  enemies[current].animations.push({action:'new_action',textureKey:enemies[current].key,start:0,end:4,frameRate:10,repeat:-1,yoyo:false});
+  renderAnimTable(enemies[current].animations);
+  rebuildPills(enemies[current].animations);
+});
+
+document.getElementById('addEnemyBtn').addEventListener('click',()=>{
+  const ne={key:'new_enemy_'+Date.now(),name:'New Enemy',hp:100,speed:120,damage:10,defense:0,xp:20,score:150,aggroRange:200,knockbackResist:0,hitbox:{x:-16,y:-16,w:32,h:32},bodyCircle:{radius:16,x:0,y:0},attackRange:{radius:50,cooldownMs:1500},spriteSheet:{frameWidth:48,frameHeight:48},animations:[{action:'idle',textureKey:'new_enemy',start:0,end:3,frameRate:8,repeat:-1,yoyo:false},{action:'run',textureKey:'new_enemy',start:4,end:11,frameRate:12,repeat:-1,yoyo:false},{action:'attack',textureKey:'new_enemy',start:12,end:17,frameRate:14,repeat:0,yoyo:false},{action:'death',textureKey:'new_enemy',start:18,end:24,frameRate:10,repeat:0,yoyo:false}]};
+  enemies.push(ne);rebuildSelect();sel.value=enemies.length-1;loadEnemy(enemies.length-1);
+});
+
+document.getElementById('deleteEnemyBtn').addEventListener('click',()=>{
+  if(enemies.length===1)return;
+  const nm=enemies[current].name;
+  enemies.splice(current,1);rebuildSelect();
+  const idx=Math.min(current,enemies.length-1);sel.value=idx;loadEnemy(idx);
+  setStatus('deleted — '+nm,false);
+});
+
+sel.addEventListener('change',()=>{collectEnemy();loadEnemy(parseInt(sel.value));});
+
+// live update on any input change
+document.addEventListener('input',ev=>{
+  if(current===null)return;
+  const t=ev.target;
+  if(!t.closest('.app'))return;
+  collectEnemy();
+  if(t.id==='f_name')rebuildSelect();
+  rebuildPills(enemies[current].animations);
+  setStatus('editing — '+enemies[current].name,false);
+  statusDot.className='sdot warn';
+});
+
+document.getElementById('saveBtn').addEventListener('click',()=>{
+  collectEnemy();
+  const blob=new Blob([JSON.stringify(enemies,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='enemies.json';a.click();
+  setStatus('exported enemies.json — '+enemies.length+' enemies');
+  statusDot.className='sdot ok';
+});
+
+nv('zmIn').addEventListener('click',()=>{zoom=Math.min(zoom+1,6);nv('zmLabel').textContent=zoom+'×'});
+nv('zmOut').addEventListener('click',()=>{zoom=Math.max(zoom-1,1);nv('zmLabel').textContent=zoom+'×'});
+
+[nv('tog_hb'),nv('tog_bc'),nv('tog_atk')].forEach(t=>t.addEventListener('change',()=>{}));
+
+rebuildSelect();sel.value=0;loadEnemy(0);
+startLoop();
+</script>

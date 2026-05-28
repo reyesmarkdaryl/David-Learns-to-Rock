@@ -40,6 +40,7 @@ export class MainMenuScene extends Phaser.Scene {
     const options = [
       { text: 'Start Game', scene: 'GymScene' },
       { text: 'Room Editor', scene: 'RoomEditorScene' },
+      { text: 'Enemy Editor', scene: 'EnemyEditorScene' },
     ];
 
     options.forEach((option, index) => {

@@ -212,10 +212,18 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     );
   }
 
+  override destroy() {
+    if (this.rangeVisual) {
+      this.rangeVisual.destroy();
+    }
+    super.destroy();
+  }
+
   drawDebug(graphics: Phaser.GameObjects.Graphics): void {
     if (!DEBUG_MODE) return;
 
-    graphics.clear();
+
+    // Remove graphics.clear() from here to avoid wiping out other debug drawings in the scene
 
     const hitbox = this.getAttackHitbox();
     graphics.fillStyle(0xff0000, 0.3);

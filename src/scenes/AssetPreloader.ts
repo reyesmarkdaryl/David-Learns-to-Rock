@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import MusicManager from '../systems/MusicManager';
+import { EnemyAtlas } from '../systems/EnemyAtlas';
 
 export class AssetPreloader extends Phaser.Scene {
   constructor() {
@@ -12,10 +13,9 @@ export class AssetPreloader extends Phaser.Scene {
     // Load the manifests
     this.load.json('tilemap-manifest', 'assets/tilemaps/manifest.json');
     this.load.json('room-manifest', 'assets/manifest.json');
+    this.load.json('enemies-atlas', 'assets/enemies_atlas.json');
 
     // Preload all rooms from the manifest.
-    // Note: In a real game, we'd load the manifest first, then the rooms.
-    // For now, we'll preload the known rooms to ensure they are in cache.
     this.load.json('gym_room', 'assets/rooms/gym_room.json');
     this.load.json('easy_mountain_room', 'assets/rooms/easy_mountain_room.json');
     this.load.json('medium_mountain2_room', 'assets/rooms/medium_mountain2_room.json');
@@ -26,12 +26,6 @@ export class AssetPreloader extends Phaser.Scene {
     this.load.audio('stem-guitar', 'assets/music/heavy-hymn/guitar.wav');
     this.load.audio('stem-bass', 'assets/music/heavy-hymn/bass.wav');
 
-    // Since the manifest is JSON and we need it to load other images,
-    // we can't easily do it in a single preload() call unless we hardcode
-    // the assets or use a two-stage load.
-
-    // Let's load the known assets from the manifest directly for now
-    // to ensure they are available in the cache.
     this.load.image('Walls', 'assets/tilemaps/map/walls.png');
     this.load.image('Ground Rocks', 'assets/tilemaps/map/Ground_rocks.png');
     this.load.image('Water Coasts', 'assets/tilemaps/map/water_coasts.png');
@@ -57,6 +51,31 @@ export class AssetPreloader extends Phaser.Scene {
         }
     } catch (e) {
         console.error('Error loading music instruments:', e);
+    }
+
+    // Initialize Enemy Atlas and load its textures
+    const atlas = EnemyAtlas.getInstance(this);
+
+    // Use the JSON already loaded by this.load.json in preload()
+    const atlasData = this.cache.json.get('enemies-atlas');
+    if (atlasData) {
+      // Inject the data directly into the atlas instance
+      (atlas as any).data = atlasData;
+
+      // Now load the actual texture files
+      atlas.loadTextures(this);
+
+      // Because we are in create(), we must manually start the loader and wait
+      await new Promise((resolve) => {
+        this.load.once('complete', resolve);
+        this.load.start();
+      });
+      console.log('[AssetPreloader] Enemy textures loaded');
+
+      // Create the animations after textures are loaded
+      atlas.createAnimations(this);
+    } else {
+      console.error('[AssetPreloader] enemies-atlas JSON not found in cache!');
     }
 
     console.log('All assets and instruments ready');

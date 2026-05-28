@@ -4,6 +4,7 @@ import { GymScene } from './scenes/GymScene';
 import { MainMenuScene } from './scenes/MainMenuScene';
 import { RoomEditorScene } from './scenes/RoomEditorScene';
 import { PlaytestScene } from './scenes/PlaytestScene';
+import { EnemyEditorScene } from './scenes/EnemyEditorScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -22,7 +23,7 @@ const config: Phaser.Types.Core.GameConfig = {
     arcade: { gravity: { x: 0, y: 0 }, debug: true }
   },
   input: { keyboard: true },
-  scene: [AssetPreloader, MainMenuScene, GymScene, RoomEditorScene, PlaytestScene]
+  scene: [AssetPreloader, MainMenuScene, GymScene, RoomEditorScene, PlaytestScene, EnemyEditorScene]
 };
 
 export const DEBUG_MODE = true;
@@ -44,13 +45,13 @@ export const GYM_WAVES: WaveDefinition[] = [
   },
   {
     waveNumber: 2,
-    enemies: [{ type: 'warrior', count: 8 }, { type: 'lancer', count: 2 }],
+    enemies: [{ type: 'chain', count: 1 }],
     interval: 1500,
     cooldown: 3000
   },
   {
     waveNumber: 3,
-    enemies: [{ type: 'warrior', count: 8 }, { type: 'archer', count: 2 }, { type: 'lancer', count: 4 }],
+    enemies: [{ type: 'giant', count: 1 }],
     interval: 2000,
     cooldown: 3000
   }
@@ -58,6 +59,6 @@ export const GYM_WAVES: WaveDefinition[] = [
 
 export const GYM_ENEMY_SPAWNS = [
   { type: 'warrior', count: 1, behavior: 'persistent' },
-  { type: 'lancer', count: 0, behavior: 'persistent' },
+  { type: 'lancer', count: 0, behavior: 'limited' },
   { type: 'archer', count: 1, behavior: 'limited' }
 ];

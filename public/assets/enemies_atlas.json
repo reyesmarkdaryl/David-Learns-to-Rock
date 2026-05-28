@@ -1,0 +1,597 @@
+{
+  "basePath": "/assets/sprites/Enemies/",
+  "enemies": {
+    "types": {
+      "giant": {
+        "name": "Giant",
+        "path": "Giant/",
+        "stats": {
+          "hp": 300,
+          "speed": 60,
+          "damage": 20,
+          "attackRange": 32,
+          "behavior": "persistent",
+          "displaySize": {
+            "width": 600,
+            "height": 400
+          },
+          "attackWindupMs": 1000,
+          "aggroRange": 300,
+          "loseAggroRange": 650,
+          "knockbackResist": 0.1,
+          "xp": 100,
+          "score": 1000
+        },
+        "physics": {
+          "hitbox": {
+            "x": -16,
+            "y": -16,
+            "w": 32,
+            "h": 32
+          },
+          "bodyCircle": {
+            "radius": 16,
+            "x": 0,
+            "y": 0
+          },
+          "attackRangeCircle": {
+            "radius": 80
+          }
+        },
+        "visuals": {
+          "textureKey": "enemy_giant",
+          "frameWidth": 76,
+          "frameHeight": 50,
+          "animations": {
+            "idle": {
+              "file": "Idle.png",
+              "startFrame": 0,
+              "endFrame": 3,
+              "frameRate": 8,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "run": {
+              "file": "Run.png",
+              "startFrame": 0,
+              "endFrame": 7,
+              "frameRate": 10,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "attack": {
+              "file": "Attack.png",
+              "startFrame": 0,
+              "endFrame": 15,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "death": {
+              "file": "Death.png",
+              "startFrame": 0,
+              "endFrame": 4,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            }
+          }
+        }
+      },
+      "shadow_boss": {
+        "name": "Shadow Boss",
+        "path": "Shadow_Boss/",
+        "stats": {
+          "hp": 2000,
+          "speed": 80,
+          "damage": 30,
+          "attackRange": 120,
+          "behavior": "persistent",
+          "displaySize": {
+            "width": 768,
+            "height": 768
+          },
+          "attackWindupMs": 600,
+          "aggroRange": 600,
+          "loseAggroRange": 1000,
+          "knockbackResist": 1,
+          "xp": 500,
+          "score": 5000
+        },
+        "physics": {
+          "hitbox": {
+            "x": -50,
+            "y": -50,
+            "w": 100,
+            "h": 100
+          },
+          "bodyCircle": {
+            "radius": 128,
+            "x": 64,
+            "y": 64
+          },
+          "attackRangeCircle": {
+            "radius": 120
+          }
+        },
+        "visuals": {
+          "textureKey": "enemy_shadow_boss",
+          "frameWidth": 87,
+          "frameHeight": 87,
+          "animations": {
+            "idle": {
+              "file": "Idle.png",
+              "startFrame": 0,
+              "endFrame": 13,
+              "frameRate": 8,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "run": {
+              "file": "Run.png",
+              "startFrame": 0,
+              "endFrame": 13,
+              "frameRate": 10,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "attack1": {
+              "file": "Attack 1.png",
+              "startFrame": 0,
+              "endFrame": 5,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "attack2": {
+              "file": "Attack 1.png",
+              "startFrame": 5,
+              "endFrame": 9,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "attack3": {
+              "frames": [
+                "new/Pre-Attack 3.png",
+                "new/mid-Attack 3.png",
+                "new/end-Attack 3.png"
+              ],
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "hit": {
+              "file": "new/hit.png",
+              "startFrame": 0,
+              "endFrame": 0,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "death": {
+              "file": "new/death.png",
+              "startFrame": 0,
+              "endFrame": 12,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            }
+          }
+        }
+      },
+      "archer": {
+        "name": "Archer",
+        "path": "Archer/",
+        "stats": {
+          "hp": 80,
+          "speed": 50,
+          "damage": 12,
+          "attackRange": 300,
+          "behavior": "limited",
+          "displaySize": {
+            "width": 192,
+            "height": 192
+          },
+          "attackWindupMs": 700,
+          "aggroRange": 350,
+          "loseAggroRange": 650,
+          "knockbackResist": 0.2,
+          "xp": 30,
+          "score": 220
+        },
+        "physics": {
+          "hitbox": {
+            "x": -12,
+            "y": -18,
+            "w": 24,
+            "h": 36
+          },
+          "bodyCircle": {
+            "radius": 32,
+            "x": 0,
+            "y": 0
+          },
+          "attackRangeCircle": {
+            "radius": 300
+          }
+        },
+        "visuals": {
+          "textureKey": "archer",
+          "frameWidth": 192,
+          "frameHeight": 192,
+          "animations": {
+            "idle": {
+              "file": "Archer_Idle.png",
+              "startFrame": 0,
+              "endFrame": 4,
+              "frameRate": 7,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "run": {
+              "file": "Archer_Run.png",
+              "startFrame": 0,
+              "endFrame": 12,
+              "frameRate": 11,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "shoot": {
+              "file": "Archer_Shoot.png",
+              "startFrame": 0,
+              "endFrame": 0,
+              "frameRate": 13,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "hit": {
+              "file": "Archer_Idle.png",
+              "startFrame": 0,
+              "endFrame": 0,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "death": {
+              "file": "Archer_Idle.png",
+              "startFrame": 0,
+              "endFrame": 0,
+              "frameRate": 9,
+              "repeat": 0,
+              "yoyo": false
+            }
+          }
+        }
+      },
+      "lancer": {
+        "name": "Lancer",
+        "path": "Lancer/",
+        "stats": {
+          "hp": 140,
+          "speed": 45,
+          "damage": 15,
+          "attackRange": 70,
+          "behavior": "persistent",
+          "displaySize": {
+            "width": 192,
+            "height": 192
+          },
+          "attackWindupMs": 500,
+          "aggroRange": 200,
+          "loseAggroRange": 650,
+          "knockbackResist": 0.3,
+          "xp": 40,
+          "score": 300
+        },
+        "physics": {
+          "hitbox": {
+            "x": -14,
+            "y": -14,
+            "w": 28,
+            "h": 28
+          },
+          "bodyCircle": {
+            "radius": 32,
+            "x": 0,
+            "y": 0
+          },
+          "attackRangeCircle": {
+            "radius": 70
+          }
+        },
+        "visuals": {
+          "textureKey": "lancer",
+          "frameWidth": 320,
+          "frameHeight": 320,
+          "animations": {
+            "idle": {
+              "file": "Lancer_Idle.png",
+              "startFrame": 0,
+              "endFrame": 5,
+              "frameRate": 6,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "run": {
+              "file": "Lancer_Run.png",
+              "startFrame": 0,
+              "endFrame": 13,
+              "frameRate": 9,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "attack_right": {
+              "file": "Lancer_Right_Attack.png",
+              "startFrame": 0,
+              "endFrame": 0,
+              "frameRate": 11,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "attack_downright": {
+              "file": "Lancer_DownRight_Attack.png",
+              "startFrame": 0,
+              "endFrame": 0,
+              "frameRate": 11,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "attack_down": {
+              "file": "Lancer_Down_Attack.png",
+              "startFrame": 0,
+              "endFrame": 0,
+              "frameRate": 11,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "attack_upright": {
+              "file": "Lancer_UpRight_Attack.png",
+              "startFrame": 0,
+              "endFrame": 0,
+              "frameRate": 11,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "attack_up": {
+              "file": "Lancer_Up_Attack.png",
+              "startFrame": 0,
+              "endFrame": 0,
+              "frameRate": 11,
+              "repeat": 0,
+              "yoyo": false
+            }
+          }
+        }
+      },
+      "harvester": {
+        "name": "Harvester",
+        "path": "Harvester/",
+        "stats": {
+          "hp": 140,
+          "speed": 100,
+          "damage": 12,
+          "attackRange": 60,
+          "behavior": "persistent",
+          "displaySize": {
+            "width": 160,
+            "height": 64
+          },
+          "attackWindupMs": 600,
+          "aggroRange": 200,
+          "loseAggroRange": 650,
+          "knockbackResist": 0.2,
+          "xp": 40,
+          "score": 300
+        },
+        "physics": {
+          "hitbox": {
+            "x": -16,
+            "y": -16,
+            "w": 32,
+            "h": 32
+          },
+          "bodyCircle": {
+            "radius": 16,
+            "x": 25,
+            "y": 0
+          },
+          "attackRangeCircle": {
+            "radius": 60
+          }
+        },
+        "visuals": {
+          "textureKey": "enemy_harvester",
+          "frameWidth": 80,
+          "frameHeight": 32,
+          "animations": {
+            "idle": {
+              "file": "Idle.png",
+              "startFrame": 0,
+              "endFrame": 13,
+              "frameRate": 8,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "run": {
+              "file": "Run.png",
+              "startFrame": 0,
+              "endFrame": 12,
+              "frameRate": 8,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "attack": {
+              "file": "Attack.png",
+              "startFrame": 0,
+              "endFrame": 6,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "death": {
+              "file": "Death.png",
+              "startFrame": 0,
+              "endFrame": 18,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            }
+          }
+        }
+      },
+      "chain": {
+        "name": "Chain",
+        "path": "Chain/",
+        "stats": {
+          "hp": 60,
+          "speed": 140,
+          "damage": 5,
+          "attackRange": 50,
+          "behavior": "persistent",
+          "displaySize": {
+            "width": 128,
+            "height": 128
+          },
+          "attackWindupMs": 400,
+          "aggroRange": 200,
+          "loseAggroRange": 650,
+          "knockbackResist": 0.1,
+          "xp": 20,
+          "score": 150
+        },
+        "physics": {
+          "hitbox": {
+            "x": -16,
+            "y": -16,
+            "w": 32,
+            "h": 32
+          },
+          "bodyCircle": {
+            "radius": 26,
+            "x": 29,
+            "y": 7
+          },
+          "attackRangeCircle": {
+            "radius": 50
+          }
+        },
+        "visuals": {
+          "textureKey": "enemy_chain",
+          "frameWidth": 110,
+          "frameHeight": 64,
+          "animations": {
+            "idle": {
+              "file": "Idle.png",
+              "startFrame": 0,
+              "endFrame": 4,
+              "frameRate": 8,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "run": {
+              "file": "Run.png",
+              "startFrame": 0,
+              "endFrame": 7,
+              "frameRate": 10,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "attack": {
+              "file": "Attack.png",
+              "startFrame": 0,
+              "endFrame": 3,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "death": {
+              "file": "Death.png",
+              "startFrame": 0,
+              "endFrame": 4,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            }
+          }
+        }
+      },
+      "sword": {
+        "name": "Sword",
+        "path": "Sword/",
+        "stats": {
+          "hp": 120,
+          "speed": 110,
+          "damage": 15,
+          "attackRange": 50,
+          "behavior": "persistent",
+          "displaySize": {
+            "width": 128,
+            "height": 128
+          },
+          "attackWindupMs": 500,
+          "aggroRange": 200,
+          "loseAggroRange": 650,
+          "knockbackResist": 0.2,
+          "xp": 40,
+          "score": 300
+        },
+        "physics": {
+          "hitbox": {
+            "x": -16,
+            "y": -16,
+            "w": 32,
+            "h": 32
+          },
+          "bodyCircle": {
+            "radius": 16,
+            "x": 16,
+            "y": 16
+          },
+          "attackRangeCircle": {
+            "radius": 50
+          }
+        },
+        "visuals": {
+          "textureKey": "enemy_sword",
+          "frameWidth": 64,
+          "frameHeight": 64,
+          "animations": {
+            "idle": {
+              "file": "Idle.png",
+              "startFrame": 0,
+              "endFrame": 6,
+              "frameRate": 6,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "run": {
+              "file": "Run.png",
+              "startFrame": 0,
+              "endFrame": 3,
+              "frameRate": 6,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "attack": {
+              "file": "Attack.png",
+              "startFrame": 0,
+              "endFrame": 7,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "death": {
+              "file": "Death.png",
+              "startFrame": 0,
+              "endFrame": 10,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            }
+          }
+        }
+      }
+    }
+  }
+}
