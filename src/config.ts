@@ -39,7 +39,7 @@ export interface WaveDefinition {
 export const GYM_WAVES: WaveDefinition[] = [
   {
     waveNumber: 1,
-    enemies: [{ type: 'harvester', count: 1 }],
+    enemies: [{ type: 'knight_boss', count: 1 }],
     interval: 1000,
     cooldown: 3000
   },

@@ -8,6 +8,8 @@ import { GiantEnemy } from '../entities/enemies/GiantEnemy';
 import { HarvesterEnemy } from '../entities/enemies/HarvesterEnemy';
 import { SwordEnemy } from '../entities/enemies/SwordEnemy';
 import { ShadowBossEnemy } from '../entities/enemies/ShadowBossEnemy';
+import { SickleEnemy } from '../entities/enemies/SickleEnemy';
+import { KnightBossEnemy } from '../entities/enemies/KnightBossEnemy';
 
 export class SpawnManager {
   constructor(
@@ -18,7 +20,7 @@ export class SpawnManager {
   /**
    * Spawns enemies based on the RoomData spawn points.
    */
-  public spawnRoomEnemies(roomData: RoomData, enemyType: 'warrior' | 'lancer' | 'archer' | 'chain' | 'giant' | 'harvester' | 'sword' | 'shadow_boss', count: number = 1) {
+  public spawnRoomEnemies(roomData: RoomData, enemyType: 'warrior' | 'lancer' | 'archer' | 'chain' | 'giant' | 'harvester' | 'sword' | 'shadow_boss' | 'sickle' | 'knight_boss', count: number = 1) {
     if (roomData.enemySpawns.length === 0) return;
 
     for (let i = 0; i < count; i++) {
@@ -51,6 +53,12 @@ export class SpawnManager {
           break;
         case 'shadow_boss':
           enemy = new ShadowBossEnemy(this.scene, x, y);
+          break;
+        case 'sickle':
+          enemy = new SickleEnemy(this.scene, x, y);
+          break;
+        case 'knight_boss':
+          enemy = new KnightBossEnemy(this.scene, x, y);
           break;
         default:
           enemy = new Enemy(this.scene, x, y);

@@ -375,6 +375,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         // If everything fails, we still call play() because the user reported
         // that .play() works even when exists(key) says it doesn't.
         this.play(key, ignoreIfPlaying);
+        //console.warn(`[Enemy] Animation ${key} not found and no suitable fallback available.`);
       }
       return;
     }

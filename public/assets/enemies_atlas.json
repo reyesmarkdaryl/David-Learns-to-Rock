@@ -9,11 +9,11 @@
           "hp": 300,
           "speed": 60,
           "damage": 20,
-          "attackRange": 32,
+          "attackRange": 100,
           "behavior": "persistent",
           "displaySize": {
-            "width": 600,
-            "height": 400
+            "width": 300,
+            "height": 200
           },
           "attackWindupMs": 1000,
           "aggroRange": 300,
@@ -31,8 +31,8 @@
           },
           "bodyCircle": {
             "radius": 16,
-            "x": 0,
-            "y": 0
+            "x": 24,
+            "y": 8
           },
           "attackRangeCircle": {
             "radius": 80
@@ -80,7 +80,7 @@
       },
       "shadow_boss": {
         "name": "Shadow Boss",
-        "path": "Shadow_Boss/",
+        "path": "Shadow Boss/",
         "stats": {
           "hp": 2000,
           "speed": 80,
@@ -516,14 +516,14 @@
           }
         }
       },
-      "sword": {
-        "name": "Sword",
-        "path": "Sword/",
+      "sickle": {
+        "name": "Sickle",
+        "path": "Sickle/",
         "stats": {
-          "hp": 120,
-          "speed": 110,
-          "damage": 15,
-          "attackRange": 50,
+          "hp": 100,
+          "speed": 120,
+          "damage": 10,
+          "attackRange": 60,
           "behavior": "persistent",
           "displaySize": {
             "width": 128,
@@ -533,8 +533,8 @@
           "aggroRange": 200,
           "loseAggroRange": 650,
           "knockbackResist": 0.2,
-          "xp": 40,
-          "score": 300
+          "xp": 30,
+          "score": 200
         },
         "physics": {
           "hitbox": {
@@ -549,42 +549,166 @@
             "y": 16
           },
           "attackRangeCircle": {
-            "radius": 50
+            "radius": 60
           }
         },
         "visuals": {
-          "textureKey": "enemy_sword",
+          "textureKey": "enemy_sickle",
           "frameWidth": 64,
           "frameHeight": 64,
           "animations": {
             "idle": {
               "file": "Idle.png",
               "startFrame": 0,
-              "endFrame": 6,
-              "frameRate": 6,
+              "endFrame": 4,
+              "frameRate": 8,
               "repeat": -1,
               "yoyo": false
             },
             "run": {
               "file": "Run.png",
               "startFrame": 0,
-              "endFrame": 3,
-              "frameRate": 6,
+              "endFrame": 6,
+              "frameRate": 10,
               "repeat": -1,
               "yoyo": false
             },
             "attack": {
               "file": "Attack.png",
               "startFrame": 0,
-              "endFrame": 7,
+              "endFrame": 5,
               "frameRate": 12,
               "repeat": 0,
+              "yoyo": false
+            }
+          }
+        }
+      },
+      "knight_boss": {
+        "name": "Knight Boss",
+        "path": "Knight Boss/",
+        "stats": {
+          "hp": 3000,
+          "speed": 70,
+          "damage": 40,
+          "attackRange": 150,
+          "behavior": "persistent",
+          "displaySize": {
+            "width": 288,
+            "height": 270
+          },
+          "attackWindupMs": 800,
+          "aggroRange": 600,
+          "loseAggroRange": 1000,
+          "knockbackResist": 0.8,
+          "xp": 1000,
+          "score": 10000
+        },
+        "physics": {
+          "hitbox": {
+            "x": -40,
+            "y": -40,
+            "w": 80,
+            "h": 80
+          },
+          "bodyCircle": {
+            "radius": 16,
+            "x": 32,
+            "y": 32
+          },
+          "attackRangeCircle": {
+            "radius": 150
+          }
+        },
+        "visuals": {
+          "textureKey": "enemy_knight_boss",
+          "frameWidth": 96,
+          "frameHeight": 90,
+          "animations": {
+            "idle": {
+              "file": "Idle.png",
+              "startFrame": 0,
+              "endFrame": 8,
+              "frameRate": 8,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "run": {
+              "file": "Run.png",
+              "startFrame": 0,
+              "endFrame": 8,
+              "frameRate": 10,
+              "repeat": -1,
+              "yoyo": false
+            },
+            "attack 1": {
+              "file": "Attack.png",
+              "startFrame": 0,
+              "endFrame": 5,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "attack 2": {
+              "file": "Attack.png",
+              "startFrame": 6,
+              "endFrame": 11,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "attack 3": {
+              "file": "Attack.png",
+              "startFrame": 12,
+              "endFrame": 20,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "block": {
+              "file": "Block.png",
+              "startFrame": 0,
+              "endFrame": 2,
+              "frameRate": 8,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "jump_smash": {
+              "file": "JumpSmashAttack.png",
+              "startFrame": 0,
+              "endFrame": 12,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "sky_attack": {
+              "file": "SkyAttack.png",
+              "startFrame": 0,
+              "endFrame": 10,
+              "frameRate": 12,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "sit_down": {
+              "file": "SitDown.png",
+              "startFrame": 0,
+              "endFrame": 4,
+              "frameRate": 10,
+              "repeat": 0,
+              "yoyo": false
+            },
+            "sit_idle": {
+              "file": "SitIdle.png",
+              "startFrame": 0,
+              "endFrame": 6,
+              "frameRate": 8,
+              "repeat": -1,
               "yoyo": false
             },
             "death": {
               "file": "Death.png",
               "startFrame": 0,
-              "endFrame": 10,
+              "endFrame": 12,
               "frameRate": 12,
               "repeat": 0,
               "yoyo": false
