@@ -52,7 +52,7 @@ export class Archer extends Enemy {
       }
 
       this.isAttacking = true;
-      this.play('enemy_archer_attack_anim', true);
+      this.play(this.getAttackAnimation(), true);
 
       this.scene.time.delayedCall(700, () => {
         if (this.scene) {

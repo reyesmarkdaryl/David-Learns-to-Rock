@@ -16,10 +16,13 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   private healthBar!: Phaser.GameObjects.Rectangle;
   private healthBarBg!: Phaser.GameObjects.Rectangle;
   protected attackCooldown: number = 0;
-  protected readonly ATTACK_COOLDOWN_MS = 1000;
+  protected attackCooldownMs: number = 1000;
+  protected isStunnable: boolean = true;
   protected isAttacking: boolean = false;
   protected attackWindupMs: number = 400; // Default windup time before damage is dealt
   protected attackTimer?: Phaser.Time.TimerEvent;
+  private projectileGroup?: Phaser.Physics.Arcade.Group;
+
 
   private __wanderTimer: number = 0;
   private __wanderAngle: number = 0;
@@ -58,6 +61,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     this.applyConfig(config);
 
+    const gameScene = scene as any;
+    if (gameScene.projectiles) {
+      this.projectileGroup = gameScene.projectiles;
+    }
+
     this.setCollideWorldBounds(true);
     this.setLighting(true);
 
@@ -87,6 +95,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.attackRange = stats.attackRange;
     this.behavior = stats.behavior;
     this.attackWindupMs = stats.attackWindupMs;
+    this.attackCooldownMs = stats.attackCooldownMs;
+    this.isStunnable = stats.isStunnable;
     this.aggroRange = stats.aggroRange;
     this.loseAggroRange = stats.loseAggroRange;
 
@@ -123,12 +133,34 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.healthBar.setDepth(this.depth + 2);
   }
 
+  private lastLoggedFrame: number = -1;
+
   update(heroOrTarget: any, time: number, flowField?: any): void {
     if (this.isDead()) {
       if (this.body) this.setVelocity(0);
       this.handleAnimation('idle');
       this.updateHealthBar();
       return;
+    }
+
+    // HEARTBEAT DEBUG: Verify update loop is running
+    //console.log(`[Enemy Heartbeat] ${this.lastKnownConfigKey} updating...`);
+
+    // Log frame changes for debugging animation ranges
+    if (this.anims && this.anims.currentAnim) {
+      const currentAnim = this.anims.currentAnim;
+      let currentFrame = -1;
+
+      if (typeof this.frame === 'number') {
+        currentFrame = this.frame;
+      } else if (this.frame && typeof (this.frame as any).index === 'number') {
+        currentFrame = (this.frame as any).index;
+      }
+
+      if (currentFrame !== -1 && currentFrame !== this.lastLoggedFrame) {
+        console.log(`[Anim Debug] ${this.baseTextureKey} | Anim: ${currentAnim.key} | Frame: ${currentFrame}`);
+        this.lastLoggedFrame = currentFrame;
+      }
     }
 
     // === AGGRO LOGIC ===
@@ -371,14 +403,18 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       const fallbackKey = key.includes('_') ? 'enemy_idle_anim' : key;
       if (this.anims && this.anims.exists(fallbackKey)) {
         this.play(fallbackKey, ignoreIfPlaying);
+        console.log("THIS WAS CALLED");
       } else {
         // If everything fails, we still call play() because the user reported
         // that .play() works even when exists(key) says it doesn't.
         this.play(key, ignoreIfPlaying);
+        console.log("THIS WAS CALLED TOO");
         //console.warn(`[Enemy] Animation ${key} not found and no suitable fallback available.`);
       }
       return;
     }
+
+    console.log("THIS WAS CALLED INSTEAD");
 
     this.play(key, ignoreIfPlaying);
   }
@@ -391,7 +427,23 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   protected getAttackAnimation(): string {
-    return `${this.baseTextureKey}_attack_anim`;
+    const atlas = EnemyAtlas.getInstance(this.scene as Phaser.Scene);
+    const config = atlas.getConfig(this.lastKnownConfigKey);
+
+    if (!config) {
+      return `${this.baseTextureKey}_attack_anim`;
+    }
+
+    const attackAnims = Object.keys(config.visuals.animations).filter(key =>
+      config.visuals.animations[key].damageType
+    );
+
+    if (attackAnims.length === 0) {
+      return `${this.baseTextureKey}_attack_anim`;
+    }
+
+    const randomAnim = attackAnims[Math.floor(Math.random() * attackAnims.length)];
+    return `${this.baseTextureKey}_${randomAnim}_anim`;
   }
 
   protected performAttack(hero: Hero, time: number) {
@@ -404,22 +456,99 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.isAttacking = true;
 
     const animKey = this.getAttackAnimation();
+    console.log(`[Combat Debug] Playing attack animation: ${animKey}`);
     this.play(animKey, true);
 
     this.attackTimer = this.scene.time.delayedCall(this.attackWindupMs, () => {
       const dist = Phaser.Math.Distance.Between(this.x, this.y, hero.x, hero.y);
 
-      if (dist <= this.attackRange * 1.2) {
-        if (hero.takeDamage) {
+      // Resolve damage type from the active attack animation
+      const atlas = EnemyAtlas.getInstance(this.scene as Phaser.Scene);
+      const config = atlas.getConfig(this.lastKnownConfigKey);
+      const animKey = this.getAttackAnimation().replace('_anim', '');
+      const animConfig = config?.visuals.animations[animKey];
+      const currentDamageType = animConfig?.damageType || 'melee';
+
+      let hit = false;
+
+      if (currentDamageType === 'melee') {
+        const isInFront = this.flipX ? (hero.x < this.x + 20) : (hero.x > this.x - 20);
+        if (dist <= this.attackRange * 1.2 && isInFront) {
+          hit = true;
+        }
+      } else if (currentDamageType === 'aoe') {
+        if (dist <= this.attackRange * 1.2) {
+          hit = true;
+        }
+      } else if (currentDamageType === 'projectile') {
+        this.fireProjectile(hero);
+        hit = true;
+      } else if (currentDamageType === 'range_aoe') {
+        this.fireRangeAOE(hero);
+        hit = true;
+      }
+
+      if (hit) {
+        if ((currentDamageType === 'melee' || currentDamageType === 'aoe') && hero.takeDamage) {
           hero.takeDamage(this.damage);
-          console.log(`[Combat Debug] Timer Attack Hit! Damage: ${this.damage}`);
+          console.log(`[Combat Debug] ${currentDamageType} Attack Hit! Damage: ${this.damage}`);
+        } else if (currentDamageType === 'projectile' || currentDamageType === 'range_aoe') {
+          console.log(`[Combat Debug] ${currentDamageType} Attack Triggered!`);
         }
       } else {
-        console.log(`[Combat Debug] Timer Attack Missed: ${Math.round(dist)}px`);
+        console.log(`[Combat Debug] ${currentDamageType} Attack Missed: ${Math.round(dist)}px`);
       }
 
       this.isAttacking = false;
-      this.attackCooldown = time + this.ATTACK_COOLDOWN_MS;
+      const variance = (Math.random() - 0.5) * (this.attackCooldownMs * 0.2);
+      this.attackCooldown = time + this.attackCooldownMs + variance;
+    });
+  }
+
+  private fireProjectile(target: any) {
+    if (!this.projectileGroup) return;
+    const projectile = this.projectileGroup.get();
+    if (projectile) {
+      if ((projectile as any).reset) {
+        projectile.reset();
+      } else {
+        projectile.setTexture('projectile_arrow');
+        projectile.setActive(true).setVisible(true);
+      }
+      projectile.setPosition(this.x, this.y);
+
+      const body = projectile.body as Phaser.Physics.Arcade.Body;
+      if (body) {
+        const angle = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
+        body.setVelocity(Math.cos(angle) * 300, Math.sin(angle) * 300);
+        projectile.setRotation(angle);
+      }
+
+      (projectile as any).damage = this.damage;
+      (projectile as any).team = 'enemy';
+    }
+  }
+
+  private fireRangeAOE(target: any) {
+    const effect = this.scene.add.sprite(target.x, target.y, 'glow');
+    effect.setScale(0.5);
+
+    this.scene.tweens.add({
+      targets: effect,
+      scale: 3,
+      alpha: 0,
+      duration: 500,
+      onComplete: () => effect.destroy()
+    });
+
+    const aoeRadius = this.attackRange * 0.5;
+    (this.scene as any).enemies.getChildren().forEach((member: any) => {
+      if (member.team === 'hero') {
+        const dist = Phaser.Math.Distance.Between(target.x, target.y, member.x, member.y);
+        if (dist <= aoeRadius && member.takeDamage) {
+          member.takeDamage(this.damage);
+        }
+      }
     });
   }
 
@@ -436,6 +565,16 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   takeDamage(amount: number): void {
     this.hp -= amount;
+
+    if (this.isStunnable && this.isAttacking) {
+      if (this.attackTimer) {
+        this.attackTimer.destroy();
+        this.attackTimer = undefined;
+      }
+      this.isAttacking = false;
+      console.log(`[Combat Debug] ${this.lastKnownConfigKey} stunned! Attack interrupted.`);
+    }
+
     this.setTint(0xff0000);
     if (this.scene && this.scene.time) {
       this.scene.time.delayedCall(100, () => {

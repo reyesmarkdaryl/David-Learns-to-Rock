@@ -1,5 +1,7 @@
 import * as Phaser from 'phaser';
 
+export type DamageType = 'melee' | 'aoe' | 'projectile' | 'range_aoe';
+
 export interface EnemyAnimation {
   file: string;
   startFrame: number;
@@ -7,6 +9,7 @@ export interface EnemyAnimation {
   frameRate: number;
   repeat: number;
   yoyo: boolean;
+  damageType?: DamageType;
 }
 
 export interface EnemyVisuals {
@@ -30,6 +33,8 @@ export interface EnemyStats {
   behavior: 'persistent' | 'limited';
   displaySize: { width: number; height: number };
   attackWindupMs: number;
+  attackCooldownMs: number;
+  isStunnable: boolean;
   aggroRange: number;
   loseAggroRange: number;
   knockbackResist: number;
@@ -93,12 +98,17 @@ export class EnemyAtlas {
       const visuals = config.visuals;
       if (!visuals) return;
 
-      Object.entries(visuals.animations).forEach(([animKey, animConfig]: [string, any]) => {
-        const textureKey = `${visuals.textureKey}_${animKey}`;
-        const fileName = typeof animConfig === 'string' ? animConfig : animConfig.file;
+      const loadedFiles = new Set<string>();
 
+      Object.entries(visuals.animations).forEach(([animKey, animConfig]: [string, any]) => {
+        const fileName = typeof animConfig === 'string' ? animConfig : animConfig.file;
         if (!fileName) return;
 
+        if (loadedFiles.has(fileName)) return;
+        loadedFiles.add(fileName);
+
+        // Texture key is based on the file name to avoid duplicating the same file as different textures
+        const textureKey = `${visuals.textureKey}_${fileName.split('.')[0].replace(/\s+/g, '_').toLowerCase()}`;
         const path = `${basePath}${config.path}${fileName}`;
 
         scene.load.spritesheet(textureKey, path, {
@@ -122,36 +132,42 @@ export class EnemyAtlas {
       if (!visuals) return;
 
       Object.entries(visuals.animations).forEach(([animKey, animConfig]: [string, any]) => {
-        const textureKey = `${visuals.textureKey}_${animKey}`;
+        const fileName = typeof animConfig === 'string' ? animConfig : animConfig.file;
+        if (!fileName) return;
+
+        const textureKey = `${visuals.textureKey}_${fileName.split('.')[0].replace(/\s+/g, '_').toLowerCase()}`;
         const fullAnimKey = `${visuals.textureKey}_${animKey}_anim`;
 
-        // CRITICAL: Only create the animation if the texture was actually loaded.
         if (!scene.textures.get(textureKey)) {
           return;
         }
 
-        if (!scene.anims.exists(fullAnimKey)) {
-          let frames: any;
-          if (animConfig.frames && Array.isArray(animConfig.frames)) {
-            // Fallback for multi-file paths: convert to index 0 to avoid crash
-            frames = animConfig.frames.map((f: any) => typeof f === 'number' ? f : 0);
-          } else {
-            const start = animConfig.startFrame ?? 0;
-            const end = animConfig.endFrame ?? 0;
-            frames = scene.anims.generateFrameNumbers(textureKey, start, end);
-          }
-
-          scene.anims.create({
-            key: fullAnimKey,
-            frames: frames,
-            frameRate: animConfig.frameRate ?? 8,
-            repeat: animConfig.repeat ?? 0,
-            yoyo: animConfig.yoyo ?? false,
-          });
+        // Always remove and recreate animations to ensure that changes in the atlas
+        // (like startFrame/endFrame) are reflected immediately, especially in the Editor.
+        if (scene.anims.exists(fullAnimKey)) {
+          scene.anims.remove(fullAnimKey);
         }
+
+        let frames: any;
+        if (animConfig.frames && Array.isArray(animConfig.frames)) {
+          frames = animConfig.frames.map((f: any) => typeof f === 'number' ? f : 0);
+        } else {
+          const start = animConfig.startFrame ?? 0;
+          const end = animConfig.endFrame ?? 0;
+          frames = scene.anims.generateFrameNumbers(textureKey, start, end);
+          console.log(`[EnemyAtlas] Creating animation ${fullAnimKey}: frames ${start} to ${end} (Texture: ${textureKey})`);
+        }
+
+        scene.anims.create({
+          key: fullAnimKey,
+          frames: frames,
+          frameRate: animConfig.frameRate ?? 8,
+          repeat: animConfig.repeat ?? 0,
+          yoyo: animConfig.yoyo ?? false,
+        });
       });
     });
-    console.log('[EnemyAtlas] All enemy animations created using generateFrameNumbers');
+    console.log('[EnemyAtlas] All enemy animations refreshed');
   }
 
   public getConfig(key: string): EnemyConfig | undefined {

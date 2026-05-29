@@ -11,6 +11,8 @@
           "damage": 20,
           "attackRange": 100,
           "behavior": "persistent",
+          "attackCooldownMs": 2500,
+          "isStunnable": false,
           "displaySize": {
             "width": 300,
             "height": 200
@@ -65,7 +67,8 @@
               "endFrame": 15,
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "aoe"
             },
             "death": {
               "file": "Death.png",
@@ -87,6 +90,8 @@
           "damage": 30,
           "attackRange": 120,
           "behavior": "persistent",
+          "attackCooldownMs": 3000,
+          "isStunnable": false,
           "displaySize": {
             "width": 768,
             "height": 768
@@ -141,7 +146,8 @@
               "endFrame": 5,
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "melee"
             },
             "attack2": {
               "file": "Attack 1.png",
@@ -149,7 +155,8 @@
               "endFrame": 9,
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "melee"
             },
             "attack3": {
               "frames": [
@@ -159,7 +166,8 @@
               ],
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "range_aoe"
             },
             "hit": {
               "file": "new/hit.png",
@@ -189,6 +197,8 @@
           "damage": 12,
           "attackRange": 300,
           "behavior": "limited",
+          "attackCooldownMs": 2000,
+          "isStunnable": true,
           "displaySize": {
             "width": 192,
             "height": 192
@@ -243,7 +253,8 @@
               "endFrame": 0,
               "frameRate": 13,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "projectile"
             },
             "hit": {
               "file": "Archer_Idle.png",
@@ -273,6 +284,8 @@
           "damage": 15,
           "attackRange": 70,
           "behavior": "persistent",
+          "attackCooldownMs": 1500,
+          "isStunnable": true,
           "displaySize": {
             "width": 192,
             "height": 192
@@ -372,6 +385,8 @@
           "speed": 100,
           "damage": 12,
           "attackRange": 60,
+          "attackCooldownMs": 1200,
+          "isStunnable": true,
           "behavior": "persistent",
           "displaySize": {
             "width": 160,
@@ -427,7 +442,8 @@
               "endFrame": 6,
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "melee"
             },
             "death": {
               "file": "Death.png",
@@ -448,6 +464,8 @@
           "speed": 140,
           "damage": 5,
           "attackRange": 50,
+          "attackCooldownMs": 800,
+          "isStunnable": true,
           "behavior": "persistent",
           "displaySize": {
             "width": 128,
@@ -503,7 +521,8 @@
               "endFrame": 3,
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "melee"
             },
             "death": {
               "file": "Death.png",
@@ -524,6 +543,8 @@
           "speed": 120,
           "damage": 10,
           "attackRange": 60,
+          "attackCooldownMs": 1000,
+          "isStunnable": true,
           "behavior": "persistent",
           "displaySize": {
             "width": 128,
@@ -579,7 +600,8 @@
               "endFrame": 5,
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "melee"
             }
           }
         }
@@ -591,13 +613,15 @@
           "hp": 3000,
           "speed": 70,
           "damage": 40,
-          "attackRange": 150,
+          "attackRange": 80,
           "behavior": "persistent",
+          "attackCooldownMs": 2000,
+          "isStunnable": false,
           "displaySize": {
             "width": 288,
             "height": 270
           },
-          "attackWindupMs": 800,
+          "attackWindupMs": 100,
           "aggroRange": 600,
           "loseAggroRange": 1000,
           "knockbackResist": 0.8,
@@ -647,7 +671,8 @@
               "endFrame": 5,
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "melee"
             },
             "attack 2": {
               "file": "Attack.png",
@@ -655,7 +680,8 @@
               "endFrame": 11,
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "melee"
             },
             "attack 3": {
               "file": "Attack.png",
@@ -663,7 +689,8 @@
               "endFrame": 20,
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "range_aoe"
             },
             "block": {
               "file": "Block.png",
@@ -679,7 +706,8 @@
               "endFrame": 12,
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "aoe"
             },
             "sky_attack": {
               "file": "SkyAttack.png",
@@ -687,7 +715,8 @@
               "endFrame": 10,
               "frameRate": 12,
               "repeat": 0,
-              "yoyo": false
+              "yoyo": false,
+              "damageType": "melee"
             },
             "sit_down": {
               "file": "SitDown.png",

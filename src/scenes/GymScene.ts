@@ -1,6 +1,6 @@
 ﻿import * as Phaser from 'phaser';
 import { Hero, HeroState } from '../entities/player/Hero';
-import { Enemy } from '../entities/enemies/Enemy';
+import { EnemyAtlas } from '../systems/EnemyAtlas';
 import { Lancer } from '../entities/enemies/Lancer';
 import { Archer } from '../entities/enemies/Archer';
 import { WarriorMinion } from '../entities/player/WarriorMinion';
@@ -115,62 +115,8 @@ export class GymScene extends Phaser.Scene {
     });
 
     const enemyTeam = 'Red';
-    const enemyWarriorSprites = [
-      "Warrior_Idle.png",
-      "Warrior_Run.png",
-      "Warrior_Attack1.png",
-      "Warrior_Attack2.png",
-      "Warrior_Guard.png"
-    ];
-    const enemyBasePath = `/assets/tinysword/Units/${enemyTeam} Units/Warrior/`;
-
-    enemyWarriorSprites.forEach((sprite: string) => {
-      const key = sprite.replace('Warrior_', 'enemy_').replace('.png', '').toLowerCase();
-      this.load.spritesheet(key, `${enemyBasePath}${sprite}`, {
-        frameWidth: 192,
-        frameHeight: 192,
-        startFrame: 0,
-        endFrame: 7
-      });
-    });
-
-    const enemyArcherSprites = [
-      { file: "Archer_Idle.png", key: "archer_idle" },
-      { file: "Archer_Run.png", key: "archer_run" },
-      { file: "Archer_Shoot.png", key: "archer_attack" },
-    ];
-    const enemyArcherBasePath = `/assets/tinysword/Units/${enemyTeam} Units/Archer/`;
-
-    enemyArcherSprites.forEach((sprite) => {
-      this.load.spritesheet(sprite.key, `${enemyArcherBasePath}${sprite.file}`, {
-        frameWidth: 192,
-        frameHeight: 192,
-        startFrame: 0,
-        endFrame: 7
-      });
-    });
-
-    this.load.image('projectile_arrow', `${enemyArcherBasePath}Arrow.png`);
-
-    const enemyLancerSprites = [
-      { file: "Lancer_Idle.png", key: "lancer_idle" },
-      { file: "Lancer_Run.png", key: "lancer_run" },
-      { file: "Lancer_Right_Attack.png", key: "lancer_attack_right" },
-      { file: "Lancer_Down_Attack.png", key: "lancer_attack_down" },
-      { file: "Lancer_DownRight_Attack.png", key: "lancer_attack_downright" },
-      { file: "Lancer_UpRight_Attack.png", key: "lancer_attack_upright" },
-      { file: "Lancer_Up_Attack.png", key: "lancer_attack_up" },
-    ];
-    const enemyLancerBasePath = `/assets/tinysword/Units/${enemyTeam} Units/Lancer/`;
-
-    enemyLancerSprites.forEach((sprite) => {
-      this.load.spritesheet(sprite.key, `${enemyLancerBasePath}${sprite.file}`, {
-        frameWidth: 320,
-        frameHeight: 320,
-        startFrame: 0,
-        endFrame: 5
-      });
-    });
+    // Manual loading for base TinySwords enemies is now handled by EnemyAtlas in AssetPreloader.
+    // Only keep non-atlas specific loads if necessary.
 
     this.load.spritesheet('dust_particle', `/assets/tinysword/Particle FX/Dust_02.png`, {
       frameWidth: 64,
@@ -369,33 +315,7 @@ export class GymScene extends Phaser.Scene {
       console.error('Enemy types not found in asset-index!');
     }
 
-
-
     createAnim('dust_anim', 'dust_particle', 12, 0);
-    createAnim('enemy_run_anim', 'enemy_run', 10, -1);
-    createAnim('enemy_idle_anim', 'enemy_idle', 8, -1);
-    createAnim('enemy_attack_anim', 'enemy_attack1', 12, 0);
-    createAnim('lancer_idle_anim', 'lancer_idle_blue', 8, -1);
-    createAnim('lancer_run_anim', 'lancer_run_blue', 10, -1);
-    createAnim('archer_idle_anim', 'archer_idle_blue', 8, -1);
-    createAnim('archer_run_anim', 'archer_run_blue', 10, -1);
-    createAnim('archer_attack_anim', 'archer_attack_blue', 8, 0);
-
-    createAnim('enemy_archer_idle_anim', 'archer_idle', 8, -1);
-    createAnim('enemy_archer_run_anim', 'archer_run', 10, -1);
-    createAnim('enemy_archer_attack_anim', 'archer_attack', 8, 0);
-
-    const lancerAttackDirs = ['right', 'down', 'downright', 'upright', 'up'];
-    createAnim('enemy_lancer_idle_anim', 'lancer_idle', 8, -1);
-    createAnim('enemy_lancer_run_anim', 'lancer_run', 10, -1);
-
-    lancerAttackDirs.forEach(dir => {
-      createAnim(`enemy_lancer_attack_${dir}_anim`, `lancer_attack_${dir}`, 12, 0);
-    });
-
-    lancerAttackDirs.forEach(dir => {
-      createAnim(`lancer_attack_${dir}_anim`, `lancer_attack_${dir}_blue`, 12, 0);
-    });
 
     createAnim('special_attack_anim', 'special_attack_holy', 6, 0);
     createAnim('special_attack_slash_anim', 'special_attack_slash', 6, 0);
@@ -549,6 +469,7 @@ export class GymScene extends Phaser.Scene {
       await this.assetManager.prepareRoom(roomData);
 
       this.setupHeroAndGlobalAnimations();
+      EnemyAtlas.getInstance(this).createAnimations(this);
 
       // Build room
       const roomBuild = RoomBuilder.build(this, roomData);
@@ -580,7 +501,7 @@ export class GymScene extends Phaser.Scene {
       UpgradeSystem.applyAllUpgrades(this.hero);
       this.heroLight = this.lights.addLight(
         this.hero.x, this.hero.y,
-        200,       // radius — large enough to cover surrounding tiles
+        300,       // radius — large enough to cover surrounding tiles
         0xffffff,  // pure white restores original texture colors
         2.5        // intensity above 1.0 to fight the dark ambient
       );

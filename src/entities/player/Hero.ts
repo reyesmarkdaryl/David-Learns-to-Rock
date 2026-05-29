@@ -24,7 +24,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     hp: 100,
     maxHp: 100,
     moveSpeed: 160,
-    attackRange: 90,
+    attackRange: 60,
     attackDamage: 25,
     dashDistance: 200,
   };
@@ -62,9 +62,11 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   }
 
   update(cursors: any, time: number): void {
-    this.rangeVisual.clear();
-    this.rangeVisual.lineStyle(2, 0xffffff, 0.3);
-    this.rangeVisual.strokeCircle(this.x, this.y, this.stats.attackRange);
+    if (DEBUG_MODE) {
+      this.rangeVisual.clear();
+      this.rangeVisual.lineStyle(2, 0xffffff, 0.3);
+      this.rangeVisual.strokeCircle(this.x, this.y, this.stats.attackRange);
+    }
 
     if (this.state === HeroState.DASH) {
       if (time >= this.dashEndTime) {

@@ -17,6 +17,11 @@ We also made an Enemy Editor
 - **UI/UX Overhaul**:
   - Transitioned `GameUI` to a consistent "Dark Fantasy" theme (Void/Gold/Bone palette).
   - Polished `TrackRow`, `HeroHPBar`, and `SummonLog` visuals.
+- **Enemy Combat Overhaul**:
+  - Implemented varied attack patterns (Melee, AOE, Range Projectile, Range AOE) to prevent circular "back-stabbing" damage.
+  - Introduced data-driven attack cooldowns with $\pm$10% variance.
+  - Implemented attack interruption (stuns) for stunnable enemies when damaged.
+  - Updated `enemies_atlas.json` with per-enemy balance stats.
 
 ### 🚧 Remaining / Improvement Plan
 - **Upgrade Expansion**: Add new special attack abilities and tiered rarities as upgrade options.
