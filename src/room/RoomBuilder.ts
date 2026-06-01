@@ -42,6 +42,16 @@ export class RoomBuilder {
         frame
       ).setDisplaySize(32, 32);
 
+      if(tile.type === 'object' || tile.type === 'wall' || tile.type === 'clutter') {
+        tileImage.setDepth(tileImage.y + tileImage.displayHeight / 2);
+      } else if (tile.type === 'overhead') {
+        tileImage.setDepth(1000);
+      }
+
+      if(tile.type === 'floor') {
+        tileImage.setDepth(0);
+      }
+
       if (tile.type === 'wall') {
         walls.add(tileImage);
       }

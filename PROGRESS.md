@@ -1,4 +1,5 @@
-We also made an Enemy Editor
+We also made an Enemy Editor and currently trying to improve the Room Editor. We are trying to find a way to make the character hide behind a pillar.
+The idea I was thinking of was cutting the asset into two wherein the base of the pillar is solid while the other half is passable but the character will be hidden behind it.
 
 ## Progress Update (2026-05-24)
 

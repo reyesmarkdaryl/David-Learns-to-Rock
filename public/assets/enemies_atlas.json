@@ -96,7 +96,8 @@
             "width": 768,
             "height": 768
           },
-          "attackWindupMs": 600,
+          "attackWindupMs": 150,
+          "attackDurationMs": 400,
           "aggroRange": 600,
           "loseAggroRange": 1000,
           "knockbackResist": 1,
@@ -290,7 +291,8 @@
             "width": 192,
             "height": 192
           },
-          "attackWindupMs": 500,
+          "attackWindupMs": 150,
+          "attackDurationMs": 400,
           "aggroRange": 200,
           "loseAggroRange": 650,
           "knockbackResist": 0.3,
@@ -392,7 +394,8 @@
             "width": 160,
             "height": 64
           },
-          "attackWindupMs": 600,
+          "attackWindupMs": 150,
+          "attackDurationMs": 400,
           "aggroRange": 200,
           "loseAggroRange": 650,
           "knockbackResist": 0.2,
@@ -471,7 +474,8 @@
             "width": 128,
             "height": 128
           },
-          "attackWindupMs": 400,
+          "attackWindupMs": 150,
+          "attackDurationMs": 400,
           "aggroRange": 200,
           "loseAggroRange": 650,
           "knockbackResist": 0.1,
@@ -550,7 +554,8 @@
             "width": 128,
             "height": 128
           },
-          "attackWindupMs": 500,
+          "attackWindupMs": 150,
+          "attackDurationMs": 400,
           "aggroRange": 200,
           "loseAggroRange": 650,
           "knockbackResist": 0.2,
@@ -621,7 +626,8 @@
             "width": 288,
             "height": 270
           },
-          "attackWindupMs": 100,
+          "attackWindupMs": 150,
+          "attackDurationMs": 400,
           "aggroRange": 600,
           "loseAggroRange": 1000,
           "knockbackResist": 0.8,
@@ -630,15 +636,15 @@
         },
         "physics": {
           "hitbox": {
-            "x": -40,
-            "y": -40,
-            "w": 80,
-            "h": 80
+            "x": -15,
+            "y": -35,
+            "w": 40,
+            "h": 70
           },
           "bodyCircle": {
-            "radius": 16,
-            "x": 32,
-            "y": 32
+            "radius": 13,
+            "x": 36,
+            "y": 43
           },
           "attackRangeCircle": {
             "radius": 150
@@ -647,7 +653,7 @@
         "visuals": {
           "textureKey": "enemy_knight_boss",
           "frameWidth": 96,
-          "frameHeight": 90,
+          "frameHeight": 112,
           "animations": {
             "idle": {
               "file": "Idle.png",

@@ -26,9 +26,15 @@ export class RoomDataConverter {
         const [x, y] = key.split(',').map(Number);
 
         // Determine tile type based on layer type
-        let type: 'floor' | 'wall' = 'floor';
+        let type: 'floor' | 'wall' | 'object' | 'clutter' | 'overhead' = 'floor';
         if (layer.type === 'wall') {
           type = 'wall';
+        } else if (layer.type === 'object') {
+          type = 'object';
+        } else if (layer.type === 'clutter') {
+          type = 'clutter';
+        } else if (layer.type === 'overhead') {
+          type = 'overhead';
         }
 
         roomData.tiles.push({
@@ -85,12 +91,12 @@ export class RoomDataConverter {
         const [x, y] = key.split(',').map(Number);
         let type: 'floor' | 'wall' = layer.type === 'wall' ? 'wall' : 'floor';
 
-        // Only add to tiles array if it's an actual geometry layer (ground or wall)
-        if (layer.type === 'ground' || layer.type === 'wall') {
+        // Only add to tiles array if it's a geometry or decoration layer
+        if (['ground', 'wall', 'object', 'clutter', 'overhead'].includes(layer.type)) {
           roomData.tiles.push({
             x, y,
             tileId: tile.sheetId,
-            type,
+            type: layer.type === 'wall' ? 'wall' : (layer.type === 'object' ? 'object' : (layer.type === 'clutter' ? 'clutter' : (layer.type === 'overhead' ? 'overhead' : 'floor'))),
             col: tile.col || 0,
             row: tile.row || 0,
           });
@@ -116,6 +122,7 @@ export class RoomDataConverter {
       { id: 'l_wall', name: 'Wall', type: 'wall', visible: true, tiles: {} },
       { id: 'l_object', name: 'Objects', type: 'object', visible: true, tiles: {} },
       { id: 'l_clutter', name: 'Clutter', type: 'clutter', visible: true, tiles: {} },
+      { id: 'l_overhead', name: 'Overhead', type: 'overhead', visible: true, tiles: {} },
     ];
 
     roomData.tiles.forEach(tile => {

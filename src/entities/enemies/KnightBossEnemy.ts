@@ -6,6 +6,7 @@ export class KnightBossEnemy extends Enemy {
   private attackPhase: number = 0;
   private dashCooldown: number = 0;
   private isDashing: boolean = false;
+  private comboCooldown: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'knight_boss');
@@ -45,6 +46,55 @@ export class KnightBossEnemy extends Enemy {
       this.performAttack(target, currentTime);
 
       this.dashCooldown = currentTime + 6000; // 6 second cooldown between dashes
+    });
+  }
+
+  override performAttack(hero: Hero, time: number) {
+    if (time < this.attackCooldown) {
+      super.performAttack(hero, time);
+      return;
+    }
+
+    // 25% chance to trigger a combo attack if cooldown is over
+    if (time > this.comboCooldown && Math.random() < 0.25) {
+      const comboHits = Math.random() < 0.7 ? 2 : 3; // 70% chance for 2 hits, 30% for 3
+      console.log(`[Combat Debug] Knight Boss initiating ${comboHits}-hit combo!`);
+      this.executeCombo(hero, time, comboHits);
+      return;
+    }
+
+    super.performAttack(hero, time);
+  }
+
+  private executeCombo(hero: Hero, startTime: number, totalHits: number) {
+    this.isAttacking = true;
+    this.doComboHit(hero, startTime, 1, totalHits);
+  }
+
+  private doComboHit(hero: Hero, startTime: number, currentHit: number, totalHits: number) {
+    const animKey = this.getAttackAnimation();
+    this.play(animKey, true);
+
+    // Damage timing (windup)
+    this.scene.time.delayedCall(this.attackWindupMs, () => {
+      this.executeAttackDamage(hero);
+    });
+
+    // Recovery/Next Hit timing
+    this.scene.time.delayedCall(this.attackDurationMs, () => {
+      if (currentHit < totalHits) {
+        // Chain to next hit
+        this.doComboHit(hero, startTime, currentHit + 1, totalHits);
+      } else {
+        // Combo finished
+        this.isAttacking = false;
+        const currentTime = (this.scene as any).game?.loop?.time || startTime + (this.attackDurationMs * totalHits);
+        this.comboCooldown = currentTime + 8000; // 8s cooldown for combos
+
+        // Still apply the standard attack cooldown so they can't immediately start another attack
+        const variance = (Math.random() - 0.5) * (this.attackCooldownMs * 0.2);
+        this.attackCooldown = currentTime + this.attackCooldownMs + variance;
+      }
     });
   }
 

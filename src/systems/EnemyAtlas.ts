@@ -33,6 +33,7 @@ export interface EnemyStats {
   behavior: 'persistent' | 'limited';
   displaySize: { width: number; height: number };
   attackWindupMs: number;
+  attackDurationMs: number;
   attackCooldownMs: number;
   isStunnable: boolean;
   aggroRange: number;

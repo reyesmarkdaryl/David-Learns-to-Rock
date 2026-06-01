@@ -32,6 +32,10 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   private facingDirection: number = 0;
   private attackComboIndex: number = 0;
   private rangeVisual!: Phaser.GameObjects.Graphics;
+  private sword!: Phaser.GameObjects.Sprite;
+  private swordAngle: number = 0;
+  private swordDistance: number = 0;
+  private isSwordTweening: boolean = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'hero_tex_0');
@@ -42,7 +46,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     this.setCollideWorldBounds(true);
 
     // Physics body
-    this.body.setCircle(32, 90, 32);
+    this.body.setCircle(16, 104, 48);
 
     this.setDepth(10);
 
@@ -55,6 +59,12 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
     this.rangeVisual = scene.add.graphics();
     this.rangeVisual.setDepth(9);
+
+    // Floating Sword Initialization
+    this.sword = scene.add.sprite(this.x, this.y, 'floating_sword');
+    this.sword.setOrigin(0.5, 1); // Anchor at the handle
+    this.sword.setScale(0.4);     // Scale based on hero size
+    this.sword.setDepth(this.depth + 1);
   }
 
   private setSizing(width: number, height: number): void {
@@ -62,6 +72,41 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   }
 
   update(cursors: any, time: number): void {
+    this.setDepth(this.y + this.height / 2);
+
+    // Update Floating Sword Position and Rotation
+    if (this.state !== HeroState.ATTACK) {
+      // Gentle "fairy-like" bobbing effect
+      const bobAmplitude = 5;
+      const bobSpeed = 0.003;
+      const bobOffset = Math.sin(time * bobSpeed) * bobAmplitude;
+
+      // Position the sword slightly behind and above the hero
+      const behindOffset = this.facingDirection === 0 ? -20 : 20;
+
+      this.sword.x = this.x + behindOffset;
+      this.sword.y = this.y - 10 + bobOffset;
+
+      // Sword points slightly upwards while idling
+      this.sword.rotation = -0.2;
+    } else {
+      // During attack, the sword "flies" out to the attack range
+      if (!this.isSwordTweening) {
+        this.sword.x = this.x + Math.cos(this.swordAngle) * this.swordDistance;
+        this.sword.y = this.y + Math.sin(this.swordAngle) * this.swordDistance;
+      }
+
+      // Keep the blade pointing away from the hero
+      this.sword.rotation = this.swordAngle + Math.PI / 2;
+    }
+
+    // SMOOTH RETURN: If we are transitioning back to IDLE/WALK,
+    // the sword's position is now governed by the 'if' block above.
+    // To avoid a snap, we could tween the sword back to the hover position,
+    // but since the 'update' loop sets position every frame,
+    // we just need to ensure swordDistance and swordAngle transition smoothly.
+    this.sword.setDepth(this.depth + 1);
+
     if (DEBUG_MODE) {
       this.rangeVisual.clear();
       this.rangeVisual.lineStyle(2, 0xffffff, 0.3);
@@ -151,20 +196,81 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     this.state = HeroState.ATTACK;
 
     let attackAnim = '';
+    let startAngle = 0;
+    let endAngle = 0;
+    let duration = 150;
 
-    if (direction === 'UP') {
-      attackAnim = 'hero_idle_up_attack_anim';
-    } else if (direction === 'DOWN') {
-      attackAnim = 'hero_jump_attack_down_anim';
+    if (direction === 'UP' || direction === 'DOWN') {
+      const forwardAngle = this.facingDirection === 0 ? 0 : Math.PI;
+      attackAnim = direction === 'UP' ? 'hero_attack1_anim' : 'hero_attack1_anim';
+      startAngle = forwardAngle;
+      endAngle = forwardAngle;
+    } else if (direction === 'LEFT') {
+      attackAnim = this.attackComboIndex === 0 ? 'hero_attack1_anim' : 'hero_attack1_anim';
+      startAngle = Phaser.Math.DegToRad(120);
+      endAngle = Phaser.Math.DegToRad(-120);
+    } else if (direction === 'RIGHT') {
+      attackAnim = this.attackComboIndex === 0 ? 'hero_attack1_anim' : 'hero_attack1_anim';
+      startAngle = Phaser.Math.DegToRad(-120);
+      endAngle = Phaser.Math.DegToRad(120);
     } else {
-      attackAnim =
-        this.attackComboIndex === 0
-          ? 'hero_attack1_anim'
-          : 'hero_attack2_anim';
+      attackAnim = this.attackComboIndex === 0 ? 'hero_attack1_anim' : 'hero_attack1_anim';
+      startAngle = Phaser.Math.DegToRad(-120);
+      endAngle = Phaser.Math.DegToRad(120);
     }
 
     this.play(attackAnim);
     this.setVelocity(0);
+
+    // Procedural Sword Attack Animation
+    this.swordAngle = startAngle;
+
+    if (direction === 'UP' || direction === 'DOWN') {
+      // Thrust Attack: Tween from current world position to attack range and back
+      this.isSwordTweening = true;
+      const startX = this.sword.x;
+      const startY = this.sword.y;
+      const targetX = this.x + Math.cos(this.swordAngle) * this.stats.attackRange;
+      const targetY = this.y + Math.sin(this.swordAngle) * this.stats.attackRange;
+
+      this.scene.tweens.add({
+        targets: this.sword,
+        x: targetX,
+        y: targetY,
+        duration: duration / 2,
+        ease: 'Back.Out',
+        onComplete: () => {
+          this.scene.tweens.add({
+            targets: this.sword,
+            x: startX,
+            y: startY,
+            duration: duration / 2,
+            ease: 'Sine.In',
+            onComplete: () => {
+              this.isSwordTweening = false;
+            }
+          });
+        }
+      });
+    } else {
+      // Slash Attack: Tween angle with a constant distance
+      this.swordDistance = this.stats.attackRange * 0.6;
+      this.scene.tweens.add({
+        targets: this,
+        swordAngle: endAngle,
+        duration: duration,
+        ease: 'Sine.Out',
+        onComplete: () => {
+          // Smoothly transition swordAngle back to the hover rotation
+          this.scene.tweens.add({
+            targets: this,
+            swordAngle: -0.2 - Math.PI / 2, // Target the idle rotation angle
+            duration: 200,
+            ease: 'Sine.In'
+          });
+        }
+      });
+    }
 
     this.attackCooldown = time + this.ATTACK_COOLDOWN_MS;
     this.hitEnemies.clear();
@@ -217,6 +323,9 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   override destroy() {
     if (this.rangeVisual) {
       this.rangeVisual.destroy();
+    }
+    if (this.sword) {
+      this.sword.destroy();
     }
     super.destroy();
   }

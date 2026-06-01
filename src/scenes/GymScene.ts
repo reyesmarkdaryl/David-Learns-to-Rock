@@ -125,6 +125,7 @@ export class GymScene extends Phaser.Scene {
 
     // Global assets used across all rooms
     this.load.image('glow', '/assets/sprites/glow.png');
+    this.load.image('floating_sword', '/assets/sprites/pet/sword.png');
     this.load.spritesheet('special_attack_holy', '/assets/sfx/attacks/HolySlash_C_spritesheet.png', {
       frameWidth: 64,
       frameHeight: 64,
@@ -501,7 +502,7 @@ export class GymScene extends Phaser.Scene {
       UpgradeSystem.applyAllUpgrades(this.hero);
       this.heroLight = this.lights.addLight(
         this.hero.x, this.hero.y,
-        300,       // radius — large enough to cover surrounding tiles
+        350,       // radius — large enough to cover surrounding tiles
         0xffffff,  // pure white restores original texture colors
         2.5        // intensity above 1.0 to fight the dark ambient
       );

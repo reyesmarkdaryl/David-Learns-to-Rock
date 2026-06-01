@@ -20,6 +20,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   protected isStunnable: boolean = true;
   protected isAttacking: boolean = false;
   protected attackWindupMs: number = 400; // Default windup time before damage is dealt
+  protected attackDurationMs: number = 600; // Duration the entity stays in the attacking state
   protected attackTimer?: Phaser.Time.TimerEvent;
   private projectileGroup?: Phaser.Physics.Arcade.Group;
 
@@ -95,6 +96,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.attackRange = stats.attackRange;
     this.behavior = stats.behavior;
     this.attackWindupMs = stats.attackWindupMs;
+    this.attackDurationMs = stats.attackDurationMs ?? this.attackWindupMs + 200;
     this.attackCooldownMs = stats.attackCooldownMs;
     this.isStunnable = stats.isStunnable;
     this.aggroRange = stats.aggroRange;
@@ -460,49 +462,56 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.play(animKey, true);
 
     this.attackTimer = this.scene.time.delayedCall(this.attackWindupMs, () => {
-      const dist = Phaser.Math.Distance.Between(this.x, this.y, hero.x, hero.y);
+      this.executeAttackDamage(hero);
+    });
 
-      // Resolve damage type from the active attack animation
-      const atlas = EnemyAtlas.getInstance(this.scene as Phaser.Scene);
-      const config = atlas.getConfig(this.lastKnownConfigKey);
-      const animKey = this.getAttackAnimation().replace('_anim', '');
-      const animConfig = config?.visuals.animations[animKey];
-      const currentDamageType = animConfig?.damageType || 'melee';
-
-      let hit = false;
-
-      if (currentDamageType === 'melee') {
-        const isInFront = this.flipX ? (hero.x < this.x + 20) : (hero.x > this.x - 20);
-        if (dist <= this.attackRange * 1.2 && isInFront) {
-          hit = true;
-        }
-      } else if (currentDamageType === 'aoe') {
-        if (dist <= this.attackRange * 1.2) {
-          hit = true;
-        }
-      } else if (currentDamageType === 'projectile') {
-        this.fireProjectile(hero);
-        hit = true;
-      } else if (currentDamageType === 'range_aoe') {
-        this.fireRangeAOE(hero);
-        hit = true;
-      }
-
-      if (hit) {
-        if ((currentDamageType === 'melee' || currentDamageType === 'aoe') && hero.takeDamage) {
-          hero.takeDamage(this.damage);
-          console.log(`[Combat Debug] ${currentDamageType} Attack Hit! Damage: ${this.damage}`);
-        } else if (currentDamageType === 'projectile' || currentDamageType === 'range_aoe') {
-          console.log(`[Combat Debug] ${currentDamageType} Attack Triggered!`);
-        }
-      } else {
-        console.log(`[Combat Debug] ${currentDamageType} Attack Missed: ${Math.round(dist)}px`);
-      }
-
+    // Separately handle the end of the attack animation duration
+    this.scene.time.delayedCall(this.attackDurationMs, () => {
       this.isAttacking = false;
       const variance = (Math.random() - 0.5) * (this.attackCooldownMs * 0.2);
       this.attackCooldown = time + this.attackCooldownMs + variance;
     });
+  }
+
+  protected executeAttackDamage(hero: Hero) {
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, hero.x, hero.y);
+
+    // Resolve damage type from the active attack animation
+    const atlas = EnemyAtlas.getInstance(this.scene as Phaser.Scene);
+    const config = atlas.getConfig(this.lastKnownConfigKey);
+    const animKey = this.getAttackAnimation().replace('_anim', '');
+    const animConfig = config?.visuals.animations[animKey];
+    const currentDamageType = animConfig?.damageType || 'melee';
+
+    let hit = false;
+
+    if (currentDamageType === 'melee') {
+      const isInFront = this.flipX ? (hero.x < this.x + 20) : (hero.x > this.x - 20);
+      if (dist <= this.attackRange * 1.2 && isInFront) {
+        hit = true;
+      }
+    } else if (currentDamageType === 'aoe') {
+      if (dist <= this.attackRange * 1.2) {
+        hit = true;
+      }
+    } else if (currentDamageType === 'projectile') {
+      this.fireProjectile(hero);
+      hit = true;
+    } else if (currentDamageType === 'range_aoe') {
+      this.fireRangeAOE(hero);
+      hit = true;
+    }
+
+    if (hit) {
+      if ((currentDamageType === 'melee' || currentDamageType === 'aoe') && hero.takeDamage) {
+        hero.takeDamage(this.damage);
+        console.log(`[Combat Debug] ${currentDamageType} Attack Hit! Damage: ${this.damage}`);
+      } else if (currentDamageType === 'projectile' || currentDamageType === 'range_aoe') {
+        console.log(`[Combat Debug] ${currentDamageType} Attack Triggered!`);
+      }
+    } else {
+      console.log(`[Combat Debug] ${currentDamageType} Attack Missed: ${Math.round(dist)}px`);
+    }
   }
 
   private fireProjectile(target: any) {

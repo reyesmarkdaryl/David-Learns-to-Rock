@@ -23,9 +23,10 @@ const LAYER_COLORS: Record<string, string> = {
   enemy_spawn:'#9a3a9a',
   hero_spawn:'#23be15',
   decor:   '#3a8a8a',
+  overhead: '#a8a8a8',
 };
 
-const LAYER_TYPES = ['ground', 'wall', 'object', 'clutter', 'enemy_spawn', 'hero_spawn', 'decor'];
+const LAYER_TYPES = ['ground', 'wall', 'object', 'clutter', 'enemy_spawn', 'hero_spawn', 'decor', 'overhead'];
 
 const LayersPanel: React.FC<LayersPanelProps> = ({
   layers, activeLayerId,

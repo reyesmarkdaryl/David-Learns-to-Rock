@@ -15,7 +15,7 @@ export interface TileData {
   x: number;
   y: number;
   tileId: string;
-  type: 'floor' | 'wall';
+  type: 'floor' | 'wall' | 'object' | 'clutter' | 'overhead';
   col: number;
   row: number;
 }

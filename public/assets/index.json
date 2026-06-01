@@ -110,9 +110,9 @@
           "jump_attack_up": { "file": "7 - jump-up-attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
           "jump_attack_down": { "file": "8 - jump-down-attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
           "idle_up_attack": { "file": "9 - idle-up-attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
-          "attack1": { "file": "10 - attack 1.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 2 },
-          "attack2": { "file": "11 - attack 2.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 4 },
-          "dash_attack": { "file": "12 - dash attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 2 },
+          "attack1": { "file": "6 - dash.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
+          "attack2": { "file": "6 - dash.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
+          "dash_attack": { "file": "12 - dash attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 2 }, 
           "dash_special": { "file": "13 - special dash.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 4 },
           "hit": { "file": "14 - hit.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 },
           "death": { "file": "15 - death.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 9 }

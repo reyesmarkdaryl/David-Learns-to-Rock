@@ -20,13 +20,13 @@ const config: Phaser.Types.Core.GameConfig = {
   },
   physics: {
     default: 'arcade',
-    arcade: { gravity: { x: 0, y: 0 }, debug: true }
+    arcade: { gravity: { x: 0, y: 0 }, debug: false }
   },
   input: { keyboard: true },
   scene: [AssetPreloader, MainMenuScene, GymScene, RoomEditorScene, PlaytestScene, EnemyEditorScene]
 };
 
-export const DEBUG_MODE = true;
+export const DEBUG_MODE = false;
 export default config;
 
 export interface WaveDefinition {
