@@ -37,7 +37,7 @@ export class SpecialAttackSystem {
         const warriorAttacks = new Map<number, SpecialAttackConfig>();
         warriorAttacks.set(1, {
             type: SpecialAttackType.SLASH,
-            animationKey: 'special_attack_slash_anim',
+            animationKey: 'special_slash_anim',
             damage: 100,
             radius: 200,
             duration: 1000
@@ -48,7 +48,7 @@ export class SpecialAttackSystem {
         const lancerAttacks = new Map<number, SpecialAttackConfig>();
         lancerAttacks.set(1, {
             type: SpecialAttackType.NOVA,
-            animationKey: 'special_attack_nova_anim',
+            animationKey: 'special_nova_anim',
             damage: 150,
             radius: 250,
             duration: 1000
@@ -59,7 +59,7 @@ export class SpecialAttackSystem {
         const archerAttacks = new Map<number, SpecialAttackConfig>();
         archerAttacks.set(1, {
             type: SpecialAttackType.BOLT,
-            animationKey: 'special_attack_bolt_anim',
+            animationKey: 'special_bolt_anim',
             damage: 200,
             range: 400,
             duration: 1000

@@ -6,6 +6,8 @@ import { RoomEditorScene } from './scenes/RoomEditorScene';
 import { PlaytestScene } from './scenes/PlaytestScene';
 import { EnemyEditorScene } from './scenes/EnemyEditorScene';
 
+export const DEBUG_MODE = true;
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'playing-field-screen',
@@ -20,13 +22,13 @@ const config: Phaser.Types.Core.GameConfig = {
   },
   physics: {
     default: 'arcade',
-    arcade: { gravity: { x: 0, y: 0 }, debug: false }
+    arcade: { gravity: { x: 0, y: 0 }, debug: DEBUG_MODE }
   },
   input: { keyboard: true },
   scene: [AssetPreloader, MainMenuScene, GymScene, RoomEditorScene, PlaytestScene, EnemyEditorScene]
 };
 
-export const DEBUG_MODE = false;
+
 export default config;
 
 export interface WaveDefinition {

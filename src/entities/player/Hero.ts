@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { DEBUG_MODE } from "../../config";
 import { Enemy } from '../enemies/Enemy';
 import { RhythmSystem } from '../../systems/RhythmSystem';
+import { HeroAtlas } from '../../systems/HeroAtlas';
 
 export enum HeroState {
   IDLE = 'IDLE',
@@ -37,8 +38,12 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   private swordDistance: number = 0;
   private isSwordTweening: boolean = false;
 
+  protected baseTextureKey: string = 'hero';
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, 'hero_tex_0');
+    const idleTexture = HeroAtlas.getInstance(scene).getIdleTexture();
+    super(scene, x, y, idleTexture);
+
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -53,9 +58,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     // scale
     this.setDisplaySize(240, 128);
 
-    if (this.anims && this.anims.exists('hero_idle_anim')) {
-      this.play('hero_idle_anim');
-    }
+    this.handleAnimation('idle');
 
     this.rangeVisual = scene.add.graphics();
     this.rangeVisual.setDepth(9);
@@ -69,6 +72,34 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
   private setSizing(width: number, height: number): void {
     this.setDisplaySize(width, height);
+  }
+
+  protected handleAnimation(state: 'idle' | 'run' | 'dash'): void {
+    const animKey = `${this.baseTextureKey}_${state}_anim`;
+    if (this.anims?.currentAnim?.key !== animKey) {
+      this.playAnim(animKey);
+    }
+  }
+
+  private playAnim(key: string, ignoreIfPlaying: boolean = true): void {
+    if (!this.anims) return;
+
+    // Derive texture key from animation key (e.g., 'hero_idle_anim' -> 'hero_idle')
+    const targetTextureKey = key.replace('_anim', '');
+
+    if (this.texture?.key !== targetTextureKey) {
+      if (this.scene.textures.get(targetTextureKey)) {
+        this.setTexture(targetTextureKey);
+      } else {
+        console.warn(`[Hero] Animation ${key} requires texture ${targetTextureKey}, but it is missing from cache.`);
+      }
+    }
+
+    if (this.anims.exists(key) || this.scene.anims.exists(key)) {
+      this.play(key, ignoreIfPlaying);
+    } else {
+      console.warn(`[Hero] Animation ${key} not found!`);
+    }
   }
 
   update(cursors: any, time: number): void {
@@ -116,7 +147,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     if (this.state === HeroState.DASH) {
       if (time >= this.dashEndTime) {
         this.state = HeroState.IDLE;
-        this.play('hero_idle_anim');
+        this.handleAnimation('idle');
       }
       return;
     }
@@ -130,7 +161,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.state = HeroState.IDLE;
-        this.play('hero_idle_anim');
+        this.handleAnimation('idle');
       }
       return;
     }
@@ -146,7 +177,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     if (moveX !== 0 || moveY !== 0) {
       if (this.state !== HeroState.WALK) {
         this.state = HeroState.WALK;
-        this.play('hero_run_anim');
+        this.handleAnimation('run');
       }
 
       const angle = Math.atan2(moveY, moveX);
@@ -163,7 +194,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     } else {
       if (this.state !== HeroState.IDLE) {
         this.state = HeroState.IDLE;
-        this.play('hero_idle_anim');
+        this.handleAnimation('idle');
       }
 
       this.setVelocity(0);
@@ -183,7 +214,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
     this.setVelocity(vx, 0);
 
-    this.play('hero_dash_simple_anim');
+    this.handleAnimation('dash');
 
     this.scene.time.delayedCall(this.DASH_COOLDOWN_MS, () => {
       this.dashCooldownTimer = 0;
@@ -219,7 +250,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
       endAngle = Phaser.Math.DegToRad(120);
     }
 
-    this.play(attackAnim);
+    this.playAnim(attackAnim);
     this.setVelocity(0);
 
     // Procedural Sword Attack Animation

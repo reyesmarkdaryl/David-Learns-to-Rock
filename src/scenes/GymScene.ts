@@ -1,6 +1,7 @@
 ﻿import * as Phaser from 'phaser';
 import { Hero, HeroState } from '../entities/player/Hero';
 import { EnemyAtlas } from '../systems/EnemyAtlas';
+import { HeroAtlas } from '../systems/HeroAtlas';
 import { Lancer } from '../entities/enemies/Lancer';
 import { Archer } from '../entities/enemies/Archer';
 import { WarriorMinion } from '../entities/player/WarriorMinion';
@@ -57,27 +58,44 @@ export class GymScene extends Phaser.Scene {
 
   preload() {
     EventBus.emit('SCENE_CHANGE', 'GymScene');
+    this.load.json('hero-atlas', '/assets/hero_atlas.json');
     this.load.json('asset-index', '/assets/index.json');
     this.load.json('gym_room', '/assets/rooms/gym_room.json');
 
-    const team = 'Blue';
-
-    // Load Hero shadow separate files
-    const heroFiles = [
-      "1 - Idle.png", "2 - Run.png", "3 - jump.png", "4 - mid-air.png",
-      "5 - fall.png", "6 - dash.png", "7 - jump-up-attack.png",
-      "8 - jump-down-attack.png", "9 - idle-up-attack.png",
-      "10 - attack 1.png", "11 - attack 2.png", "12 - dash attack.png",
-      "13 - special dash.png", "14 - hit.png", "15 - death.png"
-    ];
+    // FORCE LOAD CORE HERO TEXTURES
+    // These must be queued in preload to be available in create()
     const heroBasePath = '/assets/sprites/shadow/';
-    heroFiles.forEach((file, index) => {
-      this.load.spritesheet(`hero_tex_${index}`, `${heroBasePath}${file}`, {
+    const coreHeroAssets = [
+      { key: 'hero_idle', file: 'Idle.png' },
+      { key: 'hero_run', file: 'Run.png' },
+      { key: 'hero_dash', file: 'dash.png' },
+      { key: 'hero_attack1', file: 'dash.png' }, // Shared with dash based on atlas
+    ];
+
+    coreHeroAssets.forEach(asset => {
+      this.load.spritesheet(asset.key, `${heroBasePath}${asset.file}`, {
         frameWidth: 240,
         frameHeight: 128,
       });
     });
 
+    // FORCE LOAD CORE SPECIAL ATTACKS
+    const specialBasePath = '/assets/sfx/attacks/';
+    const coreSpecialAssets = [
+      { key: 'special_slash', file: 'HolySlash_A_spritesheet.png', w: 64, h: 64 },
+      { key: 'special_nova', file: 'Holy Nova.png', w: 64, h: 64 },
+      { key: 'special_bolt', file: 'Holy Bolt.png', w: 64, h: 64 },
+    ];
+
+    coreSpecialAssets.forEach(asset => {
+      this.load.spritesheet(asset.key, `${specialBasePath}${asset.file}`, {
+        frameWidth: asset.w,
+        frameHeight: asset.h,
+      });
+    });
+
+    const team = 'Blue';
+    // Lancer sprites
     const lancerSprites = [
       { file: "Lancer_Idle.png", key: "lancer_idle_blue" },
       { file: "Lancer_Run.png", key: "lancer_run_blue" },
@@ -126,22 +144,6 @@ export class GymScene extends Phaser.Scene {
     // Global assets used across all rooms
     this.load.image('glow', '/assets/sprites/glow.png');
     this.load.image('floating_sword', '/assets/sprites/pet/sword.png');
-    this.load.spritesheet('special_attack_holy', '/assets/sfx/attacks/HolySlash_C_spritesheet.png', {
-      frameWidth: 64,
-      frameHeight: 64,
-    });
-    this.load.spritesheet('special_attack_slash', '/assets/sfx/attacks/HolySlash_A_spritesheet.png', {
-      frameWidth: 64,
-      frameHeight: 64,
-    });
-    this.load.spritesheet('special_attack_nova', '/assets/sfx/attacks/Holy Nova.png', {
-      frameWidth: 128,
-      frameHeight: 64,
-    });
-    this.load.spritesheet('special_attack_bolt', '/assets/sfx/attacks/Holy Bolt.png', {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
 
     // Explicit load for new enemies to ensure stability
     const enemySprites = [
@@ -277,10 +279,13 @@ export class GymScene extends Phaser.Scene {
     // Hero animations from asset index
     const shadowAnims = this.assetIndex?.sprites?.mappings?.hero?.animations;
     if (shadowAnims) {
-      Object.entries(shadowAnims).forEach(([name, config]: [string, any], index) => {
+      Object.entries(shadowAnims).forEach(([name, config]: [string, any]) => {
+        const fileName = config.file || 'Idle.png';
+        const textureKey = `hero_${fileName.split('.')[0].replace(/\s+/g, '_').toLowerCase()}`;
+
         createAnim(
           `hero_${name}_anim`,
-          `hero_tex_${index}`,
+          textureKey,
           config.frameRate,
           config.repeat,
           config.startFrame ?? 0,
@@ -317,11 +322,6 @@ export class GymScene extends Phaser.Scene {
     }
 
     createAnim('dust_anim', 'dust_particle', 12, 0);
-
-    createAnim('special_attack_anim', 'special_attack_holy', 6, 0);
-    createAnim('special_attack_slash_anim', 'special_attack_slash', 6, 0);
-    createAnim('special_attack_nova_anim', 'special_attack_nova', 6, 0);
-    createAnim('special_attack_bolt_anim', 'special_attack_bolt', 6, 0);
   }
 
 
@@ -469,7 +469,17 @@ export class GymScene extends Phaser.Scene {
 
       await this.assetManager.prepareRoom(roomData);
 
-      this.setupHeroAndGlobalAnimations();
+      // CRITICAL FIX: Ensure HeroAtlas is initialized BEFORE creating animations
+      const atlas = HeroAtlas.getInstance(this);
+      atlas.loadFromCache(this);
+
+      // We need to load textures. Since we are already in create(),
+      // scene.load.spritesheet won't work like it does in preload.
+      // However, if the textures weren't loaded in preload, they'll be missing.
+      // Let's check if we can force load them or if they were missed.
+      atlas.loadTextures(this);
+
+      atlas.createAnimations(this);
       EnemyAtlas.getInstance(this).createAnimations(this);
 
       // Build room
@@ -580,31 +590,21 @@ export class GymScene extends Phaser.Scene {
     const offset = facing === 0 ? 80 : -80;
     const effect = this.add.sprite(this.hero.x + offset, this.hero.y -20, 'special_attack_holy');
     effect.setOrigin(0.5, 0.5);
-    effect.setScale(2); // Scale up since the asset is only 64px
+    effect.setScale(2);
     effect.setDepth(100);
     effect.setFlipX(facing === 1);
-    effect.play('special_attack_anim');
 
-    // Damage logic: Massive AoE damage around the hero
-    const attackRadius = 200;
-    const damage = 100; // Massive damage
+    const animKey = 'special_holyslash_c_spritesheet_anim';
+    effect.play(animKey);
 
-    this.enemies.getChildren().forEach((enemy: any) => {
-      if (enemy.team === 'enemy') {
-        const dist = Phaser.Math.Distance.Between(this.hero.x, this.hero.y, enemy.x, enemy.y);
-        if (dist <= attackRadius) {
-          enemy.takeDamage(damage);
-        }
-      }
+    // Cleanup when animation finishes
+    effect.on('animationcomplete', () => {
+      effect.destroy();
     });
 
-    // Juice
-    this.applyHitStop(100);
-    this.cameras.main.shake(100, 0.01);
-
-    // Cleanup
-    this.time.delayedCall(1000, () => {
-      effect.destroy();
+    // Fallback cleanup to prevent leaked sprites if animation fails
+    this.time.delayedCall(2000, () => {
+      if (effect.active) effect.destroy();
     });
   }
 
@@ -925,46 +925,22 @@ export class GymScene extends Phaser.Scene {
     await this.startRoomFlow('gym_room');
   }
 
-  private setupHeroAndGlobalAnimations() {
-    const createAnim = (key: string, framesKey: string, frameRate: number, repeat: number, startFrame = 0, endFrame = 0) => {
-      if (this.anims.exists(key)) return;
-      const texture = this.textures.get(framesKey);
-      if (!texture) return;
-      try {
-        const maxFrame = texture.frameCount > 0 ? texture.frameCount - 1 : 0;
-        const finalStart = Math.min(startFrame, maxFrame);
-        const finalEnd = endFrame > 0 ? Math.min(endFrame, maxFrame) : maxFrame;
-        this.anims.create({
-          key,
-          frames: this.anims.generateFrameNumbers(framesKey, finalStart, finalEnd),
-          frameRate,
-          repeat
-        });
-      } catch (e) {
-        console.error(`[Animation] Failed to create ${key}:`, e);
-      }
-    };
-
-    const shadowAnims = this.assetIndex?.sprites?.mappings?.hero?.animations;
-    if (shadowAnims) {
-      Object.entries(shadowAnims).forEach(([name, config]: [string, any], index) => {
-        createAnim(`hero_${name}_anim`, `hero_tex_${index}`, config.frameRate, config.repeat, config.startFrame ?? 0, config.endFrame ?? 0);
-      });
-    }
-
-    createAnim('dust_anim', 'dust_particle', 12, 0);
-    createAnim('special_attack_anim', 'special_attack_holy', 6, 0);
-    createAnim('special_attack_slash_anim', 'special_attack_slash', 6, 0);
-    createAnim('special_attack_nova_anim', 'special_attack_nova', 6, 0);
-    createAnim('special_attack_bolt_anim', 'special_attack_bolt', 6, 0);
-  }
-
   private spawnDustEffect(x: number, y: number) {
     const dust = this.add.sprite(x, y, 'dust_particle');
     dust.setScale(1.5);
 
-    // Play the animation and ensure it's not looping
+    // Ensure dust animation exists (since it's a global effect)
+    if (!this.anims.exists('dust_anim')) {
+      this.anims.create({
+        key: 'dust_anim',
+        frames: this.anims.generateFrameNumbers('dust_particle', 0, 11),
+        frameRate: 12,
+        repeat: 0
+      });
+    }
+
     dust.play('dust_anim');
+
 
     // The animation needs to finish before the sprite is destroyed.
     // We use a delayed call or a tween to clean up after the animation duration.

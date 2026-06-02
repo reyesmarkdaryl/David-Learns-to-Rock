@@ -1,0 +1,27 @@
+{
+    "basePath": "/assets/sprites/shadow/",
+    "hero": {
+        "path": "",
+        "animations": {
+            "idle": { "file": "Idle.png", "frameRate": 8, "repeat": -1, "startFrame": 0, "endFrame": 11 },
+            "run": { "file": "Run.png", "frameRate": 10, "repeat": -1, "startFrame": 0, "endFrame": 7 },
+            "jump_up": { "file": "jump.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
+            "jump_transition": { "file": "mid-air.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 0 },
+            "jump_fall": { "file": "fall.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
+            "dash_simple": { "file": "dash.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
+            "jump_attack_up": { "file": "jump-up-attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
+            "jump_attack_down": { "file": "jump-down-attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
+            "idle_up_attack": { "file": "idle-up-attack.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 3 },
+            "attack1": { "file": "dash.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 1 },
+            "attack2": { "file": "dash.png", "frameRate": 12, "repeat": 0, "startFrame": 0, "endFrame": 1 }
+        }
+    },
+    "special_attacks": {
+        "basePath": "/assets/sfx/attacks/",
+        "animations": {
+            "slash": { "file": "HolySlash_A_spritesheet.png", "startFrame": 0, "endFrame": 4, "frameRate": 6, "repeat": 0 },
+            "nova": { "file": "Holy Nova.png", "startFrame": 0, "endFrame": 9, "frameRate": 6, "repeat": 0 },
+            "bolt": { "file": "Holy Bolt.png", "startFrame": 0, "endFrame": 7, "frameRate": 6, "repeat": 0 }
+        }
+    }
+}
