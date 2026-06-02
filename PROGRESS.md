@@ -1,19 +1,23 @@
 # Project Progress - Rhythm Horde
 
 ## 🎯 Current Focus (June 2, 2026)
-- **Hero Animation & Asset Pipeline**: Migrating Hero to use `hero_atlas.json` for proper sprite loading in `GymScene.ts`.
-- **Animation Fixes**: Resolving regressions in Special Attack animations caused by Hero sprite updates.
+- **Hero Animation & Asset Pipeline**: COMPLETED. Hero now uses a fully data-driven animation system with automatic texture switching.
+- **Special Attack Pipeline**: COMPLETED. Unified naming convention and data-driven frame control for all special effects.
 
 ## ✅ Recently Completed
-- **Combat Mechanics**:
-  - Implemented Dash Attack.
-  - Refined and fixed general attack patterns.
-  - Added several new Special Attacks.
-- **Enemy & Level Design**:
-  - Developed and integrated an Enemy Editor.
-  - Added new Boss enemies to the game.
-- **Systems**:
-  - Integrated `HeroAtlas.ts` for better asset management.
+- **Hero Animation System**:
+  - Implemented `baseTextureKey` logic in `Hero.ts` to mirror `Enemy.ts` behavior.
+  - Rewrote `playAnim` to handle automatic texture switching, preventing "Texture not found" errors.
+  - Fixed a critical race condition by implementing "Force Loading" of core Hero and Special Attack assets in `GymScene.preload()`.
+  - Resolved `ReferenceError` by correctly importing `HeroAtlas` into `Hero.ts`.
+- **Special Attack Pipeline**:
+  - Restructured `hero_atlas.json` to use an object-based mapping for special attacks instead of a simple file list.
+  - Added granular control for `startFrame`, `endFrame`, and `frameRate` for each special attack.
+  - Synchronized keys across `HeroAtlas`, `SpecialAttackSystem`, and `GymScene` (e.g., `special_slash_anim`).
+  - Implemented frame-boundary safety checks in `HeroAtlas.createAnimations` to prevent Phaser crashes when frame ranges are incorrect.
+- **General Fixes**:
+  - Resolved `PARSE_ERROR` in `GymScene.ts` caused by duplicate method declarations.
+  - Verified Hero movement and basic special attack triggers are working.
 
 ## 🚧 Remaining / Backlog
 - **Special Attack Expansion**: Implement upgraded versions of special attacks earned via the post-round upgrade panel (Reference: `gdd/dark_fantasy_powerup_panel.html`).
@@ -51,7 +55,7 @@
 - **Editor Tools**: Ported React Editor components to TS, implemented state management, RoomDataConverter, and GridSystem.
 - **Room System**: Implement `RoomEditorScene`, flexible Flexbox layout, and persistence via `RoomStorage`.
 - **Integration**: Load custom rooms in `GymScene` with collision and dynamic world bounds.
-- **AI Overhaul**: Implemented `FlowFieldManager.ts`, Steering behaviors, `Pathfinder.ts` (BFS), and Aggro Range.
+- **AI Overhaul**: Implemented `FlowFieldManager.ts`, Steering behaviors, `Pathfinder.ts`으로 (BFS), and Aggro Range.
 - **Combat/Physics**: Unified entity physics circles, fixed Hero physics body offset.
 - **Music**: Implemented Dynamic Stem System and menu music loop.
 - **Rhythm UI**: Integrated `RhythmBar` and `RhythmSystem` with tiered hit windows.

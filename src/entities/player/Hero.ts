@@ -238,16 +238,31 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
       endAngle = forwardAngle;
     } else if (direction === 'LEFT') {
       attackAnim = this.attackComboIndex === 0 ? 'hero_attack1_anim' : 'hero_attack1_anim';
-      startAngle = Phaser.Math.DegToRad(120);
-      endAngle = Phaser.Math.DegToRad(-120);
+      if (this.facingDirection === 0) {
+        startAngle = Phaser.Math.DegToRad(120);
+        endAngle = Phaser.Math.DegToRad(-120);
+      } else {
+        startAngle = Phaser.Math.DegToRad(300);
+        endAngle = Phaser.Math.DegToRad(60);
+      }
     } else if (direction === 'RIGHT') {
       attackAnim = this.attackComboIndex === 0 ? 'hero_attack1_anim' : 'hero_attack1_anim';
-      startAngle = Phaser.Math.DegToRad(-120);
-      endAngle = Phaser.Math.DegToRad(120);
+      if (this.facingDirection === 0) {
+        startAngle = Phaser.Math.DegToRad(-120);
+        endAngle = Phaser.Math.DegToRad(120);
+      } else {
+        startAngle = Phaser.Math.DegToRad(60);
+        endAngle = Phaser.Math.DegToRad(300);
+      }
     } else {
       attackAnim = this.attackComboIndex === 0 ? 'hero_attack1_anim' : 'hero_attack1_anim';
-      startAngle = Phaser.Math.DegToRad(-120);
-      endAngle = Phaser.Math.DegToRad(120);
+      if (this.facingDirection === 0) {
+        startAngle = Phaser.Math.DegToRad(-120);
+        endAngle = Phaser.Math.DegToRad(120);
+      } else {
+        startAngle = Phaser.Math.DegToRad(60);
+        endAngle = Phaser.Math.DegToRad(300);
+      }
     }
 
     this.playAnim(attackAnim);
