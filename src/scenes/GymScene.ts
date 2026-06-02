@@ -764,23 +764,24 @@ export class GymScene extends Phaser.Scene {
     const battleHeat = Math.min(enemiesOnScreen / 10, 1.0); // Scale 0-1 based on 10 enemies
     MusicManager.updateIntensity(battleHeat);
 
-    // Combat: Check hero attack hitbox against enemies
-    const hitbox = this.hero.getAttackHitbox();
+    // Combat: Check hero attack against enemies
     this.enemies.getChildren().forEach((enemy: any) => {
-      if (enemy.team !== 'hero' && Phaser.Geom.Intersects.RectangleToRectangle(hitbox, enemy.getHitbox())) {
+      if (enemy.team !== 'hero') {
         // Only damage if the hero is actually in the attack state and hasn't hit this enemy yet
         if (this.hero.getState() === HeroState.ATTACK && !this.hero.getHitEnemies().has(enemy)) {
-          enemy.takeDamage(this.hero.stats.attackDamage);
-          this.hero.getHitEnemies().add(enemy);
+          if (this.hero.isEnemyInAttackCone(enemy)) {
+            enemy.takeDamage(this.hero.stats.attackDamage);
+            this.hero.getHitEnemies().add(enemy);
 
-          // JUICE: Hit-stop and Screen Shake
-          this.applyHitStop(60);
-          this.cameras.main.shake(100, 0.005);
+            // JUICE: Hit-stop and Screen Shake
+            this.applyHitStop(60);
+            this.cameras.main.shake(100, 0.005);
 
-          if (enemy.isDead()) {
-            // Extra juice for killing an enemy
-            this.cameras.main.shake(200, 0.01);
-            this.applyHitStop(100);
+            if (enemy.isDead()) {
+              // Extra juice for killing an enemy
+              this.cameras.main.shake(200, 0.01);
+              this.applyHitStop(100);
+            }
           }
         }
       }
@@ -966,16 +967,16 @@ export class GymScene extends Phaser.Scene {
 
 
     this.debugGraphics.clear(); // Clear everything once at the start of debug update
-    //this.hero.drawDebug(this.debugGraphics);
+    this.hero.drawDebug(this.debugGraphics);
 
     // Draw enemy debugs
     this.enemies.getChildren().forEach((enemy: any) => {
       const anchorX = enemy.x + (enemy.bodyOffset?.x || 0);
       const anchorY = enemy.y + (enemy.bodyOffset?.y || 0);
 
-      // 1. Hitbox (Reddish) - Use world coordinates directly from getHitbox()
+      // 1. Hitbox (Blue) - Use world coordinates directly from getHitbox()
       const bounds = enemy.getHitbox();
-      this.debugGraphics.lineStyle(1, 0xff4444, 1);
+      this.debugGraphics.lineStyle(1, 0x0000ff, 1);
       this.debugGraphics.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
       // 2. Physics Body Circle (Purple) - Centered on physics anchor

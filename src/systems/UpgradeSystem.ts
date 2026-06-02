@@ -48,6 +48,17 @@ export class UpgradeSystem {
             type: 'stat',
             value: { stat: 'dashSpeed', amount: 0.5 }, // +50%
             description: '+50% Dash Speed'
+        },
+        {
+            id: 'arcane_focus',
+            name: 'Arcane Focus',
+            lore: 'Your awareness expands, catching the slightest tremor in the air.',
+            glyph: '✧',
+            color: '#f0e68c',
+            rarity: 'Common',
+            type: 'stat',
+            value: { stat: 'attackConeAngle', amount: 10 }, // +10 degrees
+            descriptiont: '+10° Attack Cone'
         }
     ];
 
@@ -87,6 +98,8 @@ export class UpgradeSystem {
                 // Assuming dash speed is handled in the Hero class logic
                 // We'll add a modifier if it doesn't exist
                 (hero as any).dashSpeedMultiplier = ((hero as any).dashSpeedMultiplier || 1) * (1 + amount);
+            } else if (stat === 'attackConeAngle') {
+                hero.stats.attackConeAngle += amount;
             }
         }
         // Special attacks will be implemented later

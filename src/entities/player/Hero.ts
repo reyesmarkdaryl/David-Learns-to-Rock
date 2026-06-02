@@ -28,9 +28,11 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     attackRange: 60,
     attackDamage: 25,
     dashDistance: 200,
+    attackConeAngle: 22.5, // Half-angle in degrees (22.5 = 45 deg total)
   };
 
   private facingDirection: number = 0;
+  private lastAttackDirection: string | undefined = undefined;
   private attackComboIndex: number = 0;
   private rangeVisual!: Phaser.GameObjects.Graphics;
   private sword!: Phaser.GameObjects.Sprite;
@@ -221,10 +223,44 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
+  private findBestThrustTarget(): number | null {
+    const enemies = (this.scene as any).enemies;
+    if (!enemies) return null;
+
+    let bestTargetAngle: number | null = null;
+    let minDist = Infinity;
+
+    const forwardAngle = this.facingDirection === 0 ? 0 : Math.PI;
+    const snapRange = this.stats.attackRange * 1.5;
+    const snapCone = Math.PI / 3; // 60 degree snap window (+/- 30 deg)
+
+    enemies.getChildren().forEach((enemy: Enemy) => {
+      if (enemy.team !== 'enemy') return;
+
+      const dist = Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y);
+      if (dist > snapRange) return;
+
+      const angleToEnemy = Phaser.Math.Angle.Between(this.x, this.y, enemy.x, enemy.y);
+      let diff = angleToEnemy - forwardAngle;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+
+      if (Math.abs(diff) <= snapCone) {
+        if (dist < minDist) {
+          minDist = dist;
+          bestTargetAngle = angleToEnemy;
+        }
+      }
+    });
+
+    return bestTargetAngle;
+  }
+
   performAttack(time: number, direction?: string): void {
     if (this.state === HeroState.ATTACK) return;
 
     this.state = HeroState.ATTACK;
+    this.lastAttackDirection = direction;
 
     let attackAnim = '';
     let startAngle = 0;
@@ -234,8 +270,10 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     if (direction === 'UP' || direction === 'DOWN') {
       const forwardAngle = this.facingDirection === 0 ? 0 : Math.PI;
       attackAnim = direction === 'UP' ? 'hero_attack1_anim' : 'hero_attack1_anim';
-      startAngle = forwardAngle;
-      endAngle = forwardAngle;
+
+      const targetAngle = this.findBestThrustTarget();
+      startAngle = targetAngle !== null ? targetAngle : forwardAngle;
+      endAngle = startAngle;
     } else if (direction === 'LEFT') {
       attackAnim = this.attackComboIndex === 0 ? 'hero_attack1_anim' : 'hero_attack1_anim';
       if (this.facingDirection === 0) {
@@ -301,6 +339,24 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     } else {
       // Slash Attack: Tween angle with a constant distance
       this.swordDistance = this.stats.attackRange * 0.6;
+
+      // MATCH CONE: The animation now swings from -coneWidth to +coneWidth
+      // instead of fixed -120 to 120.
+      const baseConeRad = this.stats.attackConeAngle * (Math.PI / 180);
+      const actualConeRad = baseConeRad * 2; // Scale to horizontal swing wide-arc
+
+      // Adjust start/end angles based on facing
+      if (this.facingDirection === 0) {
+        // Facing East: swing centered at 0
+        startAngle = -actualConeRad;
+        endAngle = actualConeRad;
+      } else {
+        // Facing West: swing centered at PI
+        startAngle = Math.PI - actualConeRad;
+        endAngle = Math.PI + actualConeRad;
+      }
+
+      this.swordAngle = startAngle;
       this.scene.tweens.add({
         targets: this,
         swordAngle: endAngle,
@@ -310,7 +366,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
           // Smoothly transition swordAngle back to the hover rotation
           this.scene.tweens.add({
             targets: this,
-            swordAngle: -0.2 - Math.PI / 2, // Target the idle rotation angle
+            swordAngle: -0.2 - Math.PI / 2,
             duration: 200,
             ease: 'Sine.In'
           });
@@ -320,6 +376,69 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
 
     this.attackCooldown = time + this.ATTACK_COOLDOWN_MS;
     this.hitEnemies.clear();
+  }
+
+  isEnemyInAttackCone(enemy: Enemy): boolean {
+    const hitbox = enemy.getHitbox();
+
+    // 1. Distance Check: Use the closest point on the hitbox to the hero
+    const closestX = Phaser.Math.Clamp(this.x, hitbox.x, hitbox.x + hitbox.width);
+    const closestY = Phaser.Math.Clamp(this.y, hitbox.y, hitbox.y + hitbox.height);
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, closestX, closestY);
+
+    if (dist > this.stats.attackRange) return false;
+
+    // 2. Determine the attack's center angle
+    let attackAngle: number;
+    if (this.state === HeroState.ATTACK && (this.lastAttackDirection === 'UP' || this.lastAttackDirection === 'DOWN')) {
+      attackAngle = this.swordAngle;
+    } else {
+      attackAngle = this.facingDirection === 0 ? 0 : Math.PI;
+    }
+
+    // 3. Check multiple points for the angle to handle large hitboxes better
+    // Point A: The closest point on the hitbox
+    const angleToClosest = Phaser.Math.Angle.Between(this.x, this.y, closestX, closestY);
+
+    // Point B: The center of the hitbox
+    const centerX = hitbox.x + hitbox.width / 2;
+    const centerY = hitbox.y + hitbox.height / 2;
+    const angleToCenter = Phaser.Math.Angle.Between(this.x, this.y, centerX, centerY);
+
+    const baseConeRad = this.stats.attackConeAngle * (Math.PI / 180);
+    let coneWidth = baseConeRad;
+    if (this.lastAttackDirection === 'LEFT' || this.lastAttackDirection === 'RIGHT') {
+      coneWidth = baseConeRad * 2;
+    }
+
+    const isAngleInCone = (angle: number) => {
+      let diff = angle - attackAngle;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      return Math.abs(diff) <= coneWidth;
+    };
+
+    // If either the closest point OR the center is in the cone, it's a hit.
+    // This prevents "missing" large enemies when you're hitting their edge.
+    if (isAngleInCone(angleToClosest) || isAngleInCone(angleToCenter)) {
+      return true;
+    }
+
+    // 4. Fallback: If the enemy is huge, they might overlap the cone without the center or closest point being in it.
+    // We check if the hitbox contains any point along the center line of the cone within range.
+    const lineX = this.x + Math.cos(attackAngle) * this.stats.attackRange;
+    const lineY = this.y + Math.sin(attackAngle) * this.stats.attackRange;
+
+    // Simple intersection of the attack center-line segment and the hitbox
+    // We can check if the line from (this.x, this.y) to (lineX, lineY) intersects the rectangle
+    if (Phaser.Geom.Intersects.LineToRectangle(
+      new Phaser.Geom.Line(this.x, this.y, lineX, lineY),
+      hitbox
+    )) {
+      return true;
+    }
+
+    return false;
   }
 
   getHitEnemies(): Set<Enemy> {
@@ -379,8 +498,30 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   drawDebug(graphics: Phaser.GameObjects.Graphics): void {
     if (!DEBUG_MODE) return;
 
+    // Draw attack cone if attacking
+    if (this.state === HeroState.ATTACK) {
+      let attackAngle = this.facingDirection === 0 ? 0 : Math.PI;
+      if (this.lastAttackDirection === 'UP' || this.lastAttackDirection === 'DOWN') {
+        attackAngle = this.swordAngle;
+      }
 
-    // Remove graphics.clear() from here to avoid wiping out other debug drawings in the scene
+      const baseConeRad = this.stats.attackConeAngle * (Math.PI / 180);
+      let coneWidth = baseConeRad;
+      if (this.lastAttackDirection === 'LEFT' || this.lastAttackDirection === 'RIGHT') {
+        coneWidth = baseConeRad * 2;
+      }
+
+      graphics.fillStyle(0x00ff00, 0.2);
+      graphics.lineStyle(2, 0x00ff00, 0.5);
+
+      graphics.beginPath();
+      graphics.moveTo(this.x, this.y);
+      graphics.arc(this.x, this.y, this.stats.attackRange, attackAngle - coneWidth, attackAngle + coneWidth);
+      graphics.lineTo(this.x, this.y);
+      graphics.closePath();
+      graphics.fillPath();
+      graphics.strokePath();
+    }
 
     const hitbox = this.getAttackHitbox();
     graphics.fillStyle(0xff0000, 0.3);

@@ -1,10 +1,20 @@
 # Project Progress - Rhythm Horde
 
+we have slash assets like public/assets/attacks/HolySlash_A_spritesheet.png . i wonder if it will look good if we apply it on our current attack swing.
+
 ## 🎯 Current Focus (June 2, 2026)
 - **Hero Animation & Asset Pipeline**: COMPLETED. Hero now uses a fully data-driven animation system with automatic texture switching.
 - **Special Attack Pipeline**: COMPLETED. Unified naming convention and data-driven frame control for all special effects.
 
 ## ✅ Recently Completed
+- **Hero Combat Polish**:
+  - Implemented mirroring for horizontal attack animations based on hero facing direction.
+  - Added a dynamic "Attack Cone" system (now based on `attackConeAngle` stat) to ensure attacks only hit enemies in front of the hero.
+  - Integrated "Target Snapping" for both the thrust animation AND the attack cone, so damage follows the snapped trajectory.
+  - Optimized hitbox detection to use the closest point on enemy hitboxes, fixing "missed" hits on large enemies.
+  - Synchronized visual sword swing arcs with the physical attack cone.
+  - Added an "Arcane Focus" upgrade to increase the attack cone angle.
+  - Implemented visual debug representations for the attack cone (Green) and enemy hitboxes (Blue).
 - **Hero Animation System**:
   - Implemented `baseTextureKey` logic in `Hero.ts` to mirror `Enemy.ts` behavior.
   - Rewrote `playAnim` to handle automatic texture switching, preventing "Texture not found" errors.

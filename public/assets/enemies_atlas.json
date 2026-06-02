@@ -6,9 +6,9 @@
         "name": "Giant",
         "path": "Giant/",
         "stats": {
-          "hp": 300,
+          "hp": 100,
           "speed": 60,
-          "damage": 20,
+          "damage": 5,
           "attackRange": 100,
           "behavior": "persistent",
           "attackCooldownMs": 2500,
@@ -26,10 +26,10 @@
         },
         "physics": {
           "hitbox": {
-            "x": -16,
-            "y": -16,
-            "w": 32,
-            "h": 32
+            "x": -27,
+            "y": -51,
+            "w": 70,
+            "h": 100
           },
           "bodyCircle": {
             "radius": 16,
@@ -464,7 +464,7 @@
         "path": "Chain/",
         "stats": {
           "hp": 60,
-          "speed": 140,
+          "speed": 1,
           "damage": 5,
           "attackRange": 50,
           "attackCooldownMs": 800,
