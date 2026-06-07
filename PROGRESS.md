@@ -1,7 +1,5 @@
 # Project Progress - Rhythm Horde
 
-we have slash assets like public/assets/attacks/HolySlash_A_spritesheet.png . i wonder if it will look good if we apply it on our current attack swing.
-
 ## 🎯 Current Focus (June 2, 2026)
 - **Hero Animation & Asset Pipeline**: COMPLETED. Hero now uses a fully data-driven animation system with automatic texture switching.
 - **Special Attack Pipeline**: COMPLETED. Unified naming convention and data-driven frame control for all special effects.
@@ -30,11 +28,42 @@ we have slash assets like public/assets/attacks/HolySlash_A_spritesheet.png . i 
   - Verified Hero movement and basic special attack triggers are working.
 
 ## 🚧 Remaining / Backlog
+- **Procedural Room Generation**: Implement a system to generate rooms automatically based on standardized tilesets.
 - **Special Attack Expansion**: Implement upgraded versions of special attacks earned via the post-round upgrade panel (Reference: `gdd/dark_fantasy_powerup_panel.html`).
 - **Upgrade System Integration**: Fully wire the "Dark Fantasy" power-up panel into the game loop.
 - **Wave Progression**: Refine scaling and milestone boss fight triggers.
 - **UI/UX Polish**: Implement "Attention Split" solutions (Rhythm Aura, World-Space Feedback).
 - **Music System**: Finalize dynamic score and "Battle Intensity Filter".
+
+---
+
+## 🤖 AI Consultation Prompt (Copy-Paste this to Claude/ChatGPT)
+
+**Context:**
+I am building a room editor for a Phaser 4 game. The editor is built in React and uses a `useReducer` state to manage map data.
+The core data structure for a room is:
+```typescript
+interface RoomData {
+  id: string;
+  biome: string;
+  width: number; // in tiles
+  height: number; // in tiles
+  tiles: { x: number, y: number, tileId: string, type: 'floor' | 'wall' }[];
+  doors: { x: number, y: number, dir: string }[];
+  enemySpawns: { x: number, y: number }[];
+  playerSpawn: { x: number, y: number } | null;
+}
+```
+The editor allows importing custom tileset images. Currently, it's a manual "paint" tool.
+
+**Goal:**
+I want to implement **Procedural Room Generation**. I want to be able to import a tileset and have the editor automatically generate a "Dark Fantasy" style room using those tiles.
+
+**Request:**
+1. **Tileset Standardization**: Propose a "Standardized Tileset Layout" (a blueprint). Which tile coordinates should represent floors, walls, corners, and edges so that a generation script can reliably use any compatible tileset?
+2. **Generation Algorithm**: Which algorithm should I use for organic but structured dungeon rooms (e.g., BSP, Cellular Automata, Drunkard's Walk)? Explain why it fits a Dark Fantasy theme.
+3. **Implementation Logic**: Provide a high-level pseudo-code or logic flow for a `RoomGenerator` class that would take a `width`, `height`, and the `Standardized Tileset` as input and output a `RoomData` object.
+4. **Complexity**: How can I ensure the rooms are "playable" (i.e., the player spawn can actually reach the doors)?
 
 ---
 

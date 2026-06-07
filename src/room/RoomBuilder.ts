@@ -40,7 +40,12 @@ export class RoomBuilder {
         world.y + 16,
         texture,
         frame
-      ).setDisplaySize(32, 32);
+      );
+      if (tile.type === 'floor') {
+        tileImage.setDisplaySize(32.1, 32.1);
+      } else {
+        tileImage.setDisplaySize(32, 32);
+      }
 
       if(tile.type === 'object' || tile.type === 'wall' || tile.type === 'clutter') {
         tileImage.setDepth(tileImage.y + tileImage.displayHeight / 2);

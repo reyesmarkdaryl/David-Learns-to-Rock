@@ -84,7 +84,7 @@ export class GymScene extends Phaser.Scene {
     const coreSpecialAssets = [
       { key: 'special_slash', file: 'HolySlash_A_spritesheet.png', w: 64, h: 64 },
       { key: 'special_nova', file: 'Holy Nova.png', w: 64, h: 64 },
-      { key: 'special_bolt', file: 'Holy Bolt.png', w: 64, h: 64 },
+      { key: 'special_bolt', file: 'Holy Bolt.png', w: 32, h: 32 },
     ];
 
     coreSpecialAssets.forEach(asset => {
@@ -320,6 +320,27 @@ export class GymScene extends Phaser.Scene {
     } else {
       console.error('Enemy types not found in asset-index!');
     }
+
+    // Special attack animations
+    const specialAnims = [
+      { key: 'special_slash_anim', texture: 'special_slash' },
+      { key: 'special_nova_anim', texture: 'special_nova' },
+      { key: 'special_bolt_anim', texture: 'special_bolt' },
+    ];
+
+    specialAnims.forEach(anim => {
+      const texture = this.textures.get(anim.texture);
+      if (texture && texture.frameCount > 0) {
+        this.anims.create({
+          key: anim.key,
+          frames: this.anims.generateFrameNumbers(anim.texture, 0, texture.frameCount - 1),
+          frameRate: 12,
+          repeat: 0
+        });
+      } else {
+        console.error(`[Animation] Texture ${anim.texture} NOT FOUND or has 0 frames. Cannot create ${anim.key}.`);
+      }
+    });
 
     createAnim('dust_anim', 'dust_particle', 12, 0);
   }

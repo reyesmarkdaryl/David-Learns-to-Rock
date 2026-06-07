@@ -56,6 +56,13 @@ const MapCanvas: React.FC<MapCanvasProps> = ({ state, dispatch }) => {
     ctx.clearRect(0, 0, canv.width, canv.height);
     const ts = state.tileSize, z = state.zoom;
 
+    const BORDER_COLORS: Record<string, string> = {
+      wall: 'blue',
+      overhead: 'lightblue',
+      clutter: 'green',
+      object: 'yellow',
+    };
+
     state.layers.forEach((layer: any) => {
       if (!layer.visible) return;
       Object.entries(layer.tiles).forEach(([key, tileRef]: [string, any]) => {
@@ -66,6 +73,13 @@ const MapCanvas: React.FC<MapCanvasProps> = ({ state, dispatch }) => {
         if (!sheet?.img) return;
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(sheet.img, tileRef.col * ts, tileRef.row * ts, ts, ts, x, y, ts * z, ts * z);
+
+        const borderColor = BORDER_COLORS[layer.type];
+        if (borderColor && state.showBorders) {
+          ctx.strokeStyle = borderColor;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x, y, ts * z, ts * z);
+        }
       });
     });
 
@@ -81,7 +95,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({ state, dispatch }) => {
       ctx.fillRect(x, y, w, h);
       ctx.setLineDash([]);
     }
-  }, [state.layers, state.tilesets, state.tileSize, state.zoom, state.selection, tw2s]);
+  }, [state.layers, state.tilesets, state.tileSize, state.zoom, state.selection, state.showBorders, tw2s]);
 
   const drawGrid = useCallback(() => {
     const canv = gridCanvRef.current; if (!canv) return;

@@ -19,8 +19,10 @@ const TOOLS: Tool[] = [
 interface ToolbarProps {
   activeTool: string;
   showGrid: boolean;
+  showBorders: boolean;
   onTool: (tool: string) => void;
   onToggleGrid: () => void;
+  onToggleBorders: () => void;
   onFit: () => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -33,8 +35,8 @@ interface ToolbarProps {
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
-  activeTool, showGrid,
-  onTool, onToggleGrid, onFit,
+  activeTool, showGrid, showBorders,
+  onTool, onToggleGrid, onToggleBorders, onFit,
   onUndo, onRedo,
   onImport, onExport, onSaveStorage, onLoadMap, onLoadStorage, onPlaytest,
 }) => (
@@ -70,6 +72,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
       </button>
       <button className={styles.btn} onClick={onFit} title="Fit view [0]">
         <span className={styles.icon}>⊡</span> Fit <span className={styles.hk}>0</span>
+      </button>
+      <button
+        className={`${styles.btn} ${showBorders ? styles.active : ''}`}
+        onClick={onToggleBorders}
+        title="Toggle borders"
+      >
+        <span className={styles.icon}>▢</span> Borders
       </button>
     </div>
 

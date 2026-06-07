@@ -50,6 +50,7 @@ export interface EditorState {
   panX: number;
   panY: number;
   showGrid: boolean;
+  showBorders: boolean;
   activeTool: string;
   selection: { x1: number, y1: number, x2: number, y2: number } | null;
   undoStack: any[];
@@ -81,6 +82,7 @@ const INITIAL_STATE: EditorState = {
   panX: 40,
   panY: 40,
   showGrid: true,
+  showBorders: true,
   activeTool: 'paint',
   selection: null,
   undoStack: [],
@@ -123,6 +125,7 @@ type EditorAction =
   | { type: 'SET_PAN'; panX: number; panY: number }
   | { type: 'SET_ZOOM_PAN'; zoom: number; panX: number; panY: number }
   | { type: 'APPLY_FIT'; zoom: number; panX: number; panY: number }
+  | { type: 'TOGGLE_BORDERS' }
   | { type: 'SET_ACTIVE_LAYER'; id: string }
   | { type: 'SET_ACTIVE_LAYER_BY_INDEX'; index: number }
   | { type: 'TOGGLE_LAYER_VISIBILITY'; id: string }
@@ -202,6 +205,8 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
       return { ...state, activeTool: action.tool };
     case 'TOGGLE_GRID':
       return { ...state, showGrid: !state.showGrid, _redrawSig: state._redrawSig + 1 };
+    case 'TOGGLE_BORDERS':
+      return { ...state, showBorders: !state.showBorders, _redrawSig: state._redrawSig + 1 };
     case 'FIT_VIEW':
       return { ...state, _fitSig: state._fitSig + 1 };
     case 'ZOOM_IN':

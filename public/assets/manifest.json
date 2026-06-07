@@ -1,6 +1,8 @@
 [
   "gym_room",
-  "easy_mountain_room",
-  "medium_mountain2_room",
-  "hard_mountain3_room"
+  "easy_cave_room2",
+  "easy_cave_room3",
+  "medium_cave_room",
+  "medium_cave_room1",
+  "hard_cave_room"
 ]

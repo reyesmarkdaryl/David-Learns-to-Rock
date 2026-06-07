@@ -47,13 +47,13 @@ export const GYM_WAVES: WaveDefinition[] = [
   },
   {
     waveNumber: 2,
-    enemies: [{ type: 'chain', count: 1 }],
+    enemies: [{ type: 'chain', count: 2 }, { type: 'harvester', count: 2 }],
     interval: 1500,
     cooldown: 3000
   },
   {
     waveNumber: 3,
-    enemies: [{ type: 'giant', count: 1 }],
+    enemies: [{ type: 'giant', count: 1 }, { type: 'sickle', count: 1 }],
     interval: 2000,
     cooldown: 3000
   }

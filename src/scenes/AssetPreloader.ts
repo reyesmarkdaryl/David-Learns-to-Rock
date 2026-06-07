@@ -17,9 +17,11 @@ export class AssetPreloader extends Phaser.Scene {
 
     // Preload all rooms from the manifest.
     this.load.json('gym_room', 'assets/rooms/gym_room.json');
-    this.load.json('easy_mountain_room', 'assets/rooms/easy_mountain_room.json');
-    this.load.json('medium_mountain2_room', 'assets/rooms/medium_mountain2_room.json');
-    this.load.json('hard_mountain3_room', 'assets/rooms/hard_mountain3_room.json');
+    this.load.json('easy_cave_room2', 'assets/rooms/easy_cave_room2.json');
+    this.load.json('easy_cave_room3', 'assets/rooms/easy_cave_room3.json');
+    this.load.json('medium_cave_room', 'assets/rooms/medium_cave_room.json');
+    this.load.json('medium_cave_room1', 'assets/rooms/medium_cave_room1.json');
+    this.load.json('hard_cave_room', 'assets/rooms/hard_cave_room.json');
     this.load.json('music-manifest', 'assets/music-manifest.json');
     this.load.audio('menu-music', 'assets/music/battle-hymn/full-hymn.wav');
     this.load.audio('stem-drums', 'assets/music/heavy-hymn/drums.wav');

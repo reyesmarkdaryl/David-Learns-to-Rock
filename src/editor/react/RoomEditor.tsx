@@ -56,8 +56,10 @@ const RoomEditor: React.FC = () => {
       <Toolbar
         activeTool={state.activeTool}
         showGrid={state.showGrid}
+        showBorders={state.showBorders}
         onTool={(tool) => dispatch({ type: 'SET_TOOL', tool })}
         onToggleGrid={() => dispatch({ type: 'TOGGLE_GRID' })}
+        onToggleBorders={() => dispatch({ type: 'TOGGLE_BORDERS' })}
         onFit={() => dispatch({ type: 'FIT_VIEW' })}
         onUndo={() => dispatch({ type: 'UNDO' })}
         onRedo={() => dispatch({ type: 'REDO' })}

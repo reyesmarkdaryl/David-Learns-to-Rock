@@ -32,9 +32,9 @@
             "h": 100
           },
           "bodyCircle": {
-            "radius": 16,
-            "x": 24,
-            "y": 8
+            "radius": 10,
+            "x": 30,
+            "y": 17
           },
           "attackRangeCircle": {
             "radius": 80
@@ -410,9 +410,9 @@
             "h": 32
           },
           "bodyCircle": {
-            "radius": 16,
-            "x": 25,
-            "y": 0
+            "radius": 8,
+            "x": 32,
+            "y": 8
           },
           "attackRangeCircle": {
             "radius": 60
@@ -485,14 +485,14 @@
         "physics": {
           "hitbox": {
             "x": -16,
-            "y": -16,
+            "y": -5,
             "w": 32,
-            "h": 32
+            "h": 40
           },
           "bodyCircle": {
-            "radius": 26,
-            "x": 29,
-            "y": 7
+            "radius": 14,
+            "x": 41,
+            "y": 28
           },
           "attackRangeCircle": {
             "radius": 50
@@ -564,15 +564,15 @@
         },
         "physics": {
           "hitbox": {
-            "x": -16,
-            "y": -16,
+            "x": -27,
+            "y": -17,
             "w": 32,
-            "h": 32
+            "h": 46
           },
           "bodyCircle": {
-            "radius": 16,
+            "radius": 10,
             "x": 16,
-            "y": 16
+            "y": 28
           },
           "attackRangeCircle": {
             "radius": 60
@@ -642,9 +642,9 @@
             "h": 70
           },
           "bodyCircle": {
-            "radius": 13,
-            "x": 36,
-            "y": 43
+            "radius": 8,
+            "x": 42,
+            "y": 53
           },
           "attackRangeCircle": {
             "radius": 150
