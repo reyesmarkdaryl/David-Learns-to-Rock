@@ -1,0 +1,5 @@
+[top left corner][north flat][north flat][north flat][top right corner]
+[west flat][inner top left corner][inner north flat][inner top right corner][east flat]
+[west flat][inner west flat][center][inner east flat][east flat]
+[west flat][inner bottom left corner][inner south flat][inner bottom right corner][east flat]
+[bottom left corner][south flat][south flat][south flat][bottom right corner]

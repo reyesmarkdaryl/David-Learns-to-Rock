@@ -6,6 +6,7 @@ import TilesetPanel from './TilesetPanel';
 import MapCanvas from './MapCanvas';
 import TilesetBrowser from './TilesetBrowser';
 import RoomLibrary from './RoomLibrary';
+import PreselectorPanel from './PreselectorPanel';
 import { useEditorState } from './useEditorState';
 import { RoomStorage } from '../../room/RoomStorage';
 import styles from './RoomEditor.module.css';
@@ -69,6 +70,7 @@ const RoomEditor: React.FC = () => {
         onLoadMap={() => dispatch({ type: 'LOAD_MAP' })}
         onLoadStorage={() => setShowLibrary(true)}
         onPlaytest={() => dispatch({ type: 'PLAYTEST' })}
+        onGenerate={() => dispatch({ type: 'GENERATE_ROOM' })}
       />
 
       <div className={styles.body}>
@@ -88,17 +90,24 @@ const RoomEditor: React.FC = () => {
 
         <MapCanvas state={state} dispatch={dispatch} />
 
-        <TilesetPanel
-          tilesets={state.tilesets}
-          activeTsIdx={state.activeTsIdx}
-          tsSel={state.tsSel}
-          tileSize={state.tileSize}
-          activeLayerName={state.layers.find((l: any) => l.id === state.activeLayerId)?.name || '—'}
-          onSelectTs={(i) => dispatch({ type: 'SET_ACTIVE_TILESET', idx: i })}
-          onRemoveTs={(i) => dispatch({ type: 'REMOVE_TILESET', idx: i })}
-          onSelectTile={(sel) => dispatch({ type: 'SET_TS_SELECTION', sel })}
-          onImport={() => setShowImportModal(true)}
-        />
+        <div className={styles.rightPanel}>
+          <TilesetPanel
+            tilesets={state.tilesets}
+            activeTsIdx={state.activeTsIdx}
+            tsSel={state.tsSel}
+            tileSize={state.tileSize}
+            activeLayerName={state.layers.find((l: any) => l.id === state.activeLayerId)?.name || '—'}
+            onSelectTs={(i) => dispatch({ type: 'SET_ACTIVE_TILESET', idx: i })}
+            onRemoveTs={(i) => dispatch({ type: 'REMOVE_TILESET', idx: i })}
+            onSelectTile={(sel) => dispatch({ type: 'SET_TS_SELECTION', sel })}
+            onImport={() => setShowImportModal(true)}
+          />
+          <PreselectorPanel
+            state={state}
+            dispatch={dispatch}
+            tilesets={state.tilesets}
+          />
+        </div>
       </div>
 
       {showImportModal && (

@@ -24,3 +24,14 @@
   box-sizing: border-box;
   flex-wrap: nowrap;
 }
+
+.rightPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 10px;
+  background: #1a1a24;
+  border-left: 1px solid #333;
+  overflow-y: auto;
+  width: 300px;
+}

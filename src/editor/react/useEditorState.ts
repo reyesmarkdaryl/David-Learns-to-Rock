@@ -5,6 +5,7 @@ import { RoomData } from '../room/RoomData';
 import { RoomRegistry } from '../../room/RoomRegistry';
 import { RoomStorage } from '../../room/RoomStorage';
 import { RoomDataConverter } from '../RoomDataConverter';
+import { RoomGenerator } from '../RoomGenerator';
 
 export interface Layer {
   id: string;
@@ -37,6 +38,10 @@ export interface TileSelection {
   rows: number;
 }
 
+export interface PreselectorGrid {
+  tiles: Record<string, TileRef>; // "col,row" -> TileRef
+}
+
 export interface EditorState {
   mapW: number;
   mapH: number;
@@ -58,6 +63,13 @@ export interface EditorState {
   _redrawSig: number;
   _fitSig: number;
   _toast: string | null;
+  preselector: {
+    floorA: PreselectorGrid;
+    floorB: PreselectorGrid;
+    wallA: PreselectorGrid;
+    wallB: PreselectorGrid;
+  };
+  roomType: 'cave' | 'arena' | 'circle';
 }
 
 const DEFAULT_LAYERS: Layer[] = [
@@ -90,6 +102,13 @@ const INITIAL_STATE: EditorState = {
   _redrawSig: 0,
   _fitSig: 0,
   _toast: null,
+  preselector: {
+    floorA: { tiles: {} },
+    floorB: { tiles: {} },
+    wallA: { tiles: {} },
+    wallB: { tiles: {} },
+  },
+  roomType: 'cave',
 };
 
 function uid() {
@@ -155,7 +174,11 @@ type EditorAction =
   | { type: 'VALIDATE' }
   | { type: 'CLEAR_TOAST' }
   | { type: 'PLACE_OBJECT'; tx: number; ty: number; objType: 'playerSpawn' | 'enemySpawn' | 'door' | 'decorSocket'; extra?: any }
-  | { type: 'PLAYTEST' };
+  | { type: 'PLAYTEST' }
+  | { type: 'SET_PRESELECTOR_TILE'; gridId: 'floorA' | 'floorB' | 'wallA' | 'wallB'; col: number; row: number; tile: TileRef }
+  | { type: 'SET_ROOM_TYPE'; roomType: 'cave' | 'arena' | 'circle' }
+  | { type: 'GENERATE_ROOM' };
+
 
 export function convertToRoomData(state: EditorState): RoomData {
   const roomData: RoomData = {
@@ -497,9 +520,35 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
 
       return { ...state, layers, _redrawSig: state._redrawSig + 1 };
     }
+    case 'SET_PRESELECTOR_TILE': {
+      const { gridId, col, row, tile } = action;
+      const preselector = { ...state.preselector };
+      const grid = { ...preselector[gridId] };
+      grid.tiles = { ...grid.tiles, [`${col},${row}`]: tile };
+      preselector[gridId] = grid;
+      return { ...state, preselector };
+    }
+    case 'SET_ROOM_TYPE': {
+      return { ...state, roomType: action.roomType };
+    }
+    case 'GENERATE_ROOM': {
+      const gen = new RoomGenerator();
+      const roomData = gen.generate(state.mapW, state.mapH, state.preselector, state.roomType);
+
+      // Convert generated RoomData back to Editor State updates
+      const updates = RoomDataConverter.convertToEditorState(roomData);
+      return {
+        ...state,
+        ...updates,
+        _toast: 'Room Generated!',
+        _redrawSig: state._redrawSig + 1
+      };
+    }
     default:
       return state;
   }
+
+
 }
 
 export function useEditorState() {

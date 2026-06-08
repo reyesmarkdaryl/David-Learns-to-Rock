@@ -32,13 +32,14 @@ interface ToolbarProps {
   onLoadMap: () => void;
   onLoadStorage: () => void;
   onPlaytest: () => void;
+  onGenerate: () => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
   activeTool, showGrid, showBorders,
   onTool, onToggleGrid, onToggleBorders, onFit,
   onUndo, onRedo,
-  onImport, onExport, onSaveStorage, onLoadMap, onLoadStorage, onPlaytest,
+  onImport, onExport, onSaveStorage, onLoadMap, onLoadStorage, onPlaytest, onGenerate,
 }) => (
   <div className={styles.bar}>
     <div className={styles.group}>
@@ -91,13 +92,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
       </button>
     </div>
 
-    <div className={`${styles.group} ${styles.groupRight}`}>
+    <div className={styles.group}>
       <button
         className={`${styles.btn} ${styles.playtestBtn}`}
         onClick={onPlaytest}
         title="Playtest room [P]"
       >
         <span className={styles.icon}>▶</span> Playtest <span className={styles.hk}>P</span>
+      </button>
+      <button
+        className={`${styles.btn} ${styles.generateBtn}`}
+        onClick={onGenerate}
+        title="Procedurally generate room"
+      >
+        <span className={styles.icon}>✨</span> Generate
       </button>
       <button className={`${styles.btn} ${styles.saveBtn}`} onClick={onExport} title="Export map [Ctrl+S]">
         <span className={styles.icon}>⬇</span> Export <span className={styles.hk}>^S</span>

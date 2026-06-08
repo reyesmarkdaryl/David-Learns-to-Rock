@@ -129,8 +129,8 @@ export class RoomDataConverter {
       const layer = layers.find(l => l.type === tile.type) || layers[0];
       layer.tiles[`${tile.x},${tile.y}`] = {
         sheetId: tile.tileId,
-        col: 0, // Defaults to 0 as RoomData doesn't store specific col/row in tiles
-        row: 0,
+        col: tile.col,
+        row: tile.row,
       };
     });
 

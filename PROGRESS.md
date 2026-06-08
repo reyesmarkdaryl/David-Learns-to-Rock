@@ -1,5 +1,7 @@
 # Project Progress - Rhythm Horde
 
+Last night we were working on procedurally creating a room in the room editor
+
 ## 🎯 Current Focus (June 2, 2026)
 - **Hero Animation & Asset Pipeline**: COMPLETED. Hero now uses a fully data-driven animation system with automatic texture switching.
 - **Special Attack Pipeline**: COMPLETED. Unified naming convention and data-driven frame control for all special effects.
@@ -28,7 +30,10 @@
   - Verified Hero movement and basic special attack triggers are working.
 
 ## 🚧 Remaining / Backlog
-- **Procedural Room Generation**: Implement a system to generate rooms automatically based on standardized tilesets.
+- **Procedural Room Generation (Palette-Driven)**: 
+  - [ ] **Phase 1: The Preselector UI**: Implement 5x5 grid panels (Floor A/B, Wall A/B) to map tileset tiles to semantic roles.
+  - [ ] **Phase 2: The Generator Core**: Implement `RoomGenerator` with Cellular Automata and Bitmasking for automatic tile selection.
+  - [ ] **Phase 3: Room Types & Playability**: Implement room type presets (Caves, Arenas) and BFS connectivity validation.
 - **Special Attack Expansion**: Implement upgraded versions of special attacks earned via the post-round upgrade panel (Reference: `gdd/dark_fantasy_powerup_panel.html`).
 - **Upgrade System Integration**: Fully wire the "Dark Fantasy" power-up panel into the game loop.
 - **Wave Progression**: Refine scaling and milestone boss fight triggers.
